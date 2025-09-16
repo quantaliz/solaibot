@@ -14,26 +14,11 @@
  * limitations under the License.
  */
 
-package com.quantaliz.solaibot
-
-import android.app.Application
-import com.quantaliz.solaibot.data.DataStoreRepository
-import com.quantaliz.solaibot.ui.theme.ThemeSettings
-import com.google.firebase.FirebaseApp
-import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
-
-@HiltAndroidApp
-class SolAIBotApplication : Application() {
-
-  @Inject lateinit var dataStoreRepository: DataStoreRepository
-
-  override fun onCreate() {
-    super.onCreate()
-
-    // Load saved theme.
-    ThemeSettings.themeOverride.value = dataStoreRepository.readTheme()
-
-    FirebaseApp.initializeApp(this)
-  }
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+  alias(libs.plugins.android.application) apply false
+  alias(libs.plugins.google.services) apply false
+  alias(libs.plugins.kotlin.android) apply false
+  alias(libs.plugins.kotlin.compose) apply false
+  alias(libs.plugins.hilt.application) apply false
 }
