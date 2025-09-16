@@ -31,7 +31,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.quantaliz.solaibot.GalleryTopAppBar
+import com.quantaliz.solaibot.SolAIBotTopAppBar
 import com.quantaliz.solaibot.data.AppBarAction
 import com.quantaliz.solaibot.data.AppBarActionType
 import com.quantaliz.solaibot.data.Model
@@ -74,7 +74,7 @@ fun ModelManager(
   Scaffold(
     modifier = modifier,
     topBar = {
-      GalleryTopAppBar(
+      SolAIBotTopAppBar(
         title = title,
         leftAction = AppBarAction(actionType = AppBarActionType.NAVIGATE_UP, actionFn = navigateUp),
       )

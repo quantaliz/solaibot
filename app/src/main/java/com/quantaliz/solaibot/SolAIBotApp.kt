@@ -24,7 +24,7 @@ import com.quantaliz.solaibot.ui.navigation.GalleryNavHost
 
 /** Top level composable representing the main screen of the application. */
 @Composable
-fun GalleryApp(
+fun SolAIBotApp(
   navController: NavHostController = rememberNavController(),
   modelManagerViewModel: ModelManagerViewModel,
 ) {

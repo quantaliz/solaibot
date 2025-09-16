@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
         setContent {
           GalleryTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
-              GalleryApp(modelManagerViewModel = modelManagerViewModel)
+              SolAIBotApp(modelManagerViewModel = modelManagerViewModel)
 
               // Fade out a "mask" that has the same color as the background of the splash screen
               // to reveal the actual app content.

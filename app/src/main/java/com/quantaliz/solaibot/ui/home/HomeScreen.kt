@@ -102,7 +102,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
-import com.quantaliz.solaibot.GalleryTopAppBar
+import com.quantaliz.solaibot.SolAIBotTopAppBar
 import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.AppBarAction
 import com.quantaliz.solaibot.data.AppBarActionType
@@ -335,7 +335,7 @@ fun HomeScreen(
                 translationY = ((-16).dp * (1 - progress)).toPx()
               }
           ) {
-            GalleryTopAppBar(
+            SolAIBotTopAppBar(
               title = stringResource(HomeScreenDestination.titleRes),
               rightAction =
                 AppBarAction(

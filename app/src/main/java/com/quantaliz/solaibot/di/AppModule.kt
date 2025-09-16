@@ -22,7 +22,7 @@ import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.datastore.dataStoreFile
 import com.quantaliz.solaibot.AppLifecycleProvider
-import com.quantaliz.solaibot.GalleryLifecycleProvider
+import com.quantaliz.solaibot.SolAIBotLifecycleProvider
 import com.quantaliz.solaibot.SettingsSerializer
 import com.quantaliz.solaibot.UserDataSerializer
 import com.quantaliz.solaibot.data.DataStoreRepository
@@ -86,7 +86,7 @@ internal object AppModule {
   @Provides
   @Singleton
   fun provideAppLifecycleProvider(): AppLifecycleProvider {
-    return GalleryLifecycleProvider()
+    return SolAIBotLifecycleProvider()
   }
 
   // Provides DataStoreRepository

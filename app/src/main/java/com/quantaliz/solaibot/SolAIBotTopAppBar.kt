@@ -52,7 +52,7 @@ import com.quantaliz.solaibot.data.AppBarActionType
 /** The top app bar. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GalleryTopAppBar(
+fun SolAIBotTopAppBar(
   title: String,
   modifier: Modifier = Modifier,
   leftAction: AppBarAction? = null,
