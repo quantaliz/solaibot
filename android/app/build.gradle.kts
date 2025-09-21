@@ -40,8 +40,7 @@ android {
 
     // Needed for HuggingFace auth workflows.
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
-    manifestPlaceholders["appAuthRedirectScheme"] =
-        "REPLACE_WITH_YOUR_REDIRECT_SCHEME_IN_HUGGINGFACE_APP"
+    manifestPlaceholders["appAuthRedirectScheme"] = "com.quantaliz.solaibot://oauth"
     manifestPlaceholders["applicationName"] = "com.quantaliz.solaibot.SolAIBotApplication"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

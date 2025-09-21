@@ -176,7 +176,7 @@ data class Model(
    *   device and using Model.getPath() for each one is often simpler than downloading them,
    *   especially for demos.
    */
-  val localFileRelativeDirPathOverride: String = "",
+  val localFileRelativeDirPathOverride: String = "import",
 
   /**
    * When set, the app will try to use this path to find the model file.
