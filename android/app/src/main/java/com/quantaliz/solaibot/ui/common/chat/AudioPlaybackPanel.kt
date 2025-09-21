@@ -51,6 +51,7 @@ import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.quantaliz.solaibot.data.MAX_AUDIO_CLIP_DURATION_SEC
 import com.quantaliz.solaibot.ui.theme.customColors
@@ -145,7 +146,10 @@ fun AudioPlaybackPanel(
     ) {
       Icon(
         if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-        contentDescription = "",
+        contentDescription =
+          stringResource(
+            if (isPlaying) R.string.cd_stop_playback_icon else R.string.cd_play_audio_icon
+          ),
         tint = if (onDarkBg) Color.White else MaterialTheme.colorScheme.primary,
       )
     }

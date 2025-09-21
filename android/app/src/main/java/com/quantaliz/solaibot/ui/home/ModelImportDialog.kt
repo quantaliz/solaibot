@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -332,7 +333,7 @@ fun ModelImportingDialog(
           ) {
             Icon(
               Icons.Rounded.Error,
-              contentDescription = "",
+              contentDescription = stringResource(R.string.cd_error),
               tint = MaterialTheme.colorScheme.error,
             )
             Text(

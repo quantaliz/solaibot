@@ -55,6 +55,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.quantaliz.solaibot.common.calculatePeakAmplitude
 import com.quantaliz.solaibot.data.MAX_AUDIO_CLIP_DURATION_SEC
@@ -133,7 +137,7 @@ fun AudioRecorderPanel(
     ) {
       Icon(
         Icons.Rounded.Close,
-        contentDescription = "Close audio recorder",
+        contentDescription = stringResource(R.string.close),
         tint = MaterialTheme.colorScheme.onSurface,
       )
     }
@@ -173,6 +177,7 @@ fun AudioRecorderPanel(
 
       // Record/send button.
       IconButton(
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
         onClick = {
           coroutineScope.launch {
             if (!isRecording) {
@@ -202,7 +207,10 @@ fun AudioRecorderPanel(
       ) {
         Icon(
           if (isRecording) Icons.Rounded.ArrowUpward else Icons.Rounded.Mic,
-          contentDescription = "",
+          contentDescription =
+            stringResource(
+              if (isRecording) R.string.cd_send_audio_clip_icon else R.string.cd_start_recording
+            ),
           tint = Color.White,
         )
       }

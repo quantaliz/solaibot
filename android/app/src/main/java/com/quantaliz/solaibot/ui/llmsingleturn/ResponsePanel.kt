@@ -59,6 +59,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quantaliz.solaibot.data.ConfigKeys
@@ -178,7 +182,7 @@ fun ResponsePanel(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                       Icon(
                         ICONS[index],
-                        contentDescription = "",
+                        contentDescription = null,
                         modifier = Modifier.size(16.dp).alpha(0.7f),
                         tint = titleColor,
                       )
@@ -209,7 +213,13 @@ fun ResponsePanel(
               Column(modifier = Modifier.fillMaxSize().verticalScroll(responseScrollState)) {
                 MarkdownText(
                   text = response,
-                  modifier = Modifier.padding(top = 8.dp, bottom = 40.dp),
+                  modifier =
+                    Modifier.padding(top = 8.dp, bottom = 40.dp).semantics {
+                      // Only announce when message is complete.
+                      if (!inProgress) {
+                        liveRegion = LiveRegionMode.Polite
+                      }
+                    },
                 )
               }
               // Copy button.
@@ -229,7 +239,7 @@ fun ResponsePanel(
               ) {
                 Icon(
                   Icons.Outlined.ContentCopy,
-                  contentDescription = "",
+                  contentDescription = stringResource(R.string.cd_copy_to_clipboard_icon),
                   modifier = Modifier.size(20.dp),
                 )
               }

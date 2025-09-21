@@ -39,6 +39,7 @@ import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.ui.common.getTaskBgGradientColors
 import com.quantaliz.solaibot.ui.theme.customColors
+import androidx.compose.ui.res.stringResource
 
 /** Composable function to display an icon representing the download status of a model. */
 @Composable
@@ -57,7 +58,7 @@ fun StatusIcon(
       Icon(
         Icons.Filled.DownloadForOffline,
         tint = getTaskBgGradientColors(task = task)[1],
-        contentDescription = "",
+        contentDescription = stringResource(R.string.cd_downloaded_icon),
         modifier = Modifier.size(MODEL_INFO_ICON_SIZE),
       )
     } else {
@@ -66,7 +67,7 @@ fun StatusIcon(
           Icon(
             Icons.AutoMirrored.Outlined.HelpOutline,
             tint = MaterialTheme.customColors.modelInfoIconColor,
-            contentDescription = "",
+            contentDescription = stringResource(R.string.cd_not_downloaded_icon),
             modifier = Modifier.size(MODEL_INFO_ICON_SIZE),
           )
 
@@ -74,7 +75,7 @@ fun StatusIcon(
           Icon(
             Icons.Filled.DownloadForOffline,
             tint = getTaskBgGradientColors(task = task)[1],
-            contentDescription = "",
+            contentDescription = stringResource(R.string.cd_downloaded_icon),
             modifier = Modifier.size(MODEL_INFO_ICON_SIZE),
           )
         }
@@ -83,14 +84,14 @@ fun StatusIcon(
           Icon(
             Icons.Rounded.Error,
             tint = Color(0xFFAA0000),
-            contentDescription = "",
+            contentDescription = stringResource(R.string.cd_download_failed_icon),
             modifier = Modifier.size(MODEL_INFO_ICON_SIZE),
           )
 
         ModelDownloadStatusType.IN_PROGRESS ->
           Icon(
             Icons.Rounded.Downloading,
-            contentDescription = "",
+            contentDescription = stringResource(R.string.cd_downloading_icon),
             modifier = Modifier.size(MODEL_INFO_ICON_SIZE),
           )
 

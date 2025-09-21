@@ -35,6 +35,7 @@ import com.quantaliz.solaibot.data.ModelDownloadStatus
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
+import androidx.compose.ui.res.stringResource
 
 /** Composable function to display a button for deleting the downloaded model. */
 @Composable
@@ -56,7 +57,7 @@ fun DeleteModelButton(
           IconButton(onClick = { showConfirmDeleteDialog = true }) {
             Icon(
               Icons.Outlined.Delete,
-              contentDescription = "",
+              contentDescription = stringResource(R.string.cd_delete_icon),
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.alpha(0.6f),
             )

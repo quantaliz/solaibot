@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import com.quantaliz.solaibot.data.Model
@@ -99,7 +100,7 @@ fun ModelPageAppBar(
             task.icon ?: ImageVector.vectorResource(task.iconVectorResourceId!!),
             tint = getTaskIconColor(task = task),
             modifier = Modifier.size(16.dp),
-            contentDescription = "",
+            contentDescription = null,
           )
           Text(
             task.label,
@@ -109,7 +110,9 @@ fun ModelPageAppBar(
         }
 
         // Model chips pager.
+        val enableModelPickerChip = !isModelInitializing && !inProgress
         ModelPickerChip(
+          enabled = enableModelPickerChip,
           task = task,
           initialModel = model,
           modelManagerViewModel = modelManagerViewModel,
@@ -122,7 +125,10 @@ fun ModelPageAppBar(
     navigationIcon = {
       val enableBackButton = !isModelInitializing && !inProgress
       IconButton(onClick = onBackClicked, enabled = enableBackButton) {
-        Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "")
+        Icon(
+          imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+          contentDescription = stringResource(R.string.cd_navigate_back_icon),
+        )
       }
     },
     // The config button for the model (if existed).
@@ -145,7 +151,7 @@ fun ModelPageAppBar(
           ) {
             Icon(
               imageVector = Icons.Rounded.Tune,
-              contentDescription = "Model setting button",
+              contentDescription = stringResource(R.string.cd_model_settings_icon),
               tint = MaterialTheme.colorScheme.onSurface,
               modifier = Modifier.size(20.dp),
             )
@@ -174,7 +180,7 @@ fun ModelPageAppBar(
               ) {
                 Icon(
                   imageVector = Icons.Rounded.MapsUgc,
-                  contentDescription = "",
+                  contentDescription = stringResource(R.string.cd_reset_session_icon),
                   tint = MaterialTheme.colorScheme.onSurface,
                   modifier = Modifier.size(20.dp),
                 )

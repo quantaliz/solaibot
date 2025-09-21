@@ -57,6 +57,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
@@ -138,7 +141,10 @@ fun ModelItem(
           @Composable {
             Icon(
               if (isExpanded) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
-              contentDescription = "",
+              contentDescription =
+                stringResource(
+                  if (isExpanded) R.string.cd_collapse_icon else R.string.cd_expand_icon
+                ),
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier =
                 Modifier.alpha(0.6f)
@@ -191,7 +197,10 @@ fun ModelItem(
           modifier = Modifier.padding(16.dp),
           verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.semantics { isTraversalGroup = true },
+          ) {
             ModelNameAndStatus(
               model = model,
               task = task,
