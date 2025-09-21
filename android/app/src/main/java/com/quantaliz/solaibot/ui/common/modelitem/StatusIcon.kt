@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.MODEL_INFO_ICON_SIZE
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.ModelDownloadStatus

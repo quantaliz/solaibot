@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.ai.edge.gallery.ui.common.chat
+package com.quantaliz.solaibot.ui.common.chat
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

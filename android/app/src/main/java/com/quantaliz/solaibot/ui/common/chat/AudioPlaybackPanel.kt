@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.MAX_AUDIO_CLIP_DURATION_SEC
 import com.quantaliz.solaibot.ui.theme.customColors
 import java.nio.ByteBuffer

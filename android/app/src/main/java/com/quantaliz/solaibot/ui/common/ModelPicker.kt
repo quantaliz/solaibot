@@ -16,11 +16,6 @@
 
 package com.quantaliz.solaibot.ui.common
 
-// import androidx.compose.ui.tooling.preview.Preview
-// import com.quantaliz.solaibot.ui.preview.PreviewModelManagerViewModel
-// import com.quantaliz.solaibot.ui.preview.TASK_TEST1
-// import com.quantaliz.solaibot.ui.theme.GalleryTheme
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.ui.common.modelitem.StatusIcon

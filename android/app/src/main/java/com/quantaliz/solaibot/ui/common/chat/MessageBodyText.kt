@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.ui.common.MarkdownText
 
 /** Composable function to display the text content of a ChatMessageText. */

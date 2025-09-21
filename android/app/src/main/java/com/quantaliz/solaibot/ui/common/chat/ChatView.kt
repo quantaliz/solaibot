@@ -16,10 +16,6 @@
 
 package com.quantaliz.solaibot.ui.common.chat
 
-// import com.quantaliz.solaibot.ui.preview.PreviewChatModel
-// import com.quantaliz.solaibot.ui.preview.PreviewModelManagerViewModel
-// import com.quantaliz.solaibot.ui.preview.TASK_TEST1
-// import com.quantaliz.solaibot.ui.theme.GalleryTheme
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -60,6 +56,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task

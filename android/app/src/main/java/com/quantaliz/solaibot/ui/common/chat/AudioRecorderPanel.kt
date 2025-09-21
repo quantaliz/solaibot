@@ -60,6 +60,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.common.calculatePeakAmplitude
 import com.quantaliz.solaibot.data.MAX_AUDIO_CLIP_DURATION_SEC
 import com.quantaliz.solaibot.data.SAMPLE_RATE

@@ -60,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Accelerator
 import com.quantaliz.solaibot.data.BooleanSwitchConfig
 import com.quantaliz.solaibot.data.Config

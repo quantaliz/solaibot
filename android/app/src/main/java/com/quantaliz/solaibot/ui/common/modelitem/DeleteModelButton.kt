@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.ModelDownloadStatus
 import com.quantaliz.solaibot.data.ModelDownloadStatusType

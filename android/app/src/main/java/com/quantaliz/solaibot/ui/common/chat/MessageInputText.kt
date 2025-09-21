@@ -118,6 +118,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.common.AudioClip
 import com.quantaliz.solaibot.common.convertWavToMonoWithMaxSeconds
 import com.quantaliz.solaibot.common.decodeSampledBitmapFromUri

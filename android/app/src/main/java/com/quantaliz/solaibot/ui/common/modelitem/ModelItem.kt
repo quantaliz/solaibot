@@ -16,16 +16,6 @@
 
 package com.quantaliz.solaibot.ui.common.modelitem
 
-// import androidx.compose.ui.tooling.preview.Preview
-// import com.quantaliz.solaibot.ui.preview.MODEL_TEST1
-// import com.quantaliz.solaibot.ui.preview.MODEL_TEST2
-// import com.quantaliz.solaibot.ui.preview.MODEL_TEST3
-// import com.quantaliz.solaibot.ui.preview.MODEL_TEST4
-// import com.quantaliz.solaibot.ui.preview.PreviewModelManagerViewModel
-// import com.quantaliz.solaibot.ui.preview.TASK_TEST1
-// import com.quantaliz.solaibot.ui.preview.TASK_TEST2
-// import com.quantaliz.solaibot.ui.theme.GalleryTheme
-
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -61,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.ui.common.MarkdownText

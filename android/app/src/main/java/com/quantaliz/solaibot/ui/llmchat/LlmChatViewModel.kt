@@ -196,10 +196,10 @@ open class LlmChatViewModelBase() : ChatViewModel() {
         try {
           val supportImage =
             model.llmSupportImage &&
-              task.id == com.google.ai.edge.gallery.data.BuiltInTaskId.LLM_ASK_IMAGE
+              task.id == com.quantaliz.solaibot.data.BuiltInTaskId.LLM_ASK_IMAGE
           val supportAudio =
             model.llmSupportAudio &&
-              task.id == com.google.ai.edge.gallery.data.BuiltInTaskId.LLM_ASK_AUDIO
+              task.id == com.quantaliz.solaibot.data.BuiltInTaskId.LLM_ASK_AUDIO
           LlmChatModelHelper.resetSession(
             model = model,
             supportImage = supportImage,

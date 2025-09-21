@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import com.quantaliz.solaibot.R
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task
