@@ -2,9 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## 🤝 Feedback & Contributions
-
-This is a **Cypherpunk 2025 submission** — we welcome collaboration and ideas!
+This is a **Cypherpunk** & **Hackaroo** 2025 submission — we welcome collaboration and ideas!
 
 The Solaibot is an experimental app that puts the power of cutting-edge Generative AI models directly into your hands, running entirely on your Android/Seeker devices. Dive into a world of creative and practical AI use cases, all running locally, without needing an internet connection once the model is loaded. It comes embeded with a default model which can chat, ask questions with images and audio clip, explore prompts, and...
 
@@ -38,6 +36,11 @@ NOTE!! This is a derivative work of [Google AI Edge Gallery](https://github.com/
 *   **📊 Performance Insights:** Real-time benchmarks (TTFT, decode speed, latency).
 *   **🧩 Compatible with other Models:** Test your local LiteRT `.litertlm` models.
 *   **🔗 Developer Resources:** Quick links to model cards and source code.
+
+### Most importantly
+*   **🔐 Solana Wallet Integration:** Connect your Phantom or Backpack wallet to enable token-gated prompts, NFT-based model access, and signed AI transactions.
+*   **🧾 x402 payments:** Use your private agent to make payments for services online using Solana
+---
 
 ## Hackathon
 This project has been developed for:
