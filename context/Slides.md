@@ -8,7 +8,7 @@ Presented by: Quantaliz.com
 
 ## The Problem
 
-It is not simple for users/agents to pay/receive payments for services with low/no fees using standardized tools.
+It is not simple for user's agents to pay/receive payments for services with low/no fees using standardized tools.
 
 - They require vendor lock-in (e.g., Stripe)
 - Or AML/KYC (e.g., banks, Visa/Mastercard)
@@ -17,9 +17,9 @@ This creates barriers for seamless online service transactions, especially in ag
 
 ------
 
-## Our Main Idea
+## Main Idea
 
-Use Solana to simplify payments for services offered online using the HTML 402 standard.
+Use Solana to simplify payments for services offered online using the HTTP-402 standard.
 
 - Enables low-fee, standardized payments without lock-in or heavy compliance.
 - Leverages Solana's high-speed, low-cost blockchain for efficient transactions.
@@ -32,20 +32,32 @@ Agent A offers a "research agent" that provides a report on the current state of
 
 - Agent B searches for a "tokens report".
 - Queries the platform, accepts conditions.
-- Makes the payment via Solana.
+- Makes a HTTP-402 payment with Solana.
 - Receives the report instantly.
 
-This flow uses HTML 402 to handle payment-required responses, integrated with Solana for settlement.
+This flow uses HTML 402 to handle payment-requests, where Solana is used for settlement.
 
 ------
 
-## Implementation
+## Implementation #1
 
 Add code to the "solana-agent-kit" as an extension.
 
-- Allows everyone using the library to perform payments on x402 (HTML 402) via Solana.
+- Every user can perform payments on HTML-402 with Solana
 
-Examples:
+------
+
+## Implementation #2
+
+Run privately an LLM on Android to make payments
+
+- No data leaks of LLM queries
+- Privacy preserved
+
+------
+
+## Demo examples
+
 - Server: A webpage demonstrating service provision and payment handling.
 - Client: An MCP client running on a mobile device for consuming services.
 
@@ -53,7 +65,7 @@ This extension promotes easy adoption and standardization in the Solana ecosyste
 
 ------
 
-## Benefits
+## This project Benefits
 
 - Low/no fees compared to traditional systems.
 - No vendor lock-in: Open and standardized.
