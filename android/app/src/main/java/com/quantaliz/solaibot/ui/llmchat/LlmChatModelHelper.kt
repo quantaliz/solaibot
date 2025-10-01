@@ -87,6 +87,7 @@ object LlmChatModelHelper {
       )
 
     // Create an instance of the LLM Inference task and session.
+    // Try GPU first, fallback to CPU if it fails
     try {
       val engine = Engine(engineConfig)
       engine.initialize()
@@ -97,9 +98,40 @@ object LlmChatModelHelper {
         )
       val session = engine.createSession(sessionConfig)
       model.instance = LlmModelInstance(engine = engine, session = session)
+      Log.d(TAG, "Model initialized successfully with ${if (preferredBackend == Backend.GPU) "GPU" else "CPU"}")
     } catch (e: Exception) {
-      onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
-      return
+      // If GPU failed, try CPU fallback
+      if (preferredBackend == Backend.GPU) {
+        Log.w(TAG, "GPU initialization failed, trying CPU fallback: ${e.message}")
+        try {
+          val cpuEngineConfig =
+            EngineConfig(
+              modelPath = model.getPath(context = context),
+              backend = Backend.CPU,
+              visionBackend = if (shouldEnableImage) Backend.GPU else null,
+              audioBackend = if (shouldEnableAudio) Backend.CPU else null,
+              maxNumTokens = maxTokens,
+              enableBenchmark = true,
+            )
+          val engine = Engine(cpuEngineConfig)
+          engine.initialize()
+
+          val sessionConfig =
+            SessionConfig(
+              SamplerConfig(topK = topK, topP = topP.toDouble(), temperature = temperature.toDouble())
+            )
+          val session = engine.createSession(sessionConfig)
+          model.instance = LlmModelInstance(engine = engine, session = session)
+          Log.d(TAG, "Model initialized successfully with CPU fallback")
+        } catch (cpuException: Exception) {
+          Log.e(TAG, "CPU fallback also failed: ${cpuException.message}", cpuException)
+          onDone(cleanUpMediapipeTaskErrorMessage(cpuException.message ?: "Unknown error"))
+          return
+        }
+      } else {
+        onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
+        return
+      }
     }
     onDone("")
   }

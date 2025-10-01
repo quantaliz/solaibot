@@ -27,6 +27,7 @@ import com.quantaliz.solaibot.customtasks.common.CustomTask
 import com.quantaliz.solaibot.customtasks.common.CustomTaskDataForBuiltinTask
 import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.Category
+import com.quantaliz.solaibot.data.MODEL_HAMMER_2_1_1_5B
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
 import dagger.Module
@@ -47,7 +48,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       label = "AI Chat",
       category = Category.LLM,
       icon = Icons.Outlined.Forum,
-      models = mutableListOf(),
+      models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
       description = "Chat with on-device large language models",
       docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
       sourceCodeUrl =
