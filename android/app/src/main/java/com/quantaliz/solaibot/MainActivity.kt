@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
 
   private val modelManagerViewModel: ModelManagerViewModel by viewModels()
 
+  // Create ActivityResultSender early - must be created before onCreate completes
+  // to satisfy ActivityResult API requirements
+  private val activityResultSender = com.solana.mobilewalletadapter.clientlib.ActivityResultSender(this)
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -95,7 +99,10 @@ class MainActivity : ComponentActivity() {
         setContent {
           GalleryTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
-              SolAIBotApp(modelManagerViewModel = modelManagerViewModel)
+              SolAIBotApp(
+                modelManagerViewModel = modelManagerViewModel,
+                activityResultSender = activityResultSender
+              )
 
               // Fade out a "mask" that has the same color as the background of the splash screen
               // to reveal the actual app content.

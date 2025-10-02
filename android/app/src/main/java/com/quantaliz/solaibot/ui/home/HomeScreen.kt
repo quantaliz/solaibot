@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -56,6 +57,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -125,6 +127,8 @@ import com.quantaliz.solaibot.ui.common.tos.TosDialog
 import com.quantaliz.solaibot.ui.common.tos.TosViewModel
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
 import com.quantaliz.solaibot.ui.theme.customColors
+import com.quantaliz.solaibot.ui.wallet.WalletViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.quantaliz.solaibot.ui.theme.homePageTitleStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -163,14 +167,18 @@ private val PREDEFINED_LLM_TASK_ORDER =
 fun HomeScreen(
   modelManagerViewModel: ModelManagerViewModel,
   tosViewModel: TosViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
   navigateToTaskScreen: (Task) -> Unit,
   modifier: Modifier = Modifier,
+  walletViewModel: WalletViewModel = hiltViewModel(),
 ) {
   val uiState by modelManagerViewModel.uiState.collectAsState()
+  val walletUiState by walletViewModel.uiState.collectAsState()
   var showSettingsDialog by remember { mutableStateOf(false) }
   var showImportModelSheet by remember { mutableStateOf(false) }
   var showUnsupportedFileTypeDialog by remember { mutableStateOf(false) }
   var showUnsupportedWebModelDialog by remember { mutableStateOf(false) }
+  var showWalletDialog by remember { mutableStateOf(false) }
   val sheetState = rememberModalBottomSheetState()
   var showImportDialog by remember { mutableStateOf(false) }
   var showImportingDialog by remember { mutableStateOf(false) }
@@ -351,15 +359,31 @@ fun HomeScreen(
           }
         },
         floatingActionButton = {
-          // A floating action button to show "import model" bottom sheet.
-          val cdImportModelFab = stringResource(R.string.cd_import_model_button)
-          SmallFloatingActionButton(
-            onClick = { showImportModelSheet = true },
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.semantics { contentDescription = cdImportModelFab },
+          // Row containing wallet button and import model button
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.wrapContentSize()
           ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
+            // Wallet connection button
+            SmallFloatingActionButton(
+              onClick = { showWalletDialog = true },
+              containerColor = MaterialTheme.colorScheme.primaryContainer,
+              contentColor = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.semantics { contentDescription = "Connect to Solana wallet" },
+            ) {
+              Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null)
+            }
+
+            // A floating action button to show "import model" bottom sheet.
+            val cdImportModelFab = stringResource(R.string.cd_import_model_button)
+            SmallFloatingActionButton(
+              onClick = { showImportModelSheet = true },
+              containerColor = MaterialTheme.colorScheme.secondaryContainer,
+              contentColor = MaterialTheme.colorScheme.secondary,
+              modifier = Modifier.semantics { contentDescription = cdImportModelFab },
+            ) {
+              Icon(Icons.Filled.Add, contentDescription = null)
+            }
           }
         },
       ) { innerPadding ->
@@ -588,6 +612,19 @@ fun HomeScreen(
           Text("Cancel")
         }
       },
+    )
+  }
+
+  // Wallet connection dialog
+  if (showWalletDialog) {
+    WalletConnectionDialog(
+      walletUiState = walletUiState,
+      walletViewModel = walletViewModel,
+      activityResultSender = activityResultSender,
+      onDismiss = {
+        showWalletDialog = false
+        walletViewModel.clearError()
+      }
     )
   }
 }
@@ -939,6 +976,86 @@ private fun getCategoryLabel(context: Context, category: CategoryInfo): String {
     return label
   }
   return context.getString(R.string.category_unlabeled)
+}
+
+@Composable
+private fun WalletConnectionDialog(
+  walletUiState: com.quantaliz.solaibot.ui.wallet.WalletUiState,
+  walletViewModel: WalletViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
+  onDismiss: () -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    icon = {
+      Icon(
+        Icons.Rounded.AccountBalanceWallet,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+      )
+    },
+    title = { Text("Solana Wallet Connection") },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (walletUiState.isConnecting) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            CircularProgressIndicator(
+              modifier = Modifier.size(20.dp),
+              strokeWidth = 2.dp
+            )
+            Text("Connecting to wallet...")
+          }
+        } else if (walletUiState.isConnected) {
+          Text("Connected to wallet")
+          walletUiState.publicKey?.let { publicKey ->
+            Text(
+              "Public Key: ${publicKey.take(8)}...${publicKey.takeLast(8)}",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        } else {
+          Text("Connect to your Phantom wallet or any MWA-compatible Solana wallet to enable blockchain features.")
+        }
+
+        walletUiState.error?.let { error ->
+          Text(
+            error,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
+      }
+    },
+    confirmButton = {
+      if (walletUiState.isConnected) {
+        Button(
+          onClick = {
+            walletViewModel.disconnectWallet(activityResultSender)
+          }
+        ) {
+          Text("Disconnect")
+        }
+      } else {
+        Button(
+          onClick = {
+            walletViewModel.connectWallet(activityResultSender)
+          },
+          enabled = !walletUiState.isConnecting
+        ) {
+          Text("Connect")
+        }
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text("Close")
+      }
+    }
+  )
 }
 
 // @Preview

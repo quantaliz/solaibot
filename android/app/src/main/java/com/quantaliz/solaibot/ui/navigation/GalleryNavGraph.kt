@@ -115,6 +115,7 @@ fun GalleryNavHost(
   navController: NavHostController,
   modifier: Modifier = Modifier,
   modelManagerViewModel: ModelManagerViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
 ) {
   val lifecycleOwner = LocalLifecycleOwner.current
   var showModelManager by remember { mutableStateOf(false) }
@@ -146,6 +147,7 @@ fun GalleryNavHost(
   HomeScreen(
     modelManagerViewModel = modelManagerViewModel,
     tosViewModel = hiltViewModel(),
+    activityResultSender = activityResultSender,
     navigateToTaskScreen = { task ->
       pickedTask = task
       showModelManager = true

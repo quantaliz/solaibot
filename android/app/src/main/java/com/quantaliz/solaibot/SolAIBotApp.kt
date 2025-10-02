@@ -27,6 +27,11 @@ import com.quantaliz.solaibot.ui.navigation.GalleryNavHost
 fun SolAIBotApp(
   navController: NavHostController = rememberNavController(),
   modelManagerViewModel: ModelManagerViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
 ) {
-  GalleryNavHost(navController = navController, modelManagerViewModel = modelManagerViewModel)
+  GalleryNavHost(
+    navController = navController,
+    modelManagerViewModel = modelManagerViewModel,
+    activityResultSender = activityResultSender
+  )
 }
