@@ -601,7 +601,7 @@ private fun AppTitle() {
   val fontSize = with(LocalDensity.current) { (screenWidthInDp.toPx() * 0.12f).toSp() }
   val titleStyle = homePageTitleStyle.copy(fontSize = fontSize, lineHeight = fontSize)
 
-  // First line text "Google AI" and its animation.
+  // First line text "SolAIBot" and its animation.
   //
   // The animation starts with the first line of text swiping in from left to right, progressively
   // revealing itself in the title color (blue). Then, after a brief delay, the exact same text, but
@@ -627,7 +627,7 @@ private fun AppTitle() {
       animationDurationMs = TITLE_FIRST_LINE_ANIMATION_DURATION,
     )
   }
-  // Second line text "Edge Gallery" and its animation.
+  // Second line text "SolAIBot" and its animation.
   //
   // The initial animation is the same as the first line text. Right before it is done, the final
   // text with a gradient is revealed.

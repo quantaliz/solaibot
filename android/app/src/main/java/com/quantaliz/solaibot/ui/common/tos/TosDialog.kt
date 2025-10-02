@@ -79,9 +79,9 @@ fun TosDialog(onTosAccepted: () -> Unit, viewingMode: Boolean = false) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = false)) {
           // Short content.
           MarkdownText(
-            "To use Google AI Edge Gallery, you accept " +
+            "To use SolAIBot (based on Google AI Edge Gallery), you accept " +
               "(1) the [Google Terms of Service](https://policies.google.com/terms), and (2) " +
-              "these Google AI Edge Gallery App Additional Terms of Service. Please read these " +
+              "these SolAIBot Additional Terms of Service. Please read these " +
               "documents carefully. Together, these documents are known as the “Terms”. They " +
               "establish what you can expect from us as you use our " +
               "[services](https://policies.google.com/terms/service-specific?hl=en-US), " +
@@ -94,7 +94,7 @@ fun TosDialog(onTosAccepted: () -> Unit, viewingMode: Boolean = false) {
           // Long content.
           if (viewFullTerms) {
             MarkdownText(
-              "In addition, your use of any Gemma models in the Google AI Edge Gallery app is " +
+              "In addition, your use of any Gemma models in the SolAIBot app is " +
                 "governed by the [Gemma Terms of Use](https://ai.google.dev/gemma/terms), " +
                 "including the [Gemma Prohibited Use Policy]" +
                 "(https://ai.google.dev/gemma/prohibited_use_policy). By using, reproducing, " +
@@ -102,7 +102,7 @@ fun TosDialog(onTosAccepted: () -> Unit, viewingMode: Boolean = false) {
                 "Gemma or any Gemma model derivatives, you agree to be bound by [those terms]" +
                 "(https://ai.google.dev/gemma/terms) and that policy.\n" +
                 "\n" +
-                "Your use of any other AI models in Google AI Edge Gallery is subject to " +
+                "Your use of any other AI models in SolAIBot is subject to " +
                 "applicable terms and licenses, as described in the “Other content” section of " +
                 "the [Google Terms of Service](https://policies.google.com/terms). Please read " +
                 "those terms carefully before using any third-party model. You are responsible " +
@@ -110,7 +110,7 @@ fun TosDialog(onTosAccepted: () -> Unit, viewingMode: Boolean = false) {
                 "applicable terms. Google does not operate, control, or endorse these " +
                 "offerings, and is not responsible or liable for them.\n" +
                 "\n" +
-                "Google AI Edge Gallery may collect anonymous usage data about your use of the " +
+                "SolAIBot may collect anonymous usage data about your use of the " +
                 "app and share such data with Google. We encourage you to read our " +
                 "[Privacy Policy](https://policies.google.com/privacy). It explains what " +
                 "information we collect, why we collect it, and how you can " +
