@@ -1,5 +1,30 @@
 # AI Edge Function Calling guide for Android
 
+The AI Edge Function Calling SDK (FC SDK) is a library that enables developers to use function calling with on-device LLMs. Function calling lets you connect models to external tools and APIs, enabling models to call specific functions with the necessary parameters to execute real-world actions.
+
+Rather than just generating text, an LLM using the FC SDK can generate a structured call to a function that executes an action, such as searching for up-to-date information, setting alarms, or making reservations.
+
+The AI Edge FC SDK is available for Android and can be run completely on-device with the LLM Inference API. Start using the SDK by following the Android guide, which walks you through a basic implementation of a sample application using function calling.
+
+## Function calling pipeline
+
+Setting up an on-device LLM with function calling capabilities requires the following key steps:
+
+Define function declarations: The structure and parameters of the functions that the LLM can call must be defined in your application code. This includes specifying function names, parameters, and types.
+Format prompts and outputs: Input and output text can contain natural language and function calls. A formatter controls how data structures are converted to and from strings, enabling the LLM to appropriately format information.
+Parse outputs: A parser detects if the generated response contains a function call and parses it into a structured data type so that the application can execute the function call.
+Examine responses: If the parser detects a function call, the application calls the function with the appropriate parameters and structured data type. Otherwise, it returns natural language text.
+
+## Key components
+
+The FC SDK contains to following key components:
+
+Inference Backend: An interface for running inference on a generative AI model. The FC SDK uses the LLM Inference API to execute inference on LiteRT (TFLite) models. The API uses the InferenceBackend interface.
+Prompt Formatter: An interface for formatting requests and responses to and from the Generative AI model. The FC SDK provides a formatter that converts function declarations into the model-specific format required by the LLM and inserts them into the system prompt. The formatter also handles model-specific tokens to indicate user and model turns. The API uses the ModelFormatter interface.
+Output Parser: The FC SDK provides a parser that detects if the model's output represents a function call and parses it into a data structure for use by the application. The API uses the ModelFormatter interface.
+Constrained Decoding: An interface for creating and managing constraints to ensure that the generated output adheres to specific rules or conditions. For supported models, the FC SDK will configure the inference backend to use constrained decoding, which ensures that the model only outputs valid function names and parameters. The API uses the ConstraintProvider interface
+
+
 ## Warnings and Important Notes
 
 **Attention:** The AI Edge Function Calling SDK is under active development.
