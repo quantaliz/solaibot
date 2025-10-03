@@ -29,6 +29,7 @@ import com.quantaliz.solaibot.data.DEFAULT_TOPP
 import com.quantaliz.solaibot.data.MAX_IMAGE_COUNT
 import com.quantaliz.solaibot.data.Model
 import com.google.ai.edge.litertlm.Backend
+import com.quantaliz.solaibot.ui.llmchat.LlmFunctionCallingModelHelper
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.InputData
@@ -57,6 +58,11 @@ object LlmChatModelHelper {
     supportAudio: Boolean,
     onDone: (String) -> Unit,
   ) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(context, model, supportImage, supportAudio, onDone)
+      return
+    }
     // Prepare options.
     val maxTokens =
       model.getIntConfigValue(key = ConfigKeys.MAX_TOKENS, defaultValue = DEFAULT_MAX_TOKEN)
@@ -137,6 +143,12 @@ object LlmChatModelHelper {
   }
 
   fun resetSession(model: Model, supportImage: Boolean, supportAudio: Boolean) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.resetSession(model, supportImage, supportAudio)
+      return
+    }
+
     try {
       Log.d(TAG, "Resetting session for model '${model.name}'")
 
@@ -165,6 +177,12 @@ object LlmChatModelHelper {
   }
 
   fun cleanUp(model: Model, onDone: () -> Unit) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model, onDone)
+      return
+    }
+
     if (model.instance == null) {
       return
     }
@@ -201,6 +219,19 @@ object LlmChatModelHelper {
     images: List<Bitmap> = listOf(),
     audioClips: List<ByteArray> = listOf(),
   ) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.runInference(
+        model = model,
+        input = input,
+        resultListener = resultListener,
+        cleanUpListener = cleanUpListener,
+        images = images,
+        audioClips = audioClips
+      )
+      return
+    }
+
     val instance = model.instance as LlmModelInstance
 
     // Set listener.

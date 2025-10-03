@@ -207,11 +207,14 @@ data class Model(
   /** Whether the LLM model supports image input. */
   val llmSupportImage: Boolean = false,
 
-  /** Whether the LLM model supports audio input. */
-  val llmSupportAudio: Boolean = false,
+   /** Whether the LLM model supports audio input. */
+   val llmSupportAudio: Boolean = false,
 
-  /** Whether the model is imported or not. */
-  val imported: Boolean = false,
+   /** Whether the LLM model supports function calling. */
+   val llmSupportFunctionCalling: Boolean = false,
+
+   /** Whether the model is imported or not. */
+   val imported: Boolean = false,
 
   // The following fields are managed by the app. Don't need to set manually.
   //
@@ -444,18 +447,19 @@ val EMPTY_MODEL: Model =
 // LLM models for chat.
 
 val MODEL_HAMMER_2_1_1_5B: Model =
-  Model(
-    name = "Hammer-2.1-1.5B",
-    displayName = "Hammer 2.1 1.5B",
-    info = "Hammer 2.1 1.5B quantized model optimized for on-device inference. Supports GPU and CPU acceleration.",
-    configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
-    url = "https://huggingface.co/litert-community/Hammer2.1-1.5b/resolve/main/Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
-    downloadFileName = "Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm",
-    sizeInBytes = 1610612736L, // 1.5 GB
-    showBenchmarkButton = true,
-    showRunAgainButton = true,
-    learnMoreUrl = "https://huggingface.co/litert-community/Hammer2.1-1.5b",
-  )
+   Model(
+     name = "Hammer-2.1-1.5B",
+     displayName = "Hammer 2.1 1.5B (Function Calling)",
+     info = "Hammer 2.1 1.5B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
+     configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
+     url = "https://huggingface.co/litert-community/Hammer2.1-1.5b/resolve/main/Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
+     downloadFileName = "Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm",
+     sizeInBytes = 1610612736L, // 1.5 GB
+     showBenchmarkButton = true,
+     showRunAgainButton = true,
+     learnMoreUrl = "https://huggingface.co/litert-community/Hammer2.1-1.5b",
+     llmSupportFunctionCalling = true,
+   )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Model collections for different tasks.
