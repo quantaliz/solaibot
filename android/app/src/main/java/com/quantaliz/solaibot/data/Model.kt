@@ -207,14 +207,14 @@ data class Model(
   /** Whether the LLM model supports image input. */
   val llmSupportImage: Boolean = false,
 
-   /** Whether the LLM model supports audio input. */
-   val llmSupportAudio: Boolean = false,
+  /** Whether the LLM model supports audio input. */
+  val llmSupportAudio: Boolean = false,
 
-   /** Whether the LLM model supports function calling. */
-   val llmSupportFunctionCalling: Boolean = false,
+  /** Whether the LLM model supports function calling. */
+  val llmSupportFunctionCalling: Boolean = false,
 
-   /** Whether the model is imported or not. */
-   val imported: Boolean = false,
+  /** Whether the model is imported or not. */
+  val imported: Boolean = false,
 
   // The following fields are managed by the app. Don't need to set manually.
   //
