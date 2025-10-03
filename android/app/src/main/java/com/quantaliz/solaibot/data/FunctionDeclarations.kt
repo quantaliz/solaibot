@@ -20,6 +20,9 @@ import com.google.ai.edge.localagents.FunctionDeclaration
 import com.google.ai.edge.localagents.Schema
 import com.google.ai.edge.localagents.Tool
 import com.google.ai.edge.localagents.Type
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Function declarations for the Hammer 2.1 model to enable function calling.
@@ -33,11 +36,13 @@ val getWeatherFunction = FunctionDeclaration.newBuilder()
     .setParameters(
         Schema.newBuilder()
             .setType(Type.OBJECT)
-            .putProperties(
-                "location",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The city or location to get weather for")
+            .putProperties("location", Schema.newBuilder()
+                .setType(Type.STRING)
+                .setDescription("The city or location to get weather for")
+                .build())
+            .setRequired(listOf("location"))
+            .build()
+    )
     .build()
 
 // Example function: Get current time
@@ -66,13 +71,10 @@ val calculateFunction = FunctionDeclaration.newBuilder()
     .setParameters(
         Schema.newBuilder()
             .setType(Type.OBJECT)
-            .putProperties(
-                "expression",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The mathematical expression to evaluate (e.g., '2 + 3 * 4')")
-                    .build()
-            )
+            .putProperties("expression", Schema.newBuilder()
+                .setType(Type.STRING)
+                .setDescription("The mathematical expression to evaluate (e.g., '2 + 3 * 4')")
+                .build())
             .setRequired(listOf("expression"))
             .build()
     )
@@ -122,26 +124,18 @@ val calculateFunction = FunctionDeclaration.newBuilder()
             .build()
     )
     .build()
-            )
-            .setRequired(listOf("location"))
-            .build()
-    )
-    .build()
 
 // Example function: Get current time
-val getTimeFunction = com.google.ai.edge.localagents.FunctionDeclaration.newBuilder()
+val getTimeFunction = FunctionDeclaration.newBuilder()
     .setName("get_time")
     .setDescription("Get the current time in a specific timezone")
     .setParameters(
         Schema.newBuilder()
             .setType(Type.OBJECT)
-            .putProperties(
-                "timezone",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The timezone (e.g., 'America/New_York', 'Europe/London')")
-                    .build()
-            )
+            .putProperties("timezone", Schema.newBuilder()
+                .setType(Type.STRING)
+                .setDescription("The timezone (e.g., 'America/New_York', 'Europe/London')")
+                .build())
             .setRequired(listOf("timezone"))
             .build()
     )
@@ -180,34 +174,103 @@ fun executeFunction(functionName: String, args: Map<String, String>): String {
     return when (functionName) {
         "get_weather" -> {
             val location = args["location"] ?: "unknown"
-            // Mock weather data - replace with actual weather API call
+            // TODO: Replace with actual weather API call (e.g., OpenWeatherMap)
+            // For now, return mock data
             "The weather in $location is sunny with a temperature of 72°F"
         }
         "get_time" -> {
             val timezone = args["timezone"] ?: "UTC"
-            // Mock time data - replace with actual time service
-            "The current time in $timezone is 3:45 PM"
+            try {
+                val zoneId = ZoneId.of(timezone)
+                val now = ZonedDateTime.now(zoneId)
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
+                "The current time in $timezone is ${now.format(formatter)}"
+            } catch (e: Exception) {
+                "Error getting time for timezone $timezone: ${e.message}"
+            }
         }
         "calculate" -> {
             val expression = args["expression"] ?: "0"
-            // Mock calculation - replace with actual calculator
             try {
-                // Simple evaluation for demo - use a proper expression evaluator in production
-                when {
-                    expression.contains("+") -> {
-                        val parts = expression.split("+").map { it.trim().toDoubleOrNull() ?: 0.0 }
-                        "${parts[0] + (parts.getOrNull(1) ?: 0.0)}"
-                    }
-                    expression.contains("*") -> {
-                        val parts = expression.split("*").map { it.trim().toDoubleOrNull() ?: 0.0 }
-                        "${parts[0] * (parts.getOrNull(1) ?: 0.0)}"
-                    }
-                    else -> "Result: $expression"
-                }
+                // Simple calculator implementation - supports basic arithmetic
+                val result = evaluateExpression(expression)
+                "The result of $expression is $result"
             } catch (e: Exception) {
-                "Error calculating: $expression"
+                "Error calculating $expression: ${e.message}"
             }
         }
         else -> "Unknown function: $functionName"
     }
+}
+
+/**
+ * Simple expression evaluator for basic arithmetic.
+ * Supports +, -, *, /, and parentheses.
+ */
+private fun evaluateExpression(expression: String): Double {
+    return object {
+        var pos = -1
+        var ch = 0
+
+        fun nextChar() {
+            ch = if (++pos < expression.length) expression[pos].code else -1
+        }
+
+        fun eat(charToEat: Int): Boolean {
+            while (ch == ' '.code) nextChar()
+            if (ch == charToEat) {
+                nextChar()
+                return true
+            }
+            return false
+        }
+
+        fun parse(): Double {
+            nextChar()
+            val x = parseExpression()
+            if (pos < expression.length) throw RuntimeException("Unexpected: " + ch.toChar())
+            return x
+        }
+
+        fun parseExpression(): Double {
+            var x = parseTerm()
+            while (true) {
+                when {
+                    eat('+'.code) -> x += parseTerm()
+                    eat('-'.code) -> x -= parseTerm()
+                    else -> return x
+                }
+            }
+        }
+
+        fun parseTerm(): Double {
+            var x = parseFactor()
+            while (true) {
+                when {
+                    eat('*'.code) -> x *= parseFactor()
+                    eat('/'.code) -> x /= parseFactor()
+                    else -> return x
+                }
+            }
+        }
+
+        fun parseFactor(): Double {
+            if (eat('+'.code)) return parseFactor()
+            if (eat('-'.code)) return -parseFactor()
+
+            var x: Double
+            val startPos = pos
+            if (eat('('.code)) {
+                x = parseExpression()
+                eat(')'.code)
+            } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
+                while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
+                x = expression.substring(startPos, pos).toDouble()
+            } else {
+                throw RuntimeException("Unexpected: " + ch.toChar())
+            }
+
+            return x
+        }
+    }.parse()
 }

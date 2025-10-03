@@ -178,45 +178,46 @@ object LlmFunctionCallingModelHelper {
                             resultListener(part.text, false)
                         }
                         part.hasFunctionCall() -> {
-                        // Function call detected
-                        val functionCall = part.functionCall
-                        val functionName = functionCall.name
-                        val args = mutableMapOf<String, String>()
-                        val fieldsMap = functionCall.args.fieldsMap
-                        for (key in fieldsMap.keys) {
-                            args[key] = fieldsMap[key]?.stringValue ?: ""
-                        }
+                            // Function call detected
+                            val functionCall = part.functionCall
+                            val functionName = functionCall.name
+                            val args = mutableMapOf<String, String>()
+                            val fieldsMap = functionCall.args.fieldsMap
+                            for (key in fieldsMap.keys) {
+                                args[key] = fieldsMap[key]?.stringValue ?: ""
+                            }
 
-                        Log.d(TAG, "Function call detected: $functionName with args: $args")
+                            Log.d(TAG, "Function call detected: $functionName with args: $args")
 
-                        // Execute the function
-                        val functionResult = executeFunction(functionName, args)
+                            // Execute the function
+                            val functionResult = executeFunction(functionName, args)
 
-                        // Send function response back to the model
-                        val functionResponse = FunctionResponse.newBuilder()
-                            .setName(functionName)
-                            .setResponse(
-                                Struct.newBuilder()
-                                    .putFields("result", Value.newBuilder().setStringValue(functionResult).build())
-                            )
-                            .build()
+                            // Send function response back to the model
+                            val functionResponse = FunctionResponse.newBuilder()
+                                .setName(functionName)
+                                .setResponse(
+                                    Struct.newBuilder()
+                                        .putFields("result", Value.newBuilder().setStringValue(functionResult).build())
+                                )
+                                .build()
 
-                        val functionResponseContent = Content.newBuilder()
-                            .setRole("user")
-                            .addParts(Part.newBuilder().setFunctionResponse(functionResponse))
-                            .build()
+                            val functionResponseContent = Content.newBuilder()
+                                .setRole("user")
+                                .addParts(Part.newBuilder().setFunctionResponse(functionResponse))
+                                .build()
 
-                        // Get the model's response to the function result
-                        val followUpResponse = instance.chat.sendMessage(functionResponseContent)
+                            // Get the model's response to the function result
+                            val followUpResponse = instance.chat.sendMessage(functionResponseContent)
 
-                        // Return the follow-up response
-                        val candidates = followUpResponse.candidates
-                        if (candidates.isNotEmpty()) {
-                            val content = candidates[0].content
-                            val parts = content.parts
-                            for (followUpPart in parts) {
-                                if (followUpPart.hasText()) {
-                                    resultListener(followUpPart.text, false)
+                            // Return the follow-up response
+                            val followUpCandidates = followUpResponse.candidates
+                            if (followUpCandidates.isNotEmpty()) {
+                                val followUpContent = followUpCandidates[0].content
+                                val followUpParts = followUpContent.parts
+                                for (followUpPart in followUpParts) {
+                                    if (followUpPart.hasText()) {
+                                        resultListener(followUpPart.text, false)
+                                    }
                                 }
                             }
                         }
@@ -226,7 +227,6 @@ object LlmFunctionCallingModelHelper {
 
             // Mark as done
             resultListener("", true)
-
         } catch (e: Exception) {
             Log.e(TAG, "Error during function calling inference: ${e.message}", e)
             resultListener("Error: ${e.message}", true)
