@@ -1,6 +1,6 @@
-# Sol-AI-Bot Project Guidelines for Claude Code
+# Sol-AI-Bot Project Guidelines
 
-Sol-AI-Bot is an Android application bringing privacy-first, offline-capable on-device Generative AI powered by Google AI Edge (LiteRT), with blockchain integration capabilities via Solana. This document provides comprehensive project-specific guidelines for Claude Code when working with this codebase.
+Sol-AI-Bot is an Android application bringing privacy-first, offline-capable on-device Generative AI powered by Google AI Edge (LiteRT), with blockchain integration capabilities via Solana. This document provides comprehensive project-specific guidelines when working with this codebase.
 
 ## 🎯 Project Overview
 
@@ -136,6 +136,8 @@ compileSdk = 35
 # Install
 ./gradlew installDebug
 ```
+
+¡¡NOTE!!: you are running in a VM without android-sdk, these commands will fail. Let the developer handle compilation tasks
 
 ### Build Configuration Notes
 
@@ -485,7 +487,7 @@ When implementing Solana features:
    - Include Solana Explorer links (Solscan, SolanaFM)
    - Distinguish on-chain vs off-chain operations
 
-## 💡 Claude Code Prompting Best Practices
+## 💡 CLI Code Prompting Best Practices
 
 ### Be Specific About Components
 
