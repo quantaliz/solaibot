@@ -71,7 +71,12 @@ open class LlmChatViewModelBase() : ChatViewModel() {
       delay(500)
 
       // Run inference.
-      val instance = model.instance as LlmModelInstance
+      // Handle both LlmModelInstance and FunctionCallingModelInstance
+      val session = when (val instance = model.instance) {
+        is LlmModelInstance -> instance.session
+        is FunctionCallingModelInstance -> instance.session
+        else -> throw IllegalStateException("Unknown model instance type")
+      }
       var prefillTokens = images.size * 257
       val audioClips: MutableList<ByteArray> = mutableListOf()
       for (audioMessage in audioMessages) {
@@ -101,7 +106,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
             if (firstRun) {
               firstTokenTs = System.currentTimeMillis()
               timeToFirstToken = (firstTokenTs - start) / 1000f
-              prefillTokens += instance.session.getBenchmarkInfo().lastPrefillTokenCount
+              prefillTokens += session.getBenchmarkInfo().lastPrefillTokenCount
               prefillSpeed = prefillTokens / timeToFirstToken
               firstRun = false
               setPreparing(false)

@@ -26,37 +26,38 @@ import com.quantaliz.solaibot.data.DEFAULT_MAX_TOKEN
 import com.quantaliz.solaibot.data.DEFAULT_TEMPERATURE
 import com.quantaliz.solaibot.data.DEFAULT_TOPK
 import com.quantaliz.solaibot.data.DEFAULT_TOPP
-import com.quantaliz.solaibot.data.MAX_IMAGE_COUNT
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.executeFunction
-import com.quantaliz.solaibot.data.hammerTool
-import com.google.ai.edge.localagents.Chat
-import com.google.ai.edge.localagents.Content
-import com.google.ai.edge.localagents.FunctionResponse
-import com.google.ai.edge.localagents.GenerativeModel
-import com.google.ai.edge.localagents.HammerFormatter
-import com.google.ai.edge.localagents.LlmInference
-import com.google.ai.edge.localagents.LlmInferenceBackend
-import com.google.ai.edge.localagents.LlmInferenceOptions
-import com.google.ai.edge.localagents.Part
-import com.google.ai.edge.localagents.Struct
-import com.google.ai.edge.localagents.Value
-import java.io.ByteArrayOutputStream
+import com.quantaliz.solaibot.data.generateFunctionCallingSystemPrompt
+import com.quantaliz.solaibot.data.parseFunctionCall
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.InputData
+import com.google.ai.edge.litertlm.ResponseObserver
+import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.Session
+import com.google.ai.edge.litertlm.SessionConfig
 
 private const val TAG = "AGLlmFunctionCallingModelHelper"
 
-typealias FunctionCallingResultListener = (partialResult: String, done: Boolean) -> Unit
-
-typealias FunctionCallingCleanUpListener = () -> Unit
-
+// Note: This must match the structure of LlmModelInstance for compatibility
 data class FunctionCallingModelInstance(
-    val generativeModel: GenerativeModel,
-    var chat: Chat
+    val engine: Engine,
+    var session: Session
+) {
+    val systemPrompt: String = generateFunctionCallingSystemPrompt()
+    var conversationHistory: MutableList<ConversationTurn> = mutableListOf()
+}
+
+data class ConversationTurn(
+    val role: String, // "user", "assistant", "function"
+    val content: String
 )
 
 object LlmFunctionCallingModelHelper {
     // Indexed by model name.
-    private val cleanUpListeners: MutableMap<String, FunctionCallingCleanUpListener> = mutableMapOf()
+    private val cleanUpListeners: MutableMap<String, CleanUpListener> = mutableMapOf()
 
     fun initialize(
         context: Context,
@@ -68,37 +69,76 @@ object LlmFunctionCallingModelHelper {
         try {
             Log.d(TAG, "Initializing function calling model...")
 
-            // Create LLM Inference backend
-            val llmInferenceOptions = LlmInferenceOptions.builder()
-                .setModelPath(model.getPath(context = context))
-                .build()
+            // Prepare options
+            val maxTokens = model.getIntConfigValue(key = ConfigKeys.MAX_TOKENS, defaultValue = DEFAULT_MAX_TOKEN)
+            val topK = model.getIntConfigValue(key = ConfigKeys.TOPK, defaultValue = DEFAULT_TOPK)
+            val topP = model.getFloatConfigValue(key = ConfigKeys.TOPP, defaultValue = DEFAULT_TOPP)
+            val temperature = model.getFloatConfigValue(key = ConfigKeys.TEMPERATURE, defaultValue = DEFAULT_TEMPERATURE)
+            val accelerator = model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = Accelerator.GPU.label)
 
-            val llmInference = LlmInference.createFromOptions(context, llmInferenceOptions)
-            val llmInferenceBackend = LlmInferenceBackend(llmInference, HammerFormatter())
+            val preferredBackend = when (accelerator) {
+                Accelerator.CPU.label -> Backend.CPU
+                Accelerator.GPU.label -> Backend.GPU
+                else -> Backend.GPU
+            }
 
-            // Create system instruction
-            val systemInstruction = Content.newBuilder()
-                .setRole("system")
-                .addParts(Part.newBuilder().setText("You are a helpful assistant with access to various tools and functions. Use function calling when appropriate to provide accurate information."))
-                .build()
-
-            // Create generative model with function calling capabilities
-            val generativeModel = GenerativeModel(
-                llmInferenceBackend,
-                systemInstruction,
-                listOf(hammerTool)
+            val engineConfig = EngineConfig(
+                modelPath = model.getPath(context = context),
+                backend = preferredBackend,
+                visionBackend = if (supportImage) Backend.GPU else null,
+                audioBackend = if (supportAudio) Backend.CPU else null,
+                maxNumTokens = maxTokens,
+                enableBenchmark = true,
             )
 
-            // Start chat session
-            val chat = generativeModel.startChat()
+            // Create engine and session
+            try {
+                val engine = Engine(engineConfig)
+                engine.initialize()
 
-            model.instance = FunctionCallingModelInstance(
-                generativeModel = generativeModel,
-                chat = chat
-            )
+                val sessionConfig = SessionConfig(
+                    SamplerConfig(topK = topK, topP = topP.toDouble(), temperature = temperature.toDouble())
+                )
+                val session = engine.createSession(sessionConfig)
 
-            Log.d(TAG, "Function calling model initialized successfully")
-            onDone("")
+                model.instance = FunctionCallingModelInstance(
+                    engine = engine,
+                    session = session
+                )
+
+                Log.d(TAG, "Function calling model initialized successfully with ${if (preferredBackend == Backend.GPU) "GPU" else "CPU"}")
+                onDone("")
+            } catch (e: Exception) {
+                // Try CPU fallback if GPU failed
+                if (preferredBackend == Backend.GPU) {
+                    Log.w(TAG, "GPU initialization failed, trying CPU fallback: ${e.message}")
+                    val cpuEngineConfig = EngineConfig(
+                        modelPath = model.getPath(context = context),
+                        backend = Backend.CPU,
+                        visionBackend = if (supportImage) Backend.GPU else null,
+                        audioBackend = if (supportAudio) Backend.CPU else null,
+                        maxNumTokens = maxTokens,
+                        enableBenchmark = true,
+                    )
+                    val engine = Engine(cpuEngineConfig)
+                    engine.initialize()
+
+                    val sessionConfig = SessionConfig(
+                        SamplerConfig(topK = topK, topP = topP.toDouble(), temperature = temperature.toDouble())
+                    )
+                    val session = engine.createSession(sessionConfig)
+
+                    model.instance = FunctionCallingModelInstance(
+                        engine = engine,
+                        session = session
+                    )
+
+                    Log.d(TAG, "Function calling model initialized successfully with CPU fallback")
+                    onDone("")
+                } else {
+                    throw e
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize function calling model: ${e.message}", e)
             onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
@@ -109,16 +149,24 @@ object LlmFunctionCallingModelHelper {
         try {
             Log.d(TAG, "Resetting function calling session for model '${model.name}'")
 
-            val instance = model.instance as FunctionCallingModelInstance?
+            val instance = model.instance as? FunctionCallingModelInstance ?: return
+            instance.session.close()
 
-            if (instance != null) {
-                // Create a new chat session
-                val newChat = instance.generativeModel.startChat()
-                instance.chat = newChat
-                Log.d(TAG, "Function calling session reset done")
-            }
+            val engine = instance.engine
+            val topK = model.getIntConfigValue(key = ConfigKeys.TOPK, defaultValue = DEFAULT_TOPK)
+            val topP = model.getFloatConfigValue(key = ConfigKeys.TOPP, defaultValue = DEFAULT_TOPP)
+            val temperature = model.getFloatConfigValue(key = ConfigKeys.TEMPERATURE, defaultValue = DEFAULT_TEMPERATURE)
+
+            val sessionConfig = SessionConfig(
+                SamplerConfig(topK = topK, topP = topP.toDouble(), temperature = temperature.toDouble())
+            )
+            val newSession = engine.createSession(sessionConfig)
+            instance.session = newSession
+            instance.conversationHistory.clear()
+
+            Log.d(TAG, "Function calling session reset done")
         } catch (e: Exception) {
-            Log.d(TAG, "Failed to reset function calling session", e)
+            Log.e(TAG, "Failed to reset function calling session", e)
         }
     }
 
@@ -131,16 +179,20 @@ object LlmFunctionCallingModelHelper {
         val instance = model.instance as FunctionCallingModelInstance
 
         try {
-            // Close the LLM inference backend
-            instance.generativeModel.close()
+            instance.session.close()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to close function calling model: ${e.message}")
+            Log.e(TAG, "Failed to close function calling session: ${e.message}")
+        }
+
+        try {
+            instance.engine.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to close function calling engine: ${e.message}")
         }
 
         val onCleanUp = cleanUpListeners.remove(model.name)
-        if (onCleanUp != null) {
-            onCleanUp()
-        }
+        onCleanUp?.invoke()
+
         model.instance = null
 
         onDone()
@@ -150,91 +202,144 @@ object LlmFunctionCallingModelHelper {
     fun runInference(
         model: Model,
         input: String,
-        resultListener: FunctionCallingResultListener,
-        cleanUpListener: FunctionCallingCleanUpListener,
+        resultListener: ResultListener,
+        cleanUpListener: CleanUpListener,
         images: List<Bitmap> = listOf(),
         audioClips: List<ByteArray> = listOf(),
     ) {
         val instance = model.instance as FunctionCallingModelInstance
 
-        // Set listener.
+        // Set listener
         if (!cleanUpListeners.containsKey(model.name)) {
             cleanUpListeners[model.name] = cleanUpListener
         }
 
         try {
-            // Send message to the model
-            val response = instance.chat.sendMessage(input)
+            // Add user input to conversation history
+            instance.conversationHistory.add(ConversationTurn("user", input))
 
-            // Process the response
-            val candidates = response.candidates
-            if (candidates.isNotEmpty()) {
-                val content = candidates[0].content
-                val parts = content.parts
-                for (part in parts) {
-                    when {
-                        part.hasText() -> {
-                            // Regular text response
-                            resultListener(part.text, false)
-                        }
-                        part.hasFunctionCall() -> {
-                            // Function call detected
-                            val functionCall = part.functionCall
-                            val functionName = functionCall.name
-                            val args = mutableMapOf<String, String>()
-                            val fieldsMap = functionCall.args.fieldsMap
-                            for (key in fieldsMap.keys) {
-                                args[key] = fieldsMap[key]?.stringValue ?: ""
-                            }
+            // Build full prompt with system instruction and conversation history
+            val fullPrompt = buildPrompt(instance)
 
-                            Log.d(TAG, "Function call detected: $functionName with args: $args")
+            Log.d(TAG, "Sending prompt to model (length: ${fullPrompt.length})")
 
-                            // Execute the function
-                            val functionResult = executeFunction(functionName, args)
+            val session = instance.session
+            val inputDataList = mutableListOf<InputData>()
 
-                            // Send function response back to the model
-                            val functionResponse = FunctionResponse.newBuilder()
-                                .setName(functionName)
-                                .setResponse(
-                                    Struct.newBuilder()
-                                        .putFields("result", Value.newBuilder().setStringValue(functionResult).build())
-                                )
-                                .build()
-
-                            val functionResponseContent = Content.newBuilder()
-                                .setRole("user")
-                                .addParts(Part.newBuilder().setFunctionResponse(functionResponse))
-                                .build()
-
-                            // Get the model's response to the function result
-                            val followUpResponse = instance.chat.sendMessage(functionResponseContent)
-
-                            // Return the follow-up response
-                            val followUpCandidates = followUpResponse.candidates
-                            if (followUpCandidates.isNotEmpty()) {
-                                val followUpContent = followUpCandidates[0].content
-                                val followUpParts = followUpContent.parts
-                                for (followUpPart in followUpParts) {
-                                    if (followUpPart.hasText()) {
-                                        resultListener(followUpPart.text, false)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            // Add images if any
+            for (image in images) {
+                inputDataList.add(InputData.Image(image.toPngByteArray()))
             }
 
-            // Mark as done
-            resultListener("", true)
+            // Add audio clips if any
+            for (audioClip in audioClips) {
+                inputDataList.add(InputData.Audio(audioClip))
+            }
+
+            // Add the text prompt
+            inputDataList.add(InputData.Text(fullPrompt))
+
+            val responseBuilder = StringBuilder()
+
+            session.generateContentStream(
+                inputDataList,
+                object : ResponseObserver {
+                    override fun onNext(response: String) {
+                        responseBuilder.append(response)
+                        resultListener(response, false)
+                    }
+
+                    override fun onDone() {
+                        val fullResponse = responseBuilder.toString()
+                        Log.d(TAG, "Model response completed: $fullResponse")
+
+                        // Check if the response contains a function call
+                        val functionCall = parseFunctionCall(fullResponse)
+
+                        if (functionCall != null) {
+                            Log.d(TAG, "Function call detected: ${functionCall.first}(${functionCall.second})")
+
+                            // Add assistant's function call to history
+                            instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
+
+                            // Execute the function
+                            val functionResult = executeFunction(functionCall.first, functionCall.second)
+                            Log.d(TAG, "Function result: $functionResult")
+
+                            // Add function result to history
+                            instance.conversationHistory.add(ConversationTurn("function", functionResult))
+
+                            // Build new prompt with function result
+                            val followUpPrompt = buildPrompt(instance)
+
+                            // Generate follow-up response
+                            val followUpBuilder = StringBuilder()
+                            session.generateContentStream(
+                                listOf(InputData.Text(followUpPrompt)),
+                                object : ResponseObserver {
+                                    override fun onNext(response: String) {
+                                        followUpBuilder.append(response)
+                                        resultListener(response, false)
+                                    }
+
+                                    override fun onDone() {
+                                        val followUpResponse = followUpBuilder.toString()
+                                        Log.d(TAG, "Follow-up response: $followUpResponse")
+
+                                        // Add follow-up to history
+                                        instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
+
+                                        resultListener("", true)
+                                    }
+
+                                    override fun onError(throwable: Throwable) {
+                                        Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
+                                        resultListener("Error generating follow-up: ${throwable.message}", true)
+                                    }
+                                }
+                            )
+                        } else {
+                            // No function call, just a normal response
+                            instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
+                            resultListener("", true)
+                        }
+                    }
+
+                    override fun onError(throwable: Throwable) {
+                        Log.e(TAG, "Failed to run inference: ${throwable.message}", throwable)
+                        resultListener("Error: ${throwable.message}", true)
+                    }
+                }
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error during function calling inference: ${e.message}", e)
             resultListener("Error: ${e.message}", true)
         }
     }
 
+    private fun buildPrompt(instance: FunctionCallingModelInstance): String {
+        val sb = StringBuilder()
+
+        // Add system prompt
+        sb.append(instance.systemPrompt)
+        sb.append("\n\n")
+
+        // Add conversation history
+        for (turn in instance.conversationHistory) {
+            when (turn.role) {
+                "user" -> sb.append("User: ${turn.content}\n")
+                "assistant" -> sb.append("Assistant: ${turn.content}\n")
+                "function" -> sb.append("Function Result: ${turn.content}\n")
+            }
+        }
+
+        sb.append("Assistant: ")
+
+        return sb.toString()
+    }
+
     private fun Bitmap.toPngByteArray(): ByteArray {
-        val stream = ByteArrayOutputStream()
+        val stream = java.io.ByteArrayOutputStream()
         this.compress(Bitmap.CompressFormat.PNG, 100, stream)
         return stream.toByteArray()
     }

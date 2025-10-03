@@ -16,156 +16,105 @@
 
 package com.quantaliz.solaibot.data
 
-import com.google.ai.edge.localagents.FunctionDeclaration
-import com.google.ai.edge.localagents.Schema
-import com.google.ai.edge.localagents.Tool
-import com.google.ai.edge.localagents.Type
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Function declarations for the Hammer 2.1 model to enable function calling.
+ * Function declarations for LLM function calling using prompt engineering.
  * These define the functions that the model can call during inference.
  */
 
-// Example function: Get current weather
-val getWeatherFunction = FunctionDeclaration.newBuilder()
-    .setName("get_weather")
-    .setDescription("Get the current weather for a specific location")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties("location", Schema.newBuilder()
-                .setType(Type.STRING)
-                .setDescription("The city or location to get weather for")
-                .build())
-            .setRequired(listOf("location"))
-            .build()
-    )
-    .build()
+data class FunctionDefinition(
+    val name: String,
+    val description: String,
+    val parameters: List<FunctionParameter>
+)
 
-// Example function: Get current time
-val getTimeFunction = FunctionDeclaration.newBuilder()
-    .setName("get_time")
-    .setDescription("Get the current time in a specific timezone")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties(
-                "timezone",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The timezone (e.g., 'America/New_York', 'Europe/London')")
-                    .build()
+data class FunctionParameter(
+    val name: String,
+    val type: String,
+    val description: String,
+    val required: Boolean = true
+)
+
+// Available functions
+val availableFunctions = listOf(
+    FunctionDefinition(
+        name = "get_weather",
+        description = "Get the current weather for a specific location",
+        parameters = listOf(
+            FunctionParameter(
+                name = "location",
+                type = "string",
+                description = "The city or location to get weather for",
+                required = true
             )
-            .setRequired(listOf("timezone"))
-            .build()
-    )
-    .build()
-
-// Example function: Calculator
-val calculateFunction = FunctionDeclaration.newBuilder()
-    .setName("calculate")
-    .setDescription("Perform a mathematical calculation")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties("expression", Schema.newBuilder()
-                .setType(Type.STRING)
-                .setDescription("The mathematical expression to evaluate (e.g., '2 + 3 * 4')")
-                .build())
-            .setRequired(listOf("expression"))
-            .build()
-    )
-    .build()
-
-// Tool containing all available functions
-val hammerTool = Tool.newBuilder()
-    .addFunctionDeclarations(getWeatherFunction)
-    .addFunctionDeclarations(getTimeFunction)
-    .addFunctionDeclarations(calculateFunction)
-    .build()
-
-// Example function: Get current time
-val getTimeFunction = FunctionDeclaration.newBuilder()
-    .setName("get_time")
-    .setDescription("Get the current time in a specific timezone")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties(
-                "timezone",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The timezone (e.g., 'America/New_York', 'Europe/London')")
-                    .build()
+        )
+    ),
+    FunctionDefinition(
+        name = "get_time",
+        description = "Get the current time in a specific timezone",
+        parameters = listOf(
+            FunctionParameter(
+                name = "timezone",
+                type = "string",
+                description = "The timezone (e.g., 'America/New_York', 'Europe/London', 'UTC')",
+                required = true
             )
-            .setRequired(listOf("timezone"))
-            .build()
-    )
-    .build()
-
-// Example function: Calculator
-val calculateFunction = FunctionDeclaration.newBuilder()
-    .setName("calculate")
-    .setDescription("Perform a mathematical calculation")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties(
-                "expression",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The mathematical expression to evaluate (e.g., '2 + 3 * 4')")
-                    .build()
+        )
+    ),
+    FunctionDefinition(
+        name = "calculate",
+        description = "Perform a mathematical calculation",
+        parameters = listOf(
+            FunctionParameter(
+                name = "expression",
+                type = "string",
+                description = "The mathematical expression to evaluate (e.g., '2 + 3 * 4')",
+                required = true
             )
-            .setRequired(listOf("expression"))
-            .build()
+        )
     )
-    .build()
+)
 
-// Example function: Get current time
-val getTimeFunction = FunctionDeclaration.newBuilder()
-    .setName("get_time")
-    .setDescription("Get the current time in a specific timezone")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties("timezone", Schema.newBuilder()
-                .setType(Type.STRING)
-                .setDescription("The timezone (e.g., 'America/New_York', 'Europe/London')")
-                .build())
-            .setRequired(listOf("timezone"))
-            .build()
-    )
-    .build()
+/**
+ * Generate system prompt that teaches the model how to use functions.
+ */
+fun generateFunctionCallingSystemPrompt(): String {
+    val sb = StringBuilder()
+    sb.append("You are a helpful assistant with access to the following functions:\n\n")
 
-// Example function: Calculator
-val calculateFunction = com.google.ai.edge.localagents.FunctionDeclaration.newBuilder()
-    .setName("calculate")
-    .setDescription("Perform a mathematical calculation")
-    .setParameters(
-        Schema.newBuilder()
-            .setType(Type.OBJECT)
-            .putProperties(
-                "expression",
-                Schema.newBuilder()
-                    .setType(Type.STRING)
-                    .setDescription("The mathematical expression to evaluate (e.g., '2 + 3 * 4')")
-                    .build()
-            )
-            .setRequired(listOf("expression"))
-            .build()
-    )
-    .build()
+    for (func in availableFunctions) {
+        sb.append("Function: ${func.name}\n")
+        sb.append("Description: ${func.description}\n")
+        sb.append("Parameters:\n")
+        for (param in func.parameters) {
+            sb.append("  - ${param.name} (${param.type}): ${param.description}")
+            if (param.required) sb.append(" [REQUIRED]")
+            sb.append("\n")
+        }
+        sb.append("\n")
+    }
 
-// Tool containing all available functions
-val hammerTool = com.google.ai.edge.localagents.Tool.newBuilder()
-    .addFunctionDeclarations(getWeatherFunction)
-    .addFunctionDeclarations(getTimeFunction)
-    .addFunctionDeclarations(calculateFunction)
-    .build()
+    sb.append("""
+To call a function, respond EXACTLY in this format:
+FUNCTION_CALL: function_name(param1="value1", param2="value2")
+
+Examples:
+FUNCTION_CALL: get_weather(location="San Francisco")
+FUNCTION_CALL: get_time(timezone="America/New_York")
+FUNCTION_CALL: calculate(expression="2 + 3 * 4")
+
+Important:
+- Only call functions when the user explicitly asks for information that requires them
+- Use exact function names and parameter names as defined above
+- Always put string values in double quotes
+- If you don't need a function, respond normally with natural language
+""".trimIndent())
+
+    return sb.toString()
+}
 
 /**
  * Execute a function call and return the result.
@@ -176,7 +125,7 @@ fun executeFunction(functionName: String, args: Map<String, String>): String {
             val location = args["location"] ?: "unknown"
             // TODO: Replace with actual weather API call (e.g., OpenWeatherMap)
             // For now, return mock data
-            "The weather in $location is sunny with a temperature of 72°F"
+            "The weather in $location is sunny with a temperature of 72°F (22°C)"
         }
         "get_time" -> {
             val timezone = args["timezone"] ?: "UTC"
@@ -186,26 +135,49 @@ fun executeFunction(functionName: String, args: Map<String, String>): String {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
                 "The current time in $timezone is ${now.format(formatter)}"
             } catch (e: Exception) {
-                "Error getting time for timezone $timezone: ${e.message}"
+                "Error: Invalid timezone '$timezone'. Please use a valid timezone like 'America/New_York' or 'UTC'"
             }
         }
         "calculate" -> {
             val expression = args["expression"] ?: "0"
             try {
-                // Simple calculator implementation - supports basic arithmetic
                 val result = evaluateExpression(expression)
                 "The result of $expression is $result"
             } catch (e: Exception) {
-                "Error calculating $expression: ${e.message}"
+                "Error: Cannot calculate '$expression'. ${e.message}"
             }
         }
-        else -> "Unknown function: $functionName"
+        else -> "Error: Unknown function '$functionName'"
     }
 }
 
 /**
+ * Parse function call from model response.
+ * Returns Pair(functionName, arguments) or null if no function call detected.
+ */
+fun parseFunctionCall(response: String): Pair<String, Map<String, String>>? {
+    // Look for pattern: FUNCTION_CALL: function_name(arg1="value1", arg2="value2")
+    val functionCallRegex = Regex("""FUNCTION_CALL:\s*(\w+)\((.*?)\)""")
+    val match = functionCallRegex.find(response) ?: return null
+
+    val functionName = match.groupValues[1]
+    val argsString = match.groupValues[2]
+
+    // Parse arguments
+    val args = mutableMapOf<String, String>()
+    val argRegex = Regex("""(\w+)="([^"]*)"""")
+    for (argMatch in argRegex.findAll(argsString)) {
+        val key = argMatch.groupValues[1]
+        val value = argMatch.groupValues[2]
+        args[key] = value
+    }
+
+    return Pair(functionName, args)
+}
+
+/**
  * Simple expression evaluator for basic arithmetic.
- * Supports +, -, *, /, and parentheses.
+ * Supports +, -, *, /, parentheses, and decimal numbers.
  */
 private fun evaluateExpression(expression: String): Double {
     return object {
@@ -228,7 +200,7 @@ private fun evaluateExpression(expression: String): Double {
         fun parse(): Double {
             nextChar()
             val x = parseExpression()
-            if (pos < expression.length) throw RuntimeException("Unexpected: " + ch.toChar())
+            if (pos < expression.length) throw RuntimeException("Unexpected character: '${ch.toChar()}'")
             return x
         }
 
@@ -248,7 +220,11 @@ private fun evaluateExpression(expression: String): Double {
             while (true) {
                 when {
                     eat('*'.code) -> x *= parseFactor()
-                    eat('/'.code) -> x /= parseFactor()
+                    eat('/'.code) -> {
+                        val divisor = parseFactor()
+                        if (divisor == 0.0) throw RuntimeException("Division by zero")
+                        x /= divisor
+                    }
                     else -> return x
                 }
             }
@@ -262,12 +238,12 @@ private fun evaluateExpression(expression: String): Double {
             val startPos = pos
             if (eat('('.code)) {
                 x = parseExpression()
-                eat(')'.code)
+                if (!eat(')'.code)) throw RuntimeException("Missing closing parenthesis")
             } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
                 while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
                 x = expression.substring(startPos, pos).toDouble()
             } else {
-                throw RuntimeException("Unexpected: " + ch.toChar())
+                throw RuntimeException("Unexpected character: '${ch.toChar()}'")
             }
 
             return x
