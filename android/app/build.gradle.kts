@@ -90,9 +90,6 @@ dependencies {
   implementation(libs.tflite)
   implementation(libs.tflite.gpu)
   implementation(libs.tflite.support)
-  // Function Calling SDK
-  implementation("com.google.mediapipe:tasks-genai:0.10.24")
-  implementation("com.google.ai.edge.localagents:localagents-fc:0.1.0")
   implementation(libs.camerax.core)
   implementation(libs.camerax.camera2)
   implementation(libs.camerax.lifecycle)

@@ -74,3 +74,6 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 
 🚀 **Where AI Meets Web3 — All on Your Device.**
 Built with ❤️ for **Cypherpunk** & **Hackaroo 2025**
+
+## Default LLM
+By default, this app uses [Hammer2.1-1.5b](https://huggingface.co/MadeAgents/Hammer2.1-1.5b)
