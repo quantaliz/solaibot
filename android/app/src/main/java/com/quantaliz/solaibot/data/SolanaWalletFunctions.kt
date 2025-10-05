@@ -20,10 +20,8 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.solana.mobilewalletadapter.clientlib.*
-import com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure
-import com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound
-import com.solana.mobilewalletadapter.clientlib.TransactionResult.Success
-//import com.funkatronics.encoders.Base58
+import com.solana.rpc.SolanaRpcClient
+import com.solana.networking.KtorNetworkDriver
 
 /**
  * Implementation of Solana wallet functions for LLM function calling.
@@ -380,21 +378,30 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
  * This function makes an HTTP request to a Solana RPC endpoint to get the balance.
  */
 suspend fun getSolanaBalanceViaRpc(address: String): String {
-    // In a real implementation, you would make an HTTP request to a Solana RPC endpoint
-    // For now, we'll simulate this with a fixed RPC URL and the appropriate JSON-RPC call
-    
-    // Since we can't make HTTP requests directly in this file without adding dependencies,
-    // we'll create a mock implementation that would normally connect to an RPC endpoint
-    // In a real app, you would use a library like OkHttp or Retrofit to make the HTTP call
-    
-    // Example RPC call would be:
-    // POST to RPC endpoint
-    // Content-Type: application/json
-    // Body: {"jsonrpc":"2.0","id":1,"method":"getBalance","params":["<address>"]}
-    
-    // For now, return a mock response - this would be replaced with actual RPC call
-    // In a real implementation, this would return the actual balance from the RPC endpoint
-    return "Balance: Mock RPC response (actual implementation would connect to Solana RPC to retrieve balance for: $address)"
+    // We need to use the Solana RPC client to fetch the balance
+    // The implementation will use the SolanaRpcClient as per the documentation
+    try {
+        // Create RPC client with a default endpoint (this would normally be configurable)
+        val rpcClient = com.solana.rpc.SolanaRpcClient(
+            "https://api.mainnet-beta.solana.com", 
+            com.solana.networking.KtorNetworkDriver()
+        )
+        
+        val response = rpcClient.getBalance(address)
+        
+        if (response.result != null) {
+            val lamports = response.result.value
+            val solBalance = lamports / 1_000_000_000.0 // Convert lamports to SOL
+            return "Balance: ${String.format("%.6f", solBalance)} SOL (${lamports} lamports)"
+        } else if (response.error != null) {
+            return "Error retrieving balance: ${response.error.message}"
+        } else {
+            return "Error retrieving balance: Unknown error"
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Exception when retrieving balance via RPC: ${e.message}", e)
+        return "Error retrieving balance: ${e.message}"
+    }
 }
 
 /**

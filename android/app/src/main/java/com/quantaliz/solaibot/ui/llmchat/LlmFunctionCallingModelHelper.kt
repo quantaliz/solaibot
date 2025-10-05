@@ -396,7 +396,6 @@ object LlmFunctionCallingModelHelper {
                                         }
                                     )
                                 }
-                                }
                             }
                         } else {
                             // No function call, just a normal response
