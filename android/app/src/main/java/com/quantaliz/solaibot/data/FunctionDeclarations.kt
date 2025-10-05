@@ -16,9 +16,11 @@
 
 package com.quantaliz.solaibot.data
 
+import android.content.Context
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import com.quantaliz.solaibot.data.getSolanaWalletFunctions
 
 /**
  * Function declarations for LLM function calling using prompt engineering.
@@ -76,7 +78,7 @@ val availableFunctions = listOf(
             )
         )
     )
-)
+) + getSolanaWalletFunctions() // Add Solana wallet functions
 
 /**
  * Generate system prompt that teaches the model how to use functions.
@@ -119,7 +121,13 @@ Important:
 /**
  * Execute a function call and return the result.
  */
-fun executeFunction(functionName: String, args: Map<String, String>): String {
+suspend fun executeFunction(context: Context, functionName: String, args: Map<String, String>): String {
+    // Check if it's a Solana wallet function
+    if (functionName.startsWith("get_solana") || functionName.startsWith("connect_solana")) {
+        return executeSolanaWalletFunction(context, functionName, args)
+    }
+    
+    // Handle regular functions
     return when (functionName) {
         "get_weather" -> {
             val location = args["location"] ?: "unknown"

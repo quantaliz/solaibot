@@ -28,6 +28,11 @@ import com.quantaliz.solaibot.data.DEFAULT_TOPK
 import com.quantaliz.solaibot.data.DEFAULT_TOPP
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.executeFunction
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.quantaliz.solaibot.data.generateFunctionCallingSystemPrompt
 import com.quantaliz.solaibot.data.parseFunctionCall
 import com.google.ai.edge.litertlm.Backend
@@ -206,6 +211,7 @@ object LlmFunctionCallingModelHelper {
         cleanUpListener: CleanUpListener,
         images: List<Bitmap> = listOf(),
         audioClips: List<ByteArray> = listOf(),
+        context: android.content.Context
     ) {
         val instance = model.instance as FunctionCallingModelInstance
 
@@ -262,42 +268,100 @@ object LlmFunctionCallingModelHelper {
                             // Add assistant's function call to history
                             instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
 
-                            // Execute the function
-                            val functionResult = executeFunction(functionCall.first, functionCall.second)
-                            Log.d(TAG, "Function result: $functionResult")
-
-                            // Add function result to history
-                            instance.conversationHistory.add(ConversationTurn("function", functionResult))
-
-                            // Build new prompt with function result
-                            val followUpPrompt = buildPrompt(instance)
-
-                            // Generate follow-up response
-                            val followUpBuilder = StringBuilder()
-                            session.generateContentStream(
-                                listOf(InputData.Text(followUpPrompt)),
-                                object : ResponseObserver {
-                                    override fun onNext(response: String) {
-                                        followUpBuilder.append(response)
-                                        resultListener(response, false)
-                                    }
-
-                                    override fun onDone() {
-                                        val followUpResponse = followUpBuilder.toString()
-                                        Log.d(TAG, "Follow-up response: $followUpResponse")
-
-                                        // Add follow-up to history
-                                        instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
-
-                                        resultListener("", true)
-                                    }
-
-                                    override fun onError(throwable: Throwable) {
-                                        Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
-                                        resultListener("Error generating follow-up: ${throwable.message}", true)
-                                    }
+                            // Execute the function asynchronously
+                            // Since wallet functions might involve user interaction, we need to handle this appropriately
+                            // For now, we'll run the function in a coroutine and return a placeholder immediately
+                            // The actual response will be handled differently
+                            
+                            // For non-wallet functions, we can run synchronously
+                            if (!functionCall.first.startsWith("get_solana") && !functionCall.first.startsWith("connect_solana") && !functionCall.first.startsWith("send_solana")) {
+                                // Execute regular functions synchronously
+                                val functionResult = runBlocking {
+                                    executeFunction(context, functionCall.first, functionCall.second)
                                 }
-                            )
+                                
+                                Log.d(TAG, "Function result: $functionResult")
+
+                                // Add function result to history
+                                instance.conversationHistory.add(ConversationTurn("function", functionResult))
+
+                                // Build new prompt with function result
+                                val followUpPrompt = buildPrompt(instance)
+
+                                // Generate follow-up response
+                                val followUpBuilder = StringBuilder()
+                                session.generateContentStream(
+                                    listOf(InputData.Text(followUpPrompt)),
+                                    object : ResponseObserver {
+                                        override fun onNext(response: String) {
+                                            followUpBuilder.append(response)
+                                            resultListener(response, false)
+                                        }
+
+                                        override fun onDone() {
+                                            val followUpResponse = followUpBuilder.toString()
+                                            Log.d(TAG, "Follow-up response: $followUpResponse")
+
+                                            // Add follow-up to history
+                                            instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
+
+                                            resultListener("", true)
+                                        }
+
+                                        override fun onError(throwable: Throwable) {
+                                            Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
+                                            resultListener("Error generating follow-up: ${throwable.message}", true)
+                                        }
+                                    }
+                                )
+                            } else {
+                                // For wallet functions, we need special handling since they might involve user interaction
+                                // For now, we'll add a placeholder response that explains the wallet interaction is starting
+                                val placeholderResult = "Initiating wallet interaction for: ${functionCall.first}. User approval required."
+                                Log.d(TAG, "Wallet function placeholder result: $placeholderResult")
+
+                                // Add function result to history
+                                instance.conversationHistory.add(ConversationTurn("function", placeholderResult))
+
+                                // Build new prompt with function result
+                                val followUpPrompt = buildPrompt(instance)
+
+                                // Generate follow-up response
+                                val followUpBuilder = StringBuilder()
+                                session.generateContentStream(
+                                    listOf(InputData.Text(followUpPrompt)),
+                                    object : ResponseObserver {
+                                        override fun onNext(response: String) {
+                                            followUpBuilder.append(response)
+                                            resultListener(response, false)
+                                        }
+
+                                        override fun onDone() {
+                                            val followUpResponse = followUpBuilder.toString()
+                                            Log.d(TAG, "Follow-up response: $followUpResponse")
+
+                                            // Add follow-up to history
+                                            instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
+
+                                            resultListener("", true)
+                                        }
+
+                                        override fun onError(throwable: Throwable) {
+                                            Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
+                                            resultListener("Error generating follow-up: ${throwable.message}", true)
+                                        }
+                                    }
+                                )
+                                
+                                // Execute the actual wallet function async (in the background)
+                                // This would trigger the wallet interaction
+                                GlobalScope.launch(Dispatchers.Main) {
+                                    val actualResult = executeFunction(context, functionCall.first, functionCall.second)
+                                    Log.d(TAG, "Wallet function actual result: $actualResult")
+                                    // Note: The actual result is not integrated back into the conversation in this implementation
+                                    // as it would come after the user interaction completes
+                                }
+                            }
                         } else {
                             // No function call, just a normal response
                             instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))

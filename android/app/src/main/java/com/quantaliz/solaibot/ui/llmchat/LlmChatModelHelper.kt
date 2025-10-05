@@ -58,10 +58,9 @@ object LlmChatModelHelper {
     supportAudio: Boolean,
     onDone: (String) -> Unit,
   ) {
-    // Route to function calling implementation if supported
+    // Non-function calling models only - function calling models should be handled separately
     if (model.llmSupportFunctionCalling) {
-      LlmFunctionCallingModelHelper.initialize(context, model, supportImage, supportAudio, onDone)
-      return
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
     }
     // Prepare options.
     val maxTokens =
@@ -143,10 +142,9 @@ object LlmChatModelHelper {
   }
 
   fun resetSession(model: Model, supportImage: Boolean, supportAudio: Boolean) {
-    // Route to function calling implementation if supported
+    // Non-function calling models only - function calling models should be handled separately
     if (model.llmSupportFunctionCalling) {
-      LlmFunctionCallingModelHelper.resetSession(model, supportImage, supportAudio)
-      return
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
     }
 
     try {
@@ -177,10 +175,9 @@ object LlmChatModelHelper {
   }
 
   fun cleanUp(model: Model, onDone: () -> Unit) {
-    // Route to function calling implementation if supported
+    // Non-function calling models only - function calling models should be handled separately
     if (model.llmSupportFunctionCalling) {
-      LlmFunctionCallingModelHelper.cleanUp(model, onDone)
-      return
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
     }
 
     if (model.instance == null) {
@@ -221,15 +218,10 @@ object LlmChatModelHelper {
   ) {
     // Route to function calling implementation if supported
     if (model.llmSupportFunctionCalling) {
-      LlmFunctionCallingModelHelper.runInference(
-        model = model,
-        input = input,
-        resultListener = resultListener,
-        cleanUpListener = cleanUpListener,
-        images = images,
-        audioClips = audioClips
-      )
-      return
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmChatViewModelBase.generateResponseWithContext method")
+    }
     }
 
     val instance = model.instance as LlmModelInstance

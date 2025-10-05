@@ -115,21 +115,40 @@ fun ChatViewWrapper(
       }
       if ((text.isNotEmpty() && chatMessageText != null) || audioMessages.isNotEmpty()) {
         modelManagerViewModel.addTextInputHistory(text)
-        viewModel.generateResponse(
-          model = model,
-          input = text,
-          images = images,
-          audioMessages = audioMessages,
-          onError = {
-            viewModel.handleError(
-              context = context,
-              task = task,
-              model = model,
-              modelManagerViewModel = modelManagerViewModel,
-              triggeredMessage = chatMessageText,
-            )
-          },
-        )
+        if (model.llmSupportFunctionCalling) {
+          viewModel.generateResponseWithContext(
+            context = context,
+            model = model,
+            input = text,
+            images = images,
+            audioMessages = audioMessages,
+            onError = {
+              viewModel.handleError(
+                context = context,
+                task = task,
+                model = model,
+                modelManagerViewModel = modelManagerViewModel,
+                triggeredMessage = chatMessageText,
+              )
+            },
+          )
+        } else {
+          viewModel.generateResponse(
+            model = model,
+            input = text,
+            images = images,
+            audioMessages = audioMessages,
+            onError = {
+              viewModel.handleError(
+                context = context,
+                task = task,
+                model = model,
+                modelManagerViewModel = modelManagerViewModel,
+                triggeredMessage = chatMessageText,
+              )
+            },
+          )
+        }
 
         firebaseAnalytics?.logEvent(
           "generate_action",
