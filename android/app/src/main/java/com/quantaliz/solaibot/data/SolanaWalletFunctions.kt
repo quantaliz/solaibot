@@ -20,13 +20,12 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.solana.mobilewalletadapter.clientlib.*
-import com.solana.rpc.core.RpcClient
-import com.solana.networking.ktor.KtorNetworkDriver
-//import com.funkatronics.encoders.Base58
+import com.solana.rpc.SolanaRpcClient
+import com.solana.networking.KtorNetworkDriver
 
 /**
  * Implementation of Solana wallet functions for LLM function calling.
- * 
+ *
  * HOW THE SYSTEM WORKS:
  * 1. The LLM is trained with a system prompt that includes these Solana functions
  * 2. When the user asks about their Solana balance or wants to perform wallet actions,
@@ -35,12 +34,12 @@ import com.solana.networking.ktor.KtorNetworkDriver
  * 4. It then calls executeFunction() which routes to executeSolanaWalletFunction() for Solana functions
  * 5. This function interacts with the actual Solana wallet via Mobile Wallet Adapter
  * 6. The result is returned to the LLM which then generates a natural language response
- * 
+ *
  * KEY FUNCTION CALLS:
  * - get_solana_balance() - Gets the wallet balance
  * - connect_solana_wallet() - Initiates wallet connection
  * - send_solana(recipient="address", amount="value") - Sends SOL to an address
- * 
+ *
  * These functions are added to the available functions list in FunctionDeclarations.kt
  * and are made available to the LLM through the system prompt.
  */
@@ -51,7 +50,7 @@ private const val TAG = "SolanaWalletFunctions"
 // This is now a singleton instance to be shared across the app
 object SharedMobileWalletAdapter {
     private var _adapter: MobileWalletAdapter? = null
-    
+
     fun getAdapter(): MobileWalletAdapter {
         if (_adapter == null) {
             // Define dApp's identity metadata - this identifies your app to the wallet
@@ -83,15 +82,15 @@ object WalletConnectionManager {
     @Volatile
     private var _connectionState: WalletConnectionState = WalletConnectionState()
     private val lock = Object()
-    
+
     fun getConnectionState(): WalletConnectionState = _connectionState
-    
+
     fun updateConnectionState(newState: WalletConnectionState) {
         synchronized(lock) {
             _connectionState = newState
         }
     }
-    
+
     fun clearConnectionState() {
         synchronized(lock) {
             _connectionState = WalletConnectionState()
@@ -118,9 +117,9 @@ fun initializeSolanaWalletAdapter(context: Context) {
 suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
-    
+
     val connectionState = WalletConnectionManager.getConnectionState()
-    
+
     if (connectionState.isConnected && connectionState.address != null) {
         // If already connected, just return the current connection info and try to get the balance
         // For now, we'll retrieve the balance using Solana's JSON RPC API
@@ -130,7 +129,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
             "Balance could not be retrieved via RPC: ${e.message}"
         }
-        
+
         return "Wallet is connected. Address: ${connectionState.address}. $balanceString"
     } else {
         // If not connected, we need the activityResultSender to initiate a connection
@@ -145,7 +144,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                     if (account != null) {
                         val address = String(account.publicKey)
                         val hexAddress = bytesToHex(account.publicKey)
-                        
+
                         // Update connection state
                         WalletConnectionManager.updateConnectionState(
                             WalletConnectionState(
@@ -154,7 +153,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                                 address = address
                             )
                         )
-                        
+
                         // Get the balance for the connected wallet
                         val balanceString = try {
                             getSolanaBalanceViaRpc(address)
@@ -162,13 +161,13 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
                             "Balance could not be retrieved via RPC: ${e.message}"
                         }
-                        
+
                         "Wallet connected. Address: $address. $balanceString"
                     } else {
                         "No wallet account connected"
                     }
                 }
-                
+
                 when (result) {
                     is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                         val address = String(result.authResult.accounts.first().publicKey)
@@ -181,7 +180,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                                 address = address
                             )
                         )
-                        
+
                         // Get the balance for the connected wallet
                         val balanceString = try {
                             getSolanaBalanceViaRpc(address)
@@ -189,7 +188,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
                             "Balance could not be retrieved via RPC: ${e.message}"
                         }
-                        
+
                         "Wallet connected. Address: $address. $balanceString"
                     }
                     is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
@@ -217,30 +216,30 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 suspend fun connectSolanaWallet(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
-    
+
     val connectionState = WalletConnectionManager.getConnectionState()
-    
+
     // Check if already connected
     if (connectionState.isConnected && connectionState.address != null) {
         return "Already connected to wallet. Address: ${connectionState.address}"
     }
-    
+
     val adapter = SharedMobileWalletAdapter.getAdapter()
-    
+
     // Check if activityResultSender is provided
     return if (activityResultSender == null) {
         "Solana wallet connection requires user interaction. Please connect your wallet first."
     } else {
         try {
             val result = adapter.connect(activityResultSender)
-            
+
             when (result) {
                 is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                     val authResult = result.authResult
                     val publicKey = authResult.accounts.first().publicKey
                     val address = String(publicKey)
                     val hexAddress = bytesToHex(publicKey) // Using hex format for consistency
-                    
+
                     // Update the connection state
                     WalletConnectionManager.updateConnectionState(
                         WalletConnectionState(
@@ -249,7 +248,7 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
                             address = address
                         )
                     )
-                    
+
                     // Note: WalletViewModel state sync happens via UI layer when needed
                     "Successfully connected to wallet. Address: $address"
                 }
@@ -280,25 +279,25 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
 suspend fun sendSolana(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
-    
+
     val connectionState = WalletConnectionManager.getConnectionState()
-    
+
     // Check if already connected
     if (!connectionState.isConnected || connectionState.address == null) {
         return "Wallet not connected. Please connect your wallet first before sending SOL."
     }
-    
+
     val adapter = SharedMobileWalletAdapter.getAdapter()
-    
+
     val recipient = args["recipient"] ?: return "Error: Missing recipient address"
     val amount = args["amount"] ?: return "Error: Missing amount to send"
-    
+
     return try {
         // Check if activityResultSender is provided
         if (activityResultSender == null) {
             return "Solana transaction requires user interaction. Please connect your wallet first."
         }
-        
+
         // In a real implementation, we would build a Solana transaction here
         // For now, we'll just prompt the user to confirm the transaction
         val result = adapter.transact(activityResultSender) { authResult ->
@@ -306,7 +305,7 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
             // Here, we're just returning a success message
             "Preparing to send $amount SOL to $recipient"
         }
-        
+
         when (result) {
             is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                 val address = String(result.authResult.accounts.first().publicKey)
@@ -387,7 +386,7 @@ suspend fun getSolanaBalanceViaRpc(address: String): String {
     // The implementation will use the SolanaRpcClient as per the documentation
     try {
         // Create RPC client with a default endpoint (this would normally be configurable)
-        val rpcClient = RpcClient(
+        val rpcClient = SolanaRpcClient(
             "https://api.mainnet-beta.solana.com",
             KtorNetworkDriver()
         )
