@@ -77,15 +77,15 @@ fun initializeSolanaWalletAdapter(context: Context) {
  * Gets the user's Solana wallet balance.
  * This function will connect to the wallet and retrieve the balance for the connected address.
  */
-suspend fun getSolanaBalance(context: Context): String {
+suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
     val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
     
     return try {
-        // Create a sender for the activity result
-        val sender = ActivityResultSender(context as androidx.activity.ComponentActivity)
+        // Use provided activityResultSender or create a new one if not provided
+        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
         
         val result = adapter.transact(sender) { authResult ->
             // Get the current connected account
@@ -127,15 +127,15 @@ suspend fun getSolanaBalance(context: Context): String {
  * Connects to a Solana wallet.
  * This function initiates the connection process with a Solana wallet.
  */
-suspend fun connectSolanaWallet(context: Context): String {
+suspend fun connectSolanaWallet(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
     val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
     
     return try {
-        // Create a sender for the activity result
-        val sender = ActivityResultSender(context as androidx.activity.ComponentActivity)
+        // Use provided activityResultSender or create a new one if not provided
+        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
         
         val result = adapter.connect(sender)
         
@@ -162,7 +162,7 @@ suspend fun connectSolanaWallet(context: Context): String {
  * Sends Solana to another address.
  * This function will prompt the user to confirm sending SOL to the specified address.
  */
-suspend fun sendSolana(context: Context, args: Map<String, String>): String {
+suspend fun sendSolana(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
@@ -172,8 +172,8 @@ suspend fun sendSolana(context: Context, args: Map<String, String>): String {
     val amount = args["amount"] ?: return "Error: Missing amount to send"
     
     return try {
-        // Create a sender for the activity result
-        val sender = ActivityResultSender(context as androidx.activity.ComponentActivity)
+        // Use provided activityResultSender or create a new one if not provided
+        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
         
         // In a real implementation, we would build a Solana transaction here
         // For now, we'll just prompt the user to confirm the transaction
@@ -242,16 +242,16 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
  * Executes Solana wallet functions based on the function name and parameters.
  * This is called by the LLM function calling system when a Solana function is called.
  */
-suspend fun executeSolanaWalletFunction(context: Context, functionName: String, args: Map<String, String>): String {
+suspend fun executeSolanaWalletFunction(context: Context, functionName: String, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     return when (functionName) {
         "get_solana_balance" -> {
-            getSolanaBalance(context)
+            getSolanaBalance(context, activityResultSender)
         }
         "connect_solana_wallet" -> {
-            connectSolanaWallet(context)
+            connectSolanaWallet(context, activityResultSender)
         }
         "send_solana" -> {
-            sendSolana(context, args)
+            sendSolana(context, args, activityResultSender)
         }
         else -> {
             "Error: Unknown Solana wallet function '$functionName'"

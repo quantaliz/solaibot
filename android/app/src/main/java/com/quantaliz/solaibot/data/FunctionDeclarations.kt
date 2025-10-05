@@ -121,10 +121,10 @@ Important:
 /**
  * Execute a function call and return the result.
  */
-suspend fun executeFunction(context: Context, functionName: String, args: Map<String, String>): String {
+suspend fun executeFunction(context: Context, functionName: String, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Check if it's a Solana wallet function
     if (functionName.startsWith("get_solana") || functionName.startsWith("connect_solana")) {
-        return executeSolanaWalletFunction(context, functionName, args)
+        return executeSolanaWalletFunction(context, functionName, args, activityResultSender)
     }
     
     // Handle regular functions

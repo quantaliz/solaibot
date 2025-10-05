@@ -211,7 +211,8 @@ object LlmFunctionCallingModelHelper {
         cleanUpListener: CleanUpListener,
         images: List<Bitmap> = listOf(),
         audioClips: List<ByteArray> = listOf(),
-        context: android.content.Context
+        context: android.content.Context,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
     ) {
         val instance = model.instance as FunctionCallingModelInstance
 
