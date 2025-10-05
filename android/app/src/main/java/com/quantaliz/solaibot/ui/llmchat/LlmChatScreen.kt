@@ -37,6 +37,7 @@ fun LlmChatScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmChatViewModel = hiltViewModel(),
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -44,6 +45,7 @@ fun LlmChatScreen(
     taskId = BuiltInTaskId.LLM_CHAT,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -53,6 +55,7 @@ fun LlmAskImageScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmAskImageViewModel = hiltViewModel(),
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -60,6 +63,7 @@ fun LlmAskImageScreen(
     taskId = BuiltInTaskId.LLM_ASK_IMAGE,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -69,6 +73,7 @@ fun LlmAskAudioScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmAskAudioViewModel = hiltViewModel(),
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -76,6 +81,7 @@ fun LlmAskAudioScreen(
     taskId = BuiltInTaskId.LLM_ASK_AUDIO,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -86,9 +92,11 @@ fun ChatViewWrapper(
   taskId: String,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
 ) {
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
+  val walletViewModel: WalletViewModel = hiltViewModel()
 
   ChatView(
     task = task,
@@ -179,5 +187,7 @@ fun ChatViewWrapper(
     onStopButtonClicked = { model -> viewModel.stopResponse(model = model) },
     navigateUp = navigateUp,
     modifier = modifier,
+    walletViewModel = walletViewModel,
+    activityResultSender = activityResultSender,
   )
 }

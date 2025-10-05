@@ -357,7 +357,7 @@ object LlmFunctionCallingModelHelper {
                                 // Execute the actual wallet function async (in the background)
                                 // This would trigger the wallet interaction
                                 GlobalScope.launch(Dispatchers.Main) {
-                                    val actualResult = executeFunction(context, functionCall.first, functionCall.second)
+                                    val actualResult = executeFunction(context, functionCall.first, functionCall.second, activityResultSender)
                                     Log.d(TAG, "Wallet function actual result: $actualResult")
                                     // Note: The actual result is not integrated back into the conversation in this implementation
                                     // as it would come after the user interaction completes

@@ -158,4 +158,6 @@
   <string name="cd_download_failed_icon">Download failed</string>
   <!-- Content description spoken when the "download failed" icon is focused. -->
   <string name="cd_chat_panel">Chat panel</string>
+  <!-- Content description spoken when the "wallet connect" icon is focused. -->
+  <string name="cd_wallet_connect_icon">Connect wallet</string>
 </resources>

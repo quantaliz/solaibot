@@ -75,6 +75,8 @@ fun ModelPageAppBar(
   onConfigChanged: (oldConfigValues: Map<String, Any>, newConfigValues: Map<String, Any>) -> Unit =
     { _, _ ->
     },
+  walletViewModel: com.quantaliz.solaibot.ui.wallet.WalletViewModel? = null,
+  onWalletConnectClicked: (() -> Unit)? = null,
 ) {
   var showConfigDialog by remember { mutableStateOf(false) }
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -139,7 +141,7 @@ fun ModelPageAppBar(
       val showResetSessionButton = canShowResetSessionButton && downloadSucceeded
       Box(modifier = Modifier.size(42.dp), contentAlignment = Alignment.Center) {
         var configButtonOffset = 0.dp
-        if (showConfigButton && canShowResetSessionButton) {
+        if (showConfigButton && (canShowResetSessionButton || walletViewModel != null)) {
           configButtonOffset = (-40).dp
         }
         if (showConfigButton) {
@@ -158,7 +160,31 @@ fun ModelPageAppBar(
             )
           }
         }
-        if (showResetSessionButton) {
+        // Show wallet connect button if walletViewModel is provided, otherwise show reset button
+        if (walletViewModel != null && onWalletConnectClicked != null) {
+          val walletUiState by walletViewModel.uiState.collectAsState()
+          val enableWalletButton = !isModelInitializing && !inProgress
+          IconButton(
+            onClick = { onWalletConnectClicked() },
+            enabled = enableWalletButton,
+            modifier = Modifier.alpha(if (!enableWalletButton) 0.5f else 1f),
+          ) {
+            Box(
+              modifier =
+                Modifier.size(32.dp)
+                  .clip(CircleShape)
+                  .background(MaterialTheme.colorScheme.surfaceContainer),
+              contentAlignment = Alignment.Center,
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.AccountBalanceWallet,
+                contentDescription = stringResource(R.string.cd_wallet_connect_icon),
+                tint = if (walletUiState.isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp),
+              )
+            }
+          }
+        } else if (showResetSessionButton) {
           if (isResettingSession) {
             CircularProgressIndicator(
               trackColor = MaterialTheme.colorScheme.surfaceVariant,

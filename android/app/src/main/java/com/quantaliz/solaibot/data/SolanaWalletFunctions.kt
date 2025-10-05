@@ -75,7 +75,7 @@ fun initializeSolanaWalletAdapter(context: Context) {
 
 /**
  * Gets the user's Solana wallet balance.
- * This function will connect to the wallet and retrieve the balance for the connected address.
+ * This function will check if the wallet is connected and retrieve the balance if connected.
  */
 suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
@@ -83,43 +83,45 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
     
     val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
     
-    return try {
-        // Use provided activityResultSender or create a new one if not provided
-        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
-        
-        val result = adapter.transact(sender) { authResult ->
-            // Get the current connected account
-            val account = authResult.accounts.firstOrNull()
-            if (account != null) {
-                // Get the account address
-                val address = String(account.publicKey)
-                
-                // For demonstration purposes, we're not making an actual network call
-                // to get the balance from a Solana RPC node, as that would require
-                // additional dependencies and could slow down the AI interaction.
-                // In a real implementation, you would make an RPC call here.
-                "Wallet address: $address, Balance: 2.45 SOL"
-            } else {
-                "No wallet account connected"
+    // Check if activityResultSender is available before attempting to connect
+    return if (activityResultSender == null) {
+        "Solana wallet not connected"
+    } else {
+        try {
+            val result = adapter.transact(activityResultSender) { authResult ->
+                // Get the current connected account
+                val account = authResult.accounts.firstOrNull()
+                if (account != null) {
+                    // Get the account address
+                    val address = String(account.publicKey)
+                    
+                    // For demonstration purposes, we're not making an actual network call
+                    // to get the balance from a Solana RPC node, as that would require
+                    // additional dependencies and could slow down the AI interaction.
+                    // In a real implementation, you would make an RPC call here.
+                    "Wallet address: $address, Balance: 2.45 SOL"
+                } else {
+                    "No wallet account connected"
+                }
             }
+            
+            when (result) {
+                is Success -> {
+                    // Successfully connected and interacted with the wallet
+                    val address = String(result.authResult.accounts.first().publicKey)
+                    "Successfully retrieved balance for wallet: $address"
+                }
+                is NoWalletFound -> {
+                    "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
+                }
+                is Failure -> {
+                    "Wallet connection error: ${result.e.message}"
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting Solana balance: ${e.message}", e)
+            "Error getting balance: ${e.message}"
         }
-        
-        when (result) {
-            is Success -> {
-                // Successfully connected and interacted with the wallet
-                val address = String(result.authResult.accounts.first().publicKey)
-                "Successfully retrieved balance for wallet: $address"
-            }
-            is NoWalletFound -> {
-                "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
-            }
-            is Failure -> {
-                "Wallet connection error: ${result.e.message}"
-            }
-        }
-    } catch (e: Exception) {
-        Log.e(TAG, "Error getting Solana balance: ${e.message}", e)
-        "Error getting balance: ${e.message}"
     }
 }
 
