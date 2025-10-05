@@ -369,35 +369,33 @@ object LlmFunctionCallingModelHelper {
                                         instance.conversationHistory.add(ConversationTurn("function", actualResult))
                                     }
                                     
-                                    // If this is a balance function, we might want to trigger a new conversation turn to process the result
-                                    if (functionCall.first.startsWith("get_solana_balance")) {
-                                        // Build a new prompt with the actual result and have the LLM process it
-                                        val newPrompt = buildPrompt(instance)
-                                        val newResponseBuilder = StringBuilder()
-                                        
-                                        session.generateContentStream(
-                                            listOf(InputData.Text(newPrompt)),
-                                            object : ResponseObserver {
-                                                override fun onNext(response: String) {
-                                                    newResponseBuilder.append(response)
-                                                    resultListener(response, false)
-                                                }
-
-                                                override fun onDone() {
-                                                    val finalResponse = newResponseBuilder.toString()
-                                                    Log.d(TAG, "Final response after balance retrieval: $finalResponse")
-
-                                                    // Add final response to history
-                                                    instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
-                                                }
-
-                                                override fun onError(throwable: Throwable) {
-                                                    Log.e(TAG, "Final response error: ${throwable.message}", throwable)
-                                                    resultListener("Error processing balance result: ${throwable.message}", false)
-                                                }
+                                    // Create a new prompt with the updated conversation history to have the LLM process the actual result
+                                    val updatedPrompt = buildPrompt(instance)
+                                    val updatedResponseBuilder = StringBuilder()
+                                    
+                                    session.generateContentStream(
+                                        listOf(InputData.Text(updatedPrompt)),
+                                        object : ResponseObserver {
+                                            override fun onNext(response: String) {
+                                                updatedResponseBuilder.append(response)
+                                                resultListener(response, false)
                                             }
-                                        )
-                                    }
+
+                                            override fun onDone() {
+                                                val finalResponse = updatedResponseBuilder.toString()
+                                                Log.d(TAG, "Final response after wallet function: $finalResponse")
+
+                                                // Add final response to history
+                                                instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
+                                            }
+
+                                            override fun onError(throwable: Throwable) {
+                                                Log.e(TAG, "Final response error after wallet function: ${throwable.message}", throwable)
+                                                resultListener("Error processing wallet function result: ${throwable.message}", false)
+                                            }
+                                        }
+                                    )
+                                }
                                 }
                             }
                         } else {

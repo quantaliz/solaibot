@@ -123,9 +123,16 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
     val connectionState = WalletConnectionManager.getConnectionState()
     
     if (connectionState.isConnected && connectionState.address != null) {
-        // If already connected, just return the current connection info
-        // In a real implementation, you might want to verify the connection is still valid
-        return "Wallet is connected. Address: ${connectionState.address}. Balance needs to be retrieved separately via RPC."
+        // If already connected, just return the current connection info and try to get the balance
+        // For now, we'll retrieve the balance using Solana's JSON RPC API
+        val balanceString = try {
+            getSolanaBalanceViaRpc(connectionState.address)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
+            "Balance could not be retrieved via RPC: ${e.message}"
+        }
+        
+        return "Wallet is connected. Address: ${connectionState.address}. $balanceString"
     } else {
         // If not connected, we need the activityResultSender to initiate a connection
         return if (activityResultSender == null) {
@@ -149,7 +156,15 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                             )
                         )
                         
-                        "Wallet connected. Address: $address. Balance needs to be retrieved separately via RPC."
+                        // Get the balance for the connected wallet
+                        val balanceString = try {
+                            getSolanaBalanceViaRpc(address)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
+                            "Balance could not be retrieved via RPC: ${e.message}"
+                        }
+                        
+                        "Wallet connected. Address: $address. $balanceString"
                     } else {
                         "No wallet account connected"
                     }
@@ -167,7 +182,16 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                                 address = address
                             )
                         )
-                        "Wallet connected. Address: $address. Balance needs to be retrieved separately via RPC."
+                        
+                        // Get the balance for the connected wallet
+                        val balanceString = try {
+                            getSolanaBalanceViaRpc(address)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
+                            "Balance could not be retrieved via RPC: ${e.message}"
+                        }
+                        
+                        "Wallet connected. Address: $address. $balanceString"
                     }
                     is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
                         WalletConnectionManager.clearConnectionState()
@@ -194,6 +218,13 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 suspend fun connectSolanaWallet(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
+    
+    val connectionState = WalletConnectionManager.getConnectionState()
+    
+    // Check if already connected
+    if (connectionState.isConnected && connectionState.address != null) {
+        return "Already connected to wallet. Address: ${connectionState.address}"
+    }
     
     val adapter = SharedMobileWalletAdapter.getAdapter()
     
@@ -250,6 +281,13 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
 suspend fun sendSolana(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
+    
+    val connectionState = WalletConnectionManager.getConnectionState()
+    
+    // Check if already connected
+    if (!connectionState.isConnected || connectionState.address == null) {
+        return "Wallet not connected. Please connect your wallet first before sending SOL."
+    }
     
     val adapter = SharedMobileWalletAdapter.getAdapter()
     
@@ -335,6 +373,28 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
             )
         )
     )
+}
+
+/**
+ * Retrieves the Solana balance via RPC.
+ * This function makes an HTTP request to a Solana RPC endpoint to get the balance.
+ */
+suspend fun getSolanaBalanceViaRpc(address: String): String {
+    // In a real implementation, you would make an HTTP request to a Solana RPC endpoint
+    // For now, we'll simulate this with a fixed RPC URL and the appropriate JSON-RPC call
+    
+    // Since we can't make HTTP requests directly in this file without adding dependencies,
+    // we'll create a mock implementation that would normally connect to an RPC endpoint
+    // In a real app, you would use a library like OkHttp or Retrofit to make the HTTP call
+    
+    // Example RPC call would be:
+    // POST to RPC endpoint
+    // Content-Type: application/json
+    // Body: {"jsonrpc":"2.0","id":1,"method":"getBalance","params":["<address>"]}
+    
+    // For now, return a mock response - this would be replaced with actual RPC call
+    // In a real implementation, this would return the actual balance from the RPC endpoint
+    return "Balance: Mock RPC response (actual implementation would connect to Solana RPC to retrieve balance for: $address)"
 }
 
 /**

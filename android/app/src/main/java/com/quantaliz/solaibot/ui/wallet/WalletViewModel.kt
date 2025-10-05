@@ -43,6 +43,11 @@ data class WalletUiState(
 class WalletViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(WalletUiState())
     val uiState: StateFlow<WalletUiState> = _uiState.asStateFlow()
+    
+    init {
+        // Sync with shared state on initialization
+        syncWithSharedState()
+    }
 
     private val walletAdapter: MobileWalletAdapter by lazy {
         MobileWalletAdapter(
@@ -146,11 +151,19 @@ class WalletViewModel @Inject constructor() : ViewModel() {
     // Synchronize UI state with the shared connection state
     fun syncWithSharedState() {
         val sharedState = WalletConnectionManager.getConnectionState()
-        _uiState.value = WalletUiState(
+        _uiState.value = _uiState.value.copy(
+            isConnected = sharedState.isConnected,
+            publicKey = sharedState.publicKey
+        )
+    }
+    
+    // Refresh the UI state with current connection state
+    fun refreshConnectionState() {
+        val sharedState = WalletConnectionManager.getConnectionState()
+        _uiState.value = _uiState.value.copy(
             isConnected = sharedState.isConnected,
             publicKey = sharedState.publicKey,
-            isConnecting = false, // We're not in a connecting state when syncing
-            error = null
+            isConnecting = false
         )
     }
 
