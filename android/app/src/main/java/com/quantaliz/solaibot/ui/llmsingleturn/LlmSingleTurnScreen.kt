@@ -53,7 +53,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.core.os.bundleOf
 import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.common.ErrorDialog
 import com.quantaliz.solaibot.ui.common.ModelPageAppBar
 import com.quantaliz.solaibot.ui.common.chat.ModelDownloadStatusInfoPanel
@@ -190,11 +189,6 @@ fun LlmSingleTurnScreen(
               modelManagerViewModel = modelManagerViewModel,
               onSend = { fullPrompt ->
                 viewModel.generateResponse(task = task, model = selectedModel, input = fullPrompt)
-
-                firebaseAnalytics?.logEvent(
-                  "generate_action",
-                  bundleOf("capability_name" to task.id, "model_id" to selectedModel.name),
-                )
               },
               onStopButtonClicked = { model -> viewModel.stopResponse(model = model) },
               modifier = Modifier.fillMaxSize(),

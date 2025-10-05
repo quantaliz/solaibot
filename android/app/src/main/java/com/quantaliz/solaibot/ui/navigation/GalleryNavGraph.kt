@@ -64,7 +64,6 @@ import com.quantaliz.solaibot.customtasks.common.CustomTaskDataForBuiltinTask
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.data.isBuiltInTask
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.common.ErrorDialog
 import com.quantaliz.solaibot.ui.common.ModelPageAppBar
 import com.quantaliz.solaibot.ui.common.chat.ModelDownloadStatusInfoPanel
@@ -212,7 +211,6 @@ fun GalleryNavHost(
       navigateToTaskScreen = { task ->
         pickedTask = task
         showModelManager = true
-        firebaseAnalytics?.logEvent("capability_select", bundleOf("capability_name" to task.id))
       },
     )
   } else if (shouldShowLlmModelManager && initialCheckDone) {
@@ -245,7 +243,6 @@ fun GalleryNavHost(
       navigateToTaskScreen = { task ->
         pickedTask = task
         showModelManager = true
-        firebaseAnalytics?.logEvent("capability_select", bundleOf("capability_name" to task.id))
       },
     )
   }

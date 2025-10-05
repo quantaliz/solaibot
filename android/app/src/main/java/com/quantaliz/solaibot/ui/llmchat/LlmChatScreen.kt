@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.bundleOf
 import com.quantaliz.solaibot.data.BuiltInTaskId
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageAudioClip
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageImage
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageText
@@ -176,11 +175,6 @@ fun ChatViewWrapper(
             },
           )
         }
-
-        firebaseAnalytics?.logEvent(
-          "generate_action",
-          bundleOf("capability_name" to task.id, "model_id" to model.name),
-        )
       }
     },
     onRunAgainClicked = { model, message ->

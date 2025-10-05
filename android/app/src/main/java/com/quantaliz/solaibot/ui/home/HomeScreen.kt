@@ -117,7 +117,6 @@ import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.Category
 import com.quantaliz.solaibot.data.CategoryInfo
 import com.quantaliz.solaibot.data.Task
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.proto.ImportedModel
 import com.quantaliz.solaibot.ui.common.RevealingText
 import com.quantaliz.solaibot.ui.common.SwipingText
@@ -729,7 +728,6 @@ private fun IntroText() {
               style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
             ),
           linkInteractionListener = { _ ->
-            firebaseAnalytics?.logEvent("resource_link_click", bundleOf("link_destination" to url))
             uriHandler.openUri(url)
           },
         )

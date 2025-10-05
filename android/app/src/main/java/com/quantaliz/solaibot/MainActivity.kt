@@ -49,7 +49,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
 import com.quantaliz.solaibot.ui.theme.GalleryTheme
-import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -137,15 +136,6 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
-
-    firebaseAnalytics?.logEvent(
-      FirebaseAnalytics.Event.APP_OPEN,
-      bundleOf(
-        "app_version" to BuildConfig.VERSION_NAME,
-        "os_version" to Build.VERSION.SDK_INT.toString(),
-        "device_model" to Build.MODEL,
-      ),
-    )
   }
 
   companion object {

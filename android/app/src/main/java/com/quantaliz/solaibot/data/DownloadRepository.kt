@@ -38,7 +38,6 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.quantaliz.solaibot.AppLifecycleProvider
 import com.quantaliz.solaibot.R
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.worker.DownloadWorker
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -169,10 +168,6 @@ class DefaultDownloadRepository(
             downloadStartTimeSharedPreferences.edit {
               putLong(model.name, System.currentTimeMillis())
             }
-            firebaseAnalytics?.logEvent(
-              "model_download",
-              bundleOf("event_type" to "start", "model_id" to model.name),
-            )
           }
 
           WorkInfo.State.RUNNING -> {
@@ -212,16 +207,6 @@ class DefaultDownloadRepository(
               modelName = model.name,
             )
 
-            val startTime = downloadStartTimeSharedPreferences.getLong(model.name, 0L)
-            val duration = System.currentTimeMillis() - startTime
-            firebaseAnalytics?.logEvent(
-              "model_download",
-              bundleOf(
-                "event_type" to "success",
-                "model_id" to model.name,
-                "duration_ms" to duration,
-              ),
-            )
             downloadStartTimeSharedPreferences.edit { remove(model.name) }
           }
 
@@ -248,17 +233,6 @@ class DefaultDownloadRepository(
               ModelDownloadStatus(status = status, errorMessage = errorMessage),
             )
 
-            val startTime = downloadStartTimeSharedPreferences.getLong(model.name, 0L)
-            val duration = System.currentTimeMillis() - startTime
-            // TODO: Add failure reasons
-            firebaseAnalytics?.logEvent(
-              "model_download",
-              bundleOf(
-                "event_type" to "failure",
-                "model_id" to model.name,
-                "duration_ms" to duration,
-              ),
-            )
             downloadStartTimeSharedPreferences.edit { remove(model.name) }
           }
 
