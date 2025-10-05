@@ -24,24 +24,29 @@ import com.quantaliz.solaibot.ui.theme.customColors
 
 @Composable
 fun getTaskBgColor(task: Task): Color {
-  val colorIndex: Int = task.index % MaterialTheme.customColors.taskBgColors.size
+  val colorIndex: Int = if (task.index >= 0) positiveMod(task.index, MaterialTheme.customColors.taskBgColors.size) else if (task.id == "llm_chat") 2 else 0
   return MaterialTheme.customColors.taskBgColors[colorIndex]
 }
 
 @Composable
 fun getTaskBgGradientColors(task: Task): List<Color> {
-  val colorIndex: Int = task.index % MaterialTheme.customColors.taskBgColors.size
+  val colorIndex: Int = if (task.index >= 0) positiveMod(task.index, MaterialTheme.customColors.taskBgGradientColors.size) else if (task.id == "llm_chat") 2 else 0
   return MaterialTheme.customColors.taskBgGradientColors[colorIndex]
 }
 
 @Composable
 fun getTaskIconColor(task: Task): Color {
-  val colorIndex: Int = task.index % MaterialTheme.customColors.taskIconColors.size
+  val colorIndex: Int = if (task.index >= 0) positiveMod(task.index, MaterialTheme.customColors.taskIconColors.size) else if (task.id == "llm_chat") 2 else 0
   return MaterialTheme.customColors.taskIconColors[colorIndex]
 }
 
 @Composable
 fun getTaskIconColor(index: Int): Color {
-  val colorIndex: Int = index % MaterialTheme.customColors.taskIconColors.size
+  val colorIndex: Int = if (index >= 0) positiveMod(index, MaterialTheme.customColors.taskIconColors.size) else 0
   return MaterialTheme.customColors.taskIconColors[colorIndex]
+}
+
+private fun positiveMod(x: Int, y: Int): Int {
+  val result = x % y
+  return if (result < 0) result + y else result
 }
