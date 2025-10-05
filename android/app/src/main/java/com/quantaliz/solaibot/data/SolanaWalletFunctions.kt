@@ -59,7 +59,7 @@ fun initializeSolanaWalletAdapter(context: Context) {
     if (walletAdapter == null) {
         // Define dApp's identity metadata - this identifies your app to the wallet
         val solanaUri = Uri.parse("https://sol-aibot.quantaliz.com")
-        val iconUri = Uri.parse("https://sol-aibot.quantaliz.com/icon.png") // This would be a real icon URL
+        val iconUri = Uri.parse("/icon.png") // Relative URI as required by the library
         val identityName = "Sol-AI-Bot"
 
         walletAdapter = MobileWalletAdapter(
@@ -84,8 +84,9 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
     val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
     
     // Check if activityResultSender is available before attempting to connect
+    // If there's no activityResultSender, we should check if there's already an active connection
     return if (activityResultSender == null) {
-        "Solana wallet not connected"
+        "Solana wallet not connected. Please connect your wallet first."
     } else {
         try {
             val result = adapter.transact(activityResultSender) { authResult ->
@@ -135,28 +136,30 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
     
     val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
     
-    return try {
-        // Use provided activityResultSender or create a new one if not provided
-        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
-        
-        val result = adapter.connect(sender)
-        
-        when (result) {
-            is Success -> {
-                val authResult = result.authResult
-                val address = String(authResult.accounts.first().publicKey)
-                "Successfully connected to wallet. Address: $address"
+    // Check if activityResultSender is provided
+    return if (activityResultSender == null) {
+        "Solana wallet connection requires user interaction. Please connect your wallet first."
+    } else {
+        try {
+            val result = adapter.connect(activityResultSender)
+            
+            when (result) {
+                is Success -> {
+                    val authResult = result.authResult
+                    val address = String(authResult.accounts.first().publicKey)
+                    "Successfully connected to wallet. Address: $address"
+                }
+                is NoWalletFound -> {
+                    "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
+                }
+                is Failure -> {
+                    "Wallet connection error: ${result.e.message}"
+                }
             }
-            is NoWalletFound -> {
-                "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
-            }
-            is Failure -> {
-                "Wallet connection error: ${result.e.message}"
-            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error connecting to Solana wallet: ${e.message}", e)
+            "Error connecting to wallet: ${e.message}"
         }
-    } catch (e: Exception) {
-        Log.e(TAG, "Error connecting to Solana wallet: ${e.message}", e)
-        "Error connecting to wallet: ${e.message}"
     }
 }
 
@@ -174,12 +177,14 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
     val amount = args["amount"] ?: return "Error: Missing amount to send"
     
     return try {
-        // Use provided activityResultSender or create a new one if not provided
-        val sender = activityResultSender ?: com.solana.mobilewalletadapter.clientlib.ActivityResultSender(context as androidx.activity.ComponentActivity)
+        // Check if activityResultSender is provided
+        if (activityResultSender == null) {
+            return "Solana transaction requires user interaction. Please connect your wallet first."
+        }
         
         // In a real implementation, we would build a Solana transaction here
         // For now, we'll just prompt the user to confirm the transaction
-        val result = adapter.transact(sender) { authResult ->
+        val result = adapter.transact(activityResultSender) { authResult ->
             // In a real implementation, we would build an actual Solana transaction
             // Here, we're just returning a success message
             "Preparing to send $amount SOL to $recipient"

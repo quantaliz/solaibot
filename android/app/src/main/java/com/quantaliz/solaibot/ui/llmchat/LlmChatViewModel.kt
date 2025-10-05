@@ -72,6 +72,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     input: String,
     images: List<Bitmap> = listOf(),
     audioMessages: List<ChatMessageAudioClip> = listOf(),
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
     onError: () -> Unit,
   ) {
     val accelerator = model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = "")
@@ -189,7 +190,8 @@ open class LlmChatViewModelBase() : ChatViewModel() {
               setInProgress(false)
               setPreparing(false)
             },
-            context = context
+            context = context,
+            activityResultSender = activityResultSender
           )
         } else {
           // Use the standard helper for non-function-calling models

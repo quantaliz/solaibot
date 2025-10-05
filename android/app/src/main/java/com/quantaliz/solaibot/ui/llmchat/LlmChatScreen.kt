@@ -143,6 +143,7 @@ fun ChatViewWrapper(
             input = text,
             images = images,
             audioMessages = audioMessages,
+            activityResultSender = activityResultSender,
             onError = {
               viewModel.handleError(
                 context = context,
