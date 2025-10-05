@@ -20,8 +20,9 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.solana.mobilewalletadapter.clientlib.*
-import com.solana.rpc.SolanaRpcClient
-import com.solana.networking.KtorNetworkDriver
+import com.solana.rpc.core.RpcClient
+import com.solana.networking.ktor.KtorNetworkDriver
+//import com.funkatronics.encoders.Base58
 
 /**
  * Implementation of Solana wallet functions for LLM function calling.
@@ -377,26 +378,29 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
  * Retrieves the Solana balance via RPC.
  * This function makes an HTTP request to a Solana RPC endpoint to get the balance.
  */
+/**
+ * Retrieves the Solana balance via RPC.
+ * This function makes an HTTP request to a Solana RPC endpoint to get the balance.
+ */
 suspend fun getSolanaBalanceViaRpc(address: String): String {
     // We need to use the Solana RPC client to fetch the balance
     // The implementation will use the SolanaRpcClient as per the documentation
     try {
         // Create RPC client with a default endpoint (this would normally be configurable)
-        val rpcClient = com.solana.rpc.SolanaRpcClient(
-            "https://api.mainnet-beta.solana.com", 
-            com.solana.networking.KtorNetworkDriver()
+        val rpcClient = RpcClient(
+            "https://api.mainnet-beta.solana.com",
+            KtorNetworkDriver()
         )
-        
+
         val response = rpcClient.getBalance(address)
-        
-        if (response.result != null) {
-            val lamports = response.result.value
+
+        // Check the response structure based on the actual API
+        if (response.isSuccessful) {
+            val lamports = response.value ?: 0L
             val solBalance = lamports / 1_000_000_000.0 // Convert lamports to SOL
             return "Balance: ${String.format("%.6f", solBalance)} SOL (${lamports} lamports)"
-        } else if (response.error != null) {
-            return "Error retrieving balance: ${response.error.message}"
         } else {
-            return "Error retrieving balance: Unknown error"
+            return "Error retrieving balance: ${response.errorMessage ?: "Unknown error"}"
         }
     } catch (e: Exception) {
         Log.e(TAG, "Exception when retrieving balance via RPC: ${e.message}", e)
