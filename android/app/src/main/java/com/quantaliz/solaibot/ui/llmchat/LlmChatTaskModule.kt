@@ -30,6 +30,7 @@ import com.quantaliz.solaibot.data.Category
 import com.quantaliz.solaibot.data.MODEL_HAMMER_2_1_1_5B
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
+import com.quantaliz.solaibot.ui.llmchat.LlmFunctionCallingModelHelper
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -62,13 +63,23 @@ class LlmChatTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = false,
-      supportAudio = false,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -77,7 +88,11 @@ class LlmChatTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
@@ -121,13 +136,23 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = true,
-      supportAudio = false,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = true,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = true,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -136,7 +161,11 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
@@ -184,13 +213,23 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = false,
-      supportAudio = true,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = true,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = true,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -199,7 +238,11 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
