@@ -100,6 +100,11 @@ fun ChatViewWrapper(
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
   val walletViewModel: WalletViewModel = hiltViewModel()
 
+  // Sync wallet view model with shared connection state when the composable is first composed
+  androidx.compose.runtime.LaunchedEffect(Unit) {
+    walletViewModel.syncWithSharedState()
+  }
+
   // Use the direct callback if provided, otherwise use the internal implementation
   val effectiveOnWalletConnect: (() -> Unit)? = onWalletConnectClicked ?: {
     if (activityResultSender != null) {

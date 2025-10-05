@@ -23,6 +23,8 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.quantaliz.solaibot.data.WalletConnectionManager
+import com.quantaliz.solaibot.data.WalletConnectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,11 +65,23 @@ class WalletViewModel @Inject constructor() : ViewModel() {
                     is TransactionResult.Success -> {
                         val authResult = result.authResult
                         val publicKey = authResult.accounts.firstOrNull()?.publicKey
+                        val hexPublicKey = publicKey?.let { bytesToHex(it) }
+                        
                         _uiState.value = _uiState.value.copy(
                             isConnected = true,
-                            publicKey = publicKey?.let { bytesToHex(it) },
+                            publicKey = hexPublicKey,
                             isConnecting = false,
                             error = null
+                        )
+                        
+                        // Update shared connection state
+                        val address = publicKey?.let { String(it) }
+                        WalletConnectionManager.updateConnectionState(
+                            WalletConnectionState(
+                                isConnected = true,
+                                publicKey = hexPublicKey,
+                                address = address
+                            )
                         )
                     }
                     is TransactionResult.NoWalletFound -> {
@@ -75,12 +89,14 @@ class WalletViewModel @Inject constructor() : ViewModel() {
                             isConnecting = false,
                             error = "No MWA compatible wallet app found on device."
                         )
+                        WalletConnectionManager.clearConnectionState()
                     }
                     is TransactionResult.Failure -> {
                         _uiState.value = _uiState.value.copy(
                             isConnecting = false,
                             error = "Error connecting to wallet: ${result.e.message}"
                         )
+                        WalletConnectionManager.clearConnectionState()
                     }
                 }
             } catch (e: Exception) {
@@ -88,6 +104,7 @@ class WalletViewModel @Inject constructor() : ViewModel() {
                     isConnecting = false,
                     error = "Failed to connect: ${e.message}"
                 )
+                WalletConnectionManager.clearConnectionState()
             }
         }
     }
@@ -100,24 +117,41 @@ class WalletViewModel @Inject constructor() : ViewModel() {
                 when (result) {
                     is TransactionResult.Success -> {
                         _uiState.value = WalletUiState()
+                        WalletConnectionManager.clearConnectionState()
                     }
                     is TransactionResult.Failure -> {
                         _uiState.value = _uiState.value.copy(
                             error = "Error disconnecting: ${result.e.message}"
                         )
+                        WalletConnectionManager.clearConnectionState()
                     }
-                    else -> {}
+                    else -> {
+                        _uiState.value = WalletUiState()
+                        WalletConnectionManager.clearConnectionState()
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to disconnect: ${e.message}"
                 )
+                WalletConnectionManager.clearConnectionState()
             }
         }
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    // Synchronize UI state with the shared connection state
+    fun syncWithSharedState() {
+        val sharedState = WalletConnectionManager.getConnectionState()
+        _uiState.value = WalletUiState(
+            isConnected = sharedState.isConnected,
+            publicKey = sharedState.publicKey,
+            isConnecting = false, // We're not in a connecting state when syncing
+            error = null
+        )
     }
 
     private fun bytesToHex(bytes: ByteArray): String {

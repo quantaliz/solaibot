@@ -49,79 +49,140 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult.Success
 private const val TAG = "SolanaWalletFunctions"
 
 // The MobileWalletAdapter instance for interacting with Solana wallets
-private var walletAdapter: MobileWalletAdapter? = null
+// This is now a singleton instance to be shared across the app
+object SharedMobileWalletAdapter {
+    private var _adapter: MobileWalletAdapter? = null
+    
+    fun getAdapter(): MobileWalletAdapter {
+        if (_adapter == null) {
+            // Define dApp's identity metadata - this identifies your app to the wallet
+            val solanaUri = Uri.parse("https://sol-aibot.quantaliz.com")
+            val iconUri = Uri.parse("/icon.png") // Relative URI as required by the library
+            val identityName = "Sol-AI-Bot"
+
+            _adapter = MobileWalletAdapter(
+                connectionIdentity = ConnectionIdentity(
+                    identityUri = solanaUri,
+                    iconUri = iconUri,
+                    identityName = identityName
+                )
+            )
+        }
+        return _adapter!!
+    }
+}
+
+// Connection state data class to keep track of wallet connection details
+data class WalletConnectionState(
+    val isConnected: Boolean = false,
+    val publicKey: String? = null,
+    val address: String? = null
+)
+
+// Shared connection state across the app
+object WalletConnectionManager {
+    @Volatile
+    private var _connectionState: WalletConnectionState = WalletConnectionState()
+    private val lock = Object()
+    
+    fun getConnectionState(): WalletConnectionState = _connectionState
+    
+    fun updateConnectionState(newState: WalletConnectionState) {
+        synchronized(lock) {
+            _connectionState = newState
+        }
+    }
+    
+    fun clearConnectionState() {
+        synchronized(lock) {
+            _connectionState = WalletConnectionState()
+        }
+    }
+}
 
 /**
  * Initializes the Solana wallet adapter with the app's identity information.
  * This should be called before attempting any wallet operations.
  */
 fun initializeSolanaWalletAdapter(context: Context) {
-    if (walletAdapter == null) {
-        // Define dApp's identity metadata - this identifies your app to the wallet
-        val solanaUri = Uri.parse("https://sol-aibot.quantaliz.com")
-        val iconUri = Uri.parse("/icon.png") // Relative URI as required by the library
-        val identityName = "Sol-AI-Bot"
-
-        walletAdapter = MobileWalletAdapter(
-            connectionIdentity = ConnectionIdentity(
-                identityUri = solanaUri,
-                iconUri = iconUri,
-                identityName = identityName
-            )
-        )
-        Log.d(TAG, "Solana wallet adapter initialized")
-    }
+    // The adapter is now a singleton, so just make sure it's initialized
+    SharedMobileWalletAdapter.getAdapter()
+    Log.d(TAG, "Solana wallet adapter initialized")
 }
 
 /**
  * Gets the user's Solana wallet balance.
- * This function will check if the wallet is connected and retrieve the balance if connected.
+ * This function will check if the wallet is connected and retrieve the account information.
+ * NOTE: The MWA does not directly provide balance information, so we return account details
+ * and the balance would need to be fetched separately via RPC or another method.
  */
 suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
-    val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
+    val connectionState = WalletConnectionManager.getConnectionState()
     
-    // Check if activityResultSender is available before attempting to connect
-    // If there's no activityResultSender, we should check if there's already an active connection
-    return if (activityResultSender == null) {
-        "Solana wallet not connected. Please connect your wallet first."
+    if (connectionState.isConnected && connectionState.address != null) {
+        // If already connected, just return the current connection info
+        // In a real implementation, you might want to verify the connection is still valid
+        return "Wallet is connected. Address: ${connectionState.address}. Balance needs to be retrieved separately via RPC."
     } else {
-        try {
-            val result = adapter.transact(activityResultSender) { authResult ->
-                // Get the current connected account
-                val account = authResult.accounts.firstOrNull()
-                if (account != null) {
-                    // Get the account address
-                    val address = String(account.publicKey)
-                    
-                    // For demonstration purposes, we're not making an actual network call
-                    // to get the balance from a Solana RPC node, as that would require
-                    // additional dependencies and could slow down the AI interaction.
-                    // In a real implementation, you would make an RPC call here.
-                    "Wallet address: $address, Balance: 2.45 SOL"
-                } else {
-                    "No wallet account connected"
+        // If not connected, we need the activityResultSender to initiate a connection
+        return if (activityResultSender == null) {
+            "Solana wallet not connected. Please connect your wallet first."
+        } else {
+            // Attempt to connect to get the account information
+            val adapter = SharedMobileWalletAdapter.getAdapter()
+            try {
+                val result = adapter.transact(activityResultSender) { authResult ->
+                    val account = authResult.accounts.firstOrNull()
+                    if (account != null) {
+                        val address = String(account.publicKey)
+                        val hexAddress = bytesToHex(account.publicKey)
+                        
+                        // Update connection state
+                        WalletConnectionManager.updateConnectionState(
+                            WalletConnectionState(
+                                isConnected = true,
+                                publicKey = hexAddress,
+                                address = address
+                            )
+                        )
+                        
+                        "Wallet connected. Address: $address. Balance needs to be retrieved separately via RPC."
+                    } else {
+                        "No wallet account connected"
+                    }
                 }
+                
+                when (result) {
+                    is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
+                        val address = String(result.authResult.accounts.first().publicKey)
+                        // Update connection state again in case it changed
+                        val hexAddress = bytesToHex(result.authResult.accounts.first().publicKey)
+                        WalletConnectionManager.updateConnectionState(
+                            WalletConnectionState(
+                                isConnected = true,
+                                publicKey = hexAddress,
+                                address = address
+                            )
+                        )
+                        "Wallet connected. Address: $address. Balance needs to be retrieved separately via RPC."
+                    }
+                    is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
+                        WalletConnectionManager.clearConnectionState()
+                        "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
+                    }
+                    is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
+                        WalletConnectionManager.clearConnectionState()
+                        "Wallet connection error: ${result.e.message}"
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting Solana balance: ${e.message}", e)
+                WalletConnectionManager.clearConnectionState()
+                "Error getting balance: ${e.message}"
             }
-            
-            when (result) {
-                is Success -> {
-                    // Successfully connected and interacted with the wallet
-                    val address = String(result.authResult.accounts.first().publicKey)
-                    "Successfully retrieved balance for wallet: $address"
-                }
-                is NoWalletFound -> {
-                    "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
-                }
-                is Failure -> {
-                    "Wallet connection error: ${result.e.message}"
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting Solana balance: ${e.message}", e)
-            "Error getting balance: ${e.message}"
         }
     }
 }
@@ -134,7 +195,7 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
-    val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
+    val adapter = SharedMobileWalletAdapter.getAdapter()
     
     // Check if activityResultSender is provided
     return if (activityResultSender == null) {
@@ -144,20 +205,39 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
             val result = adapter.connect(activityResultSender)
             
             when (result) {
-                is Success -> {
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                     val authResult = result.authResult
-                    val address = String(authResult.accounts.first().publicKey)
+                    val publicKey = authResult.accounts.first().publicKey
+                    val address = String(publicKey)
+                    val hexAddress = bytesToHex(publicKey) // Using hex format for consistency
+                    
+                    // Update the connection state
+                    WalletConnectionManager.updateConnectionState(
+                        WalletConnectionState(
+                            isConnected = true,
+                            publicKey = hexAddress,
+                            address = address
+                        )
+                    )
+                    
+                    // Note: WalletViewModel state sync happens via UI layer when needed
                     "Successfully connected to wallet. Address: $address"
                 }
-                is NoWalletFound -> {
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
+                    // Clear connection state if no wallet found
+                    WalletConnectionManager.clearConnectionState()
                     "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
                 }
-                is Failure -> {
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
+                    // Clear connection state if connection failed
+                    WalletConnectionManager.clearConnectionState()
                     "Wallet connection error: ${result.e.message}"
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error connecting to Solana wallet: ${e.message}", e)
+            // Clear connection state if exception occurred
+            WalletConnectionManager.clearConnectionState()
             "Error connecting to wallet: ${e.message}"
         }
     }
@@ -171,7 +251,7 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
     
-    val adapter = walletAdapter ?: return "Error: Wallet adapter not initialized"
+    val adapter = SharedMobileWalletAdapter.getAdapter()
     
     val recipient = args["recipient"] ?: return "Error: Missing recipient address"
     val amount = args["amount"] ?: return "Error: Missing amount to send"
@@ -191,14 +271,26 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
         }
         
         when (result) {
-            is Success -> {
+            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                 val address = String(result.authResult.accounts.first().publicKey)
+                // Update connection state after successful transaction
+                val publicKey = result.authResult.accounts.first().publicKey
+                val hexAddress = bytesToHex(publicKey)
+                WalletConnectionManager.updateConnectionState(
+                    WalletConnectionState(
+                        isConnected = true,
+                        publicKey = hexAddress,
+                        address = address
+                    )
+                )
                 "Successfully sent $amount SOL to $recipient from wallet: $address"
             }
-            is NoWalletFound -> {
+            is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
+                WalletConnectionManager.clearConnectionState()
                 "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
             }
-            is Failure -> {
+            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
+                WalletConnectionManager.clearConnectionState()
                 "Transaction failed: ${result.e.message}"
             }
         }
@@ -264,4 +356,13 @@ suspend fun executeSolanaWalletFunction(context: Context, functionName: String, 
             "Error: Unknown Solana wallet function '$functionName'"
         }
     }
+}
+
+
+
+/**
+ * Helper function to convert byte array to hex string.
+ */
+private fun bytesToHex(bytes: ByteArray): String {
+    return bytes.joinToString("") { "%02x".format(it) }
 }

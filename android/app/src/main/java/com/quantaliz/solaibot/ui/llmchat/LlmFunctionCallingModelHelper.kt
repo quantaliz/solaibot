@@ -359,8 +359,45 @@ object LlmFunctionCallingModelHelper {
                                 GlobalScope.launch(Dispatchers.Main) {
                                     val actualResult = executeFunction(context, functionCall.first, functionCall.second, activityResultSender)
                                     Log.d(TAG, "Wallet function actual result: $actualResult")
-                                    // Note: The actual result is not integrated back into the conversation in this implementation
-                                    // as it would come after the user interaction completes
+                                    
+                                    // Update the conversation history with the actual result
+                                    // Remove the placeholder and add the actual result
+                                    val lastIdx = instance.conversationHistory.lastIndex
+                                    if (lastIdx >= 0 && instance.conversationHistory[lastIdx].role == "function") {
+                                        instance.conversationHistory[lastIdx] = ConversationTurn("function", actualResult)
+                                    } else {
+                                        instance.conversationHistory.add(ConversationTurn("function", actualResult))
+                                    }
+                                    
+                                    // If this is a balance function, we might want to trigger a new conversation turn to process the result
+                                    if (functionCall.first.startsWith("get_solana_balance")) {
+                                        // Build a new prompt with the actual result and have the LLM process it
+                                        val newPrompt = buildPrompt(instance)
+                                        val newResponseBuilder = StringBuilder()
+                                        
+                                        session.generateContentStream(
+                                            listOf(InputData.Text(newPrompt)),
+                                            object : ResponseObserver {
+                                                override fun onNext(response: String) {
+                                                    newResponseBuilder.append(response)
+                                                    resultListener(response, false)
+                                                }
+
+                                                override fun onDone() {
+                                                    val finalResponse = newResponseBuilder.toString()
+                                                    Log.d(TAG, "Final response after balance retrieval: $finalResponse")
+
+                                                    // Add final response to history
+                                                    instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
+                                                }
+
+                                                override fun onError(throwable: Throwable) {
+                                                    Log.e(TAG, "Final response error: ${throwable.message}", throwable)
+                                                    resultListener("Error processing balance result: ${throwable.message}", false)
+                                                }
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         } else {
