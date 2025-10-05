@@ -40,4 +40,5 @@ data class CustomTaskData(
 data class CustomTaskDataForBuiltinTask(
   val modelManagerViewModel: ModelManagerViewModel,
   val onNavUp: () -> Unit,
+  val activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
 )

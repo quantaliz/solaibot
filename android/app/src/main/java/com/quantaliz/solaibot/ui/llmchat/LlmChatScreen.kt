@@ -30,14 +30,15 @@ import com.quantaliz.solaibot.ui.common.chat.ChatMessageImage
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageText
 import com.quantaliz.solaibot.ui.common.chat.ChatView
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
+import com.quantaliz.solaibot.ui.wallet.WalletViewModel
 
 @Composable
 fun LlmChatScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: LlmChatViewModel = hiltViewModel(),
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  viewModel: LlmChatViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -54,8 +55,8 @@ fun LlmAskImageScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: LlmAskImageViewModel = hiltViewModel(),
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  viewModel: LlmAskImageViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -72,8 +73,8 @@ fun LlmAskAudioScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: LlmAskAudioViewModel = hiltViewModel(),
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  viewModel: LlmAskAudioViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -93,10 +94,22 @@ fun ChatViewWrapper(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  onWalletConnectClicked: (() -> Unit)? = null,
 ) {
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
   val walletViewModel: WalletViewModel = hiltViewModel()
+
+  // Use the direct callback if provided, otherwise use the internal implementation
+  val effectiveOnWalletConnect: (() -> Unit)? = onWalletConnectClicked ?: {
+    if (activityResultSender != null) {
+      walletViewModel.connectWallet(activityResultSender)
+    } else {
+      // Log that the wallet connection was attempted but no activityResultSender was available
+      android.util.Log.e("ChatViewWrapper", "Wallet connect attempted but activityResultSender is null")
+    }
+    Unit
+  }
 
   ChatView(
     task = task,
@@ -189,5 +202,6 @@ fun ChatViewWrapper(
     modifier = modifier,
     walletViewModel = walletViewModel,
     activityResultSender = activityResultSender,
+    onWalletConnectClicked = effectiveOnWalletConnect,
   )
 }

@@ -275,7 +275,7 @@ object LlmFunctionCallingModelHelper {
                             // The actual response will be handled differently
                             
                             // For non-wallet functions, we can run synchronously
-                            if (!functionCall.first.startsWith("get_solana") && !functionCall.first.startsWith("connect_solana") && !functionCall.first.startsWith("send_solana")) {
+                            if (!functionCall.first.startsWith("get_solana_balance") && !functionCall.first.startsWith("connect_solana") && !functionCall.first.startsWith("send_solana")) {
                                 // Execute regular functions synchronously
                                 val functionResult = runBlocking {
                                     executeFunction(context, functionCall.first, functionCall.second)

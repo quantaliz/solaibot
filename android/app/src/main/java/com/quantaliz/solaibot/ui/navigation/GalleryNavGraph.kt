@@ -289,6 +289,7 @@ fun GalleryNavHost(
                 CustomTaskDataForBuiltinTask(
                   modelManagerViewModel = modelManagerViewModel,
                   onNavUp = { navController.navigateUp() },
+                  activityResultSender = activityResultSender,
                 )
             )
           } else {
@@ -298,6 +299,7 @@ fun GalleryNavHost(
               modelManagerViewModel = modelManagerViewModel,
               onNavigateUp = { navController.navigateUp() },
               disableAppBarControls = disableAppBarControls,
+              activityResultSender = activityResultSender,
             ) { bottomPadding ->
               customTask.MainScreen(
                 data =
@@ -340,6 +342,7 @@ private fun CustomTaskScreen(
   modelManagerViewModel: ModelManagerViewModel,
   disableAppBarControls: Boolean,
   onNavigateUp: () -> Unit,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
   content: @Composable (bottomPadding: Dp) -> Unit,
 ) {
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()

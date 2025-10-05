@@ -98,7 +98,11 @@ class LlmChatTask @Inject constructor() : CustomTask {
   @Composable
   override fun MainScreen(data: Any) {
     val myData = data as CustomTaskDataForBuiltinTask
-    LlmChatScreen(modelManagerViewModel = myData.modelManagerViewModel, navigateUp = myData.onNavUp)
+    LlmChatScreen(
+      modelManagerViewModel = myData.modelManagerViewModel, 
+      navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
+    )
   }
 }
 
@@ -174,6 +178,7 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     LlmAskImageScreen(
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
     )
   }
 }
@@ -251,6 +256,7 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     LlmAskAudioScreen(
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
     )
   }
 }
