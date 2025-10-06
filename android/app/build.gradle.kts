@@ -104,6 +104,7 @@ dependencies {
   implementation(libs.firebase.analytics)
   implementation(libs.androidx.exifinterface)
   implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.3")
+  implementation("com.solanamobile:web3-solana:0.2.5")
   implementation("com.solanamobile:rpc-solana:0.2.10")
   implementation("com.solanamobile:rpc-core:0.2.10")
   implementation("com.solanamobile:rpc-ktordriver:0.2.10")
