@@ -45,7 +45,25 @@ fun cleanUpMediapipeTaskErrorMessage(message: String): String {
 }
 
 fun processLlmResponse(response: String): String {
-  return response.replace("\\n", "\n")
+  // Remove FUNCTION_CALL text that shouldn't be shown to users
+  var processed = response
+
+  // Remove any occurrence of FUNCTION_CALL: and everything up to the next newline or end of text
+  processed = processed.replace(Regex("FUNCTION_CALL:[^\n]*"), "")
+
+  // Remove markdown code block delimiters (``` or ~~~)
+  processed = processed.replace(Regex("```[a-zA-Z]*\n?"), "")
+  processed = processed.replace(Regex("~~~[a-zA-Z]*\n?"), "")
+
+  // Remove lines that are now empty or only whitespace
+  processed = processed.lines()
+    .filter { it.isNotBlank() }
+    .joinToString("\n")
+
+  // Replace escaped newlines with actual newlines
+  processed = processed.replace("\\n", "\n")
+
+  return processed.trim()
 }
 
 inline fun <reified T> getJsonResponse(url: String): JsonObjAndTextContent<T>? {

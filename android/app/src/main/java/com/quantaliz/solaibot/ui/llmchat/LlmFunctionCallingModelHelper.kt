@@ -247,13 +247,23 @@ object LlmFunctionCallingModelHelper {
             inputDataList.add(InputData.Text(fullPrompt))
 
             val responseBuilder = StringBuilder()
+            var isFunctionCall = false
 
             session.generateContentStream(
                 inputDataList,
                 object : ResponseObserver {
                     override fun onNext(response: String) {
+                        // Check if this chunk or accumulated text contains FUNCTION_CALL
+                        if (response.contains("FUNCTION_CALL") || responseBuilder.toString().contains("FUNCTION_CALL")) {
+                            isFunctionCall = true
+                        }
+
                         responseBuilder.append(response)
-                        resultListener(response, false)
+
+                        // Only stream to UI if it's not a function call
+                        if (!isFunctionCall) {
+                            resultListener(response, false)
+                        }
                     }
 
                     override fun onDone() {
@@ -266,21 +276,21 @@ object LlmFunctionCallingModelHelper {
                         if (functionCall != null) {
                             Log.d(TAG, "Function call detected: ${functionCall.first}(${functionCall.second})")
 
-                            // Add assistant's function call to history
+                            // Add assistant's function call to history (keep the original for context)
                             instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
 
                             // Execute the function asynchronously
                             // Since wallet functions might involve user interaction, we need to handle this appropriately
                             // For now, we'll run the function in a coroutine and return a placeholder immediately
                             // The actual response will be handled differently
-                            
+
                             // For non-wallet functions, we can run synchronously
                             if (!functionCall.first.startsWith("get_solana_balance") && !functionCall.first.startsWith("connect_solana") && !functionCall.first.startsWith("send_solana")) {
                                 // Execute regular functions synchronously
                                 val functionResult = runBlocking {
                                     executeFunction(context, functionCall.first, functionCall.second)
                                 }
-                                
+
                                 Log.d(TAG, "Function result: $functionResult")
 
                                 // Add function result to history
@@ -317,8 +327,11 @@ object LlmFunctionCallingModelHelper {
                                 )
                             } else {
                                 // For wallet functions, we need special handling since they might involve user interaction
-                                // Signal to user that wallet interaction is in progress
-                                resultListener("Processing wallet request...\n", false)
+                                // Add the wallet processing message directly to conversation history so it shows up
+                                instance.conversationHistory.add(ConversationTurn("assistant", "Processing wallet request...\n"))
+
+                                // Signal completion of function call message (filtered out), then send processing message
+                                resultListener("Processing wallet request...\n", true)
 
                                 // Execute the actual wallet function async (in the background)
                                 // This would trigger the wallet interaction

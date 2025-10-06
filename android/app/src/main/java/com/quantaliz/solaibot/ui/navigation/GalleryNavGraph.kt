@@ -195,9 +195,7 @@ fun GalleryNavHost(
   // Navigate to the LLM model when marked
   LaunchedEffect(shouldNavigateToLlmModel) {
     if (shouldNavigateToLlmModel && firstLlmChatModel != null) {
-      navController.navigate("$ROUTE_MODEL/llm_chat/${firstLlmChatModel!!.name}") {
-        popUpTo(ROUTE_PLACEHOLDER) { inclusive = true }
-      }
+      navController.navigate("$ROUTE_MODEL/llm_chat/${firstLlmChatModel!!.name}")
       shouldNavigateToLlmModel = false
     }
   }
@@ -285,7 +283,15 @@ fun GalleryNavHost(
               data =
                 CustomTaskDataForBuiltinTask(
                   modelManagerViewModel = modelManagerViewModel,
-                  onNavUp = { navController.navigateUp() },
+                  onNavUp = {
+                    // Set state to show model manager
+                    pickedTask = customTask.task
+                    shouldShowLlmModelManager = true
+                    // Navigate back
+                    if (navController.previousBackStackEntry != null) {
+                      navController.popBackStack()
+                    }
+                  },
                   activityResultSender = activityResultSender,
                 )
             )

@@ -113,6 +113,8 @@ Important:
 - Use exact function names and parameter names as defined above
 - Always put string values in double quotes
 - If you don't need a function, respond normally with natural language
+- When responding to users after a function call, speak naturally without using markdown code blocks (no ``` syntax)
+- Keep responses conversational and friendly
 """.trimIndent())
 
     return sb.toString()

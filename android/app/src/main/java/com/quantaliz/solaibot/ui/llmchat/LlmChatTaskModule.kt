@@ -46,7 +46,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
   override val task: Task =
     Task(
       id = BuiltInTaskId.LLM_CHAT,
-      label = "AI Chat",
+      label = "SolAIBot",
       category = Category.LLM,
       icon = Icons.Outlined.Forum,
       models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
