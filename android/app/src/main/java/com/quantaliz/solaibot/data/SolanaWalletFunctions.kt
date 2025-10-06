@@ -143,7 +143,8 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                 val result = adapter.transact(activityResultSender) { authResult ->
                     val account = authResult.accounts.firstOrNull()
                     if (account != null) {
-                        val address = String(account.publicKey)
+                        val publicKey = SolanaPublicKey(account.publicKey)
+                        val address = publicKey.base58()
                         val hexAddress = bytesToHex(account.publicKey)
 
                         // Update connection state
@@ -171,9 +172,11 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 
                 when (result) {
                     is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
-                        val address = String(result.authResult.accounts.first().publicKey)
+                        val publicKeyBytes = result.authResult.accounts.first().publicKey
+                        val publicKey = SolanaPublicKey(publicKeyBytes)
+                        val address = publicKey.base58()
                         // Update connection state again in case it changed
-                        val hexAddress = bytesToHex(result.authResult.accounts.first().publicKey)
+                        val hexAddress = bytesToHex(publicKeyBytes)
                         WalletConnectionManager.updateConnectionState(
                             WalletConnectionState(
                                 isConnected = true,
@@ -237,9 +240,10 @@ suspend fun connectSolanaWallet(context: Context, activityResultSender: com.sola
             when (result) {
                 is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
                     val authResult = result.authResult
-                    val publicKey = authResult.accounts.first().publicKey
-                    val address = String(publicKey)
-                    val hexAddress = bytesToHex(publicKey) // Using hex format for consistency
+                    val publicKeyBytes = authResult.accounts.first().publicKey
+                    val publicKey = SolanaPublicKey(publicKeyBytes)
+                    val address = publicKey.base58()
+                    val hexAddress = bytesToHex(publicKeyBytes) // Using hex format for consistency
 
                     // Update the connection state
                     WalletConnectionManager.updateConnectionState(
@@ -309,10 +313,11 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
 
         when (result) {
             is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
-                val address = String(result.authResult.accounts.first().publicKey)
+                val publicKeyBytes = result.authResult.accounts.first().publicKey
+                val publicKey = SolanaPublicKey(publicKeyBytes)
+                val address = publicKey.base58()
                 // Update connection state after successful transaction
-                val publicKey = result.authResult.accounts.first().publicKey
-                val hexAddress = bytesToHex(publicKey)
+                val hexAddress = bytesToHex(publicKeyBytes)
                 WalletConnectionManager.updateConnectionState(
                     WalletConnectionState(
                         isConnected = true,

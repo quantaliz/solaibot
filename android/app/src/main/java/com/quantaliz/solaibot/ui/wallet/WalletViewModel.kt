@@ -23,6 +23,7 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.solana.publickey.SolanaPublicKey
 import com.quantaliz.solaibot.data.WalletConnectionManager
 import com.quantaliz.solaibot.data.WalletConnectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -78,9 +79,11 @@ class WalletViewModel @Inject constructor() : ViewModel() {
                             isConnecting = false,
                             error = null
                         )
-                        
+
                         // Update shared connection state
-                        val address = publicKey?.let { String(it) }
+                        val address = publicKey?.let {
+                            SolanaPublicKey(it).base58()
+                        }
                         WalletConnectionManager.updateConnectionState(
                             WalletConnectionState(
                                 isConnected = true,
