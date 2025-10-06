@@ -317,62 +317,22 @@ object LlmFunctionCallingModelHelper {
                                 )
                             } else {
                                 // For wallet functions, we need special handling since they might involve user interaction
-                                // For now, we'll add a placeholder response that explains the wallet interaction is starting
-                                val placeholderResult = "Initiating wallet interaction for: ${functionCall.first}. User approval required."
-                                Log.d(TAG, "Wallet function placeholder result: $placeholderResult")
+                                // Signal to user that wallet interaction is in progress
+                                resultListener("Processing wallet request...\n", false)
 
-                                // Add function result to history
-                                instance.conversationHistory.add(ConversationTurn("function", placeholderResult))
-
-                                // Build new prompt with function result
-                                val followUpPrompt = buildPrompt(instance)
-
-                                // Generate follow-up response
-                                val followUpBuilder = StringBuilder()
-                                session.generateContentStream(
-                                    listOf(InputData.Text(followUpPrompt)),
-                                    object : ResponseObserver {
-                                        override fun onNext(response: String) {
-                                            followUpBuilder.append(response)
-                                            resultListener(response, false)
-                                        }
-
-                                        override fun onDone() {
-                                            val followUpResponse = followUpBuilder.toString()
-                                            Log.d(TAG, "Follow-up response: $followUpResponse")
-
-                                            // Add follow-up to history
-                                            instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
-
-                                            resultListener("", true)
-                                        }
-
-                                        override fun onError(throwable: Throwable) {
-                                            Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
-                                            resultListener("Error generating follow-up: ${throwable.message}", true)
-                                        }
-                                    }
-                                )
-                                
                                 // Execute the actual wallet function async (in the background)
                                 // This would trigger the wallet interaction
                                 GlobalScope.launch(Dispatchers.Main) {
                                     val actualResult = executeFunction(context, functionCall.first, functionCall.second, activityResultSender)
                                     Log.d(TAG, "Wallet function actual result: $actualResult")
-                                    
-                                    // Update the conversation history with the actual result
-                                    // Remove the placeholder and add the actual result
-                                    val lastIdx = instance.conversationHistory.lastIndex
-                                    if (lastIdx >= 0 && instance.conversationHistory[lastIdx].role == "function") {
-                                        instance.conversationHistory[lastIdx] = ConversationTurn("function", actualResult)
-                                    } else {
-                                        instance.conversationHistory.add(ConversationTurn("function", actualResult))
-                                    }
-                                    
+
+                                    // Add function result to history
+                                    instance.conversationHistory.add(ConversationTurn("function", actualResult))
+
                                     // Create a new prompt with the updated conversation history to have the LLM process the actual result
                                     val updatedPrompt = buildPrompt(instance)
                                     val updatedResponseBuilder = StringBuilder()
-                                    
+
                                     session.generateContentStream(
                                         listOf(InputData.Text(updatedPrompt)),
                                         object : ResponseObserver {
@@ -387,11 +347,12 @@ object LlmFunctionCallingModelHelper {
 
                                                 // Add final response to history
                                                 instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
+                                                resultListener("", true)
                                             }
 
                                             override fun onError(throwable: Throwable) {
                                                 Log.e(TAG, "Final response error after wallet function: ${throwable.message}", throwable)
-                                                resultListener("Error processing wallet function result: ${throwable.message}", false)
+                                                resultListener("Error processing wallet function result: ${throwable.message}", true)
                                             }
                                         }
                                     )

@@ -23,6 +23,8 @@ import com.solana.mobilewalletadapter.clientlib.*
 import com.solana.publickey.SolanaPublicKey
 import com.solana.rpc.SolanaRpcClient
 import com.solana.networking.KtorNetworkDriver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Implementation of Solana wallet functions for LLM function calling.
@@ -119,13 +121,22 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
     // Initialize wallet adapter if not already done
     initializeSolanaWalletAdapter(context)
 
+    // Check for internet connectivity before proceeding
+    if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+        val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+        Log.w(TAG, "No internet connection available: $networkStatus")
+        return "Cannot retrieve balance: No internet connection. Please check your network settings. ($networkStatus)"
+    }
+
     val connectionState = WalletConnectionManager.getConnectionState()
 
     if (connectionState.isConnected && connectionState.address != null) {
         // If already connected, just return the current connection info and try to get the balance
         // For now, we'll retrieve the balance using Solana's JSON RPC API
         val balanceString = try {
-            getSolanaBalanceViaRpc(connectionState.address)
+            withContext(Dispatchers.IO) {
+                getSolanaBalanceViaRpc(context, connectionState.address)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
             "Balance could not be retrieved via RPC: ${e.message}"
@@ -158,7 +169,9 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 
                         // Get the balance for the connected wallet
                         val balanceString = try {
-                            getSolanaBalanceViaRpc(address)
+                            withContext(Dispatchers.IO) {
+                                getSolanaBalanceViaRpc(context, address)
+                            }
                         } catch (e: Exception) {
                             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
                             "Balance could not be retrieved via RPC: ${e.message}"
@@ -187,7 +200,9 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 
                         // Get the balance for the connected wallet
                         val balanceString = try {
-                            getSolanaBalanceViaRpc(address)
+                            withContext(Dispatchers.IO) {
+                                getSolanaBalanceViaRpc(context, address)
+                            }
                         } catch (e: Exception) {
                             Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
                             "Balance could not be retrieved via RPC: ${e.message}"
@@ -383,13 +398,22 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
  * Retrieves the Solana balance via RPC.
  * This function makes an HTTP request to a Solana RPC endpoint to get the balance.
  */
-suspend fun getSolanaBalanceViaRpc(address: String): String {
+suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
+    // Check for internet connectivity before making RPC call
+    if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+        val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+        Log.w(TAG, "No internet connection available for RPC call: $networkStatus")
+        return "Error retrieving balance: No internet connection. ($networkStatus)"
+    }
+
     // We need to use the Solana RPC client to fetch the balance
     // The implementation will use the SolanaRpcClient as per the documentation
     try {
         // Create RPC client with a default endpoint (this would normally be configurable)
+        // Using Ktor with explicit configuration for better Android network compatibility
         val rpcClient = SolanaRpcClient(
-            "https://api.mainnet-beta.solana.com",
+            // "https://api.mainnet-beta.solana.com",
+            "https://api.devnet.solana.com",
             KtorNetworkDriver()
         )
 
