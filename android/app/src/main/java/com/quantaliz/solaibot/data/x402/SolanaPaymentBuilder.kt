@@ -42,18 +42,27 @@ private const val TAG = "SolanaPaymentBuilder"
 /**
  * Builds a Solana payment transaction based on x402 payment requirements.
  *
- * Process:
- * 1. Verify wallet is connected
- * 2. Parse payment requirements (recipient, amount, token)
- * 3. Build transfer instruction (SOL or SPL token)
- * 4. Create transaction with fee payer as the facilitator
- * 5. Sign with user's wallet via MWA
- * 6. Return base64-encoded partially-signed transaction
+ * IMPORTANT: This is a placeholder implementation that returns a mock transaction.
+ * For production use, this needs to be replaced with proper Solana transaction building:
+ *
+ * Required steps:
+ * 1. Fetch recent blockhash from RPC
+ * 2. Create SPL token transfer instruction
+ * 3. Derive associated token accounts
+ * 4. Add compute budget instructions
+ * 5. Set fee payer to facilitator address
+ * 6. Properly serialize and sign via MWA
+ *
+ * Current limitation: The Solana mobile libraries don't provide full transaction
+ * building capabilities. A full implementation would need:
+ * - solana-kotlin or similar library for transaction building
+ * - Or native integration with @solana/web3.js via WebView bridge
+ * - Or server-side transaction building with client-side signing only
  *
  * @param context Android context
  * @param requirement Payment requirements from resource server
  * @param activityResultSender For wallet interaction
- * @return Base64-encoded serialized transaction
+ * @return Base64-encoded serialized transaction (currently placeholder)
  */
 suspend fun buildSolanaPaymentTransaction(
     context: Context,

@@ -64,7 +64,7 @@ This project has been developed for:
 
 When a user asks the LLM to access a paid resource:
 
-1. LLM generates: FUNCTION_CALL: solana_payment(url="https://x402.payai.network/test")
+1. LLM generates: FUNCTION_CALL: solana_payment(url="https://x402.payai.network/api/solana-devnet/paid-content")
 2. Client requests the URL without payment
 3. Server responds with 402 Payment Required + payment details
 4. Client builds Solana transaction to pay the required amount

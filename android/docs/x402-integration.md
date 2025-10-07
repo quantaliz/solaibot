@@ -210,29 +210,90 @@ Common errors and solutions:
 | "ActivityResultSender required" | Missing wallet interaction capability | Ensure function called from UI context |
 | "HTTP 402" after payment | Payment verification failed | Check wallet balance, transaction validity |
 
+## Current Status
+
+**⚠️ IMPLEMENTATION INCOMPLETE - MVP PHASE**
+
+The x402 integration is currently in MVP phase with the following status:
+
+### ✅ Completed
+- Data models for x402 protocol (PaymentRequirements, PaymentPayload, etc.)
+- HTTP client for facilitator API (verify, settle, supported)
+- Main x402 HTTP client with 402 response handling
+- LLM function calling integration (`solana_payment`)
+- Wallet connection via Mobile Wallet Adapter
+- Basic transaction signing flow
+
+### ❌ Not Yet Implemented
+- **Proper Solana transaction building** (critical blocker)
+  - Recent blockhash fetching
+  - SPL token transfer instruction creation
+  - Associated token account derivation
+  - Compute budget instructions
+  - Proper transaction serialization
+
+### Current Behavior
+
+When you call `solana_payment`, the system will:
+1. ✅ Connect to wallet successfully
+2. ✅ Make initial request and receive 402 Payment Required
+3. ✅ Parse payment requirements
+4. ❌ **FAIL**: Create invalid transaction (placeholder only)
+5. ❌ Transaction rejected by facilitator with `invalid_exact_svm_payload_transaction`
+
 ## Limitations & Future Work
 
 ### Current Limitations
 
-1. **Transaction Building**: Simplified transaction structure (MVP)
-   - Missing recent blockhash fetching
-   - Placeholder for SPL token account derivation
-   - No retry logic for blockhash expiration
+1. **Transaction Building**: **CRITICAL - NOT WORKING**
+   - Current implementation creates placeholder transactions
+   - Facilitator rejects with `invalid_exact_svm_payload_transaction`
+   - Missing: recent blockhash, proper instruction encoding, serialization
+   - Needs full Solana transaction builder library
 
-2. **MWA Integration**: Basic signing flow
-   - Need to properly extract signed transaction bytes
-   - Should handle transaction serialization better
+2. **MWA Integration**: Basic signing flow works
+   - Successfully connects and authorizes
+   - Need to properly build transaction before signing
 
-3. **Network Support**: Solana only
+3. **Network Support**: Solana devnet/mainnet only
    - No EVM support (Base, Ethereum, etc.)
 
 ### Planned Improvements
 
-1. **Full Transaction Support**
-   - Integrate proper Solana transaction builder
-   - Fetch recent blockhash from RPC
-   - Derive associated token accounts for SPL tokens
-   - Support compute budget instructions
+1. **Full Transaction Support** (PRIORITY 1 - BLOCKING)
+
+   **Problem**: Android lacks a mature Solana transaction building library
+
+   **Potential Solutions**:
+
+   a. **Server-Side Transaction Building** (Recommended)
+      - Create a backend service that builds transactions
+      - Client sends payment requirements to server
+      - Server creates proper transaction
+      - Client signs transaction via MWA
+      - Client submits signed transaction to facilitator
+      - Pro: Works with existing MWA
+      - Con: Requires backend infrastructure
+
+   b. **WebView Bridge to @solana/web3.js**
+      - Embed JavaScript transaction builder in WebView
+      - Bridge between Kotlin and JS
+      - Use official Solana web3.js for transaction building
+      - Pro: Uses battle-tested library
+      - Con: Complex WebView integration
+
+   c. **Port solana-kotlin or Create Native Builder**
+      - Port/create full Solana transaction builder in Kotlin
+      - Implement: blockhash, instructions, serialization
+      - Pro: Pure native solution
+      - Con: Significant development effort
+
+   d. **Use Solana Actions/Blinks Pattern**
+      - Resource server provides pre-built transaction
+      - Client just signs via MWA
+      - Similar to Solana Blinks flow
+      - Pro: Simple client implementation
+      - Con: Requires server-side changes
 
 2. **Enhanced MWA Integration**
    - Use proper `signTransactions()` API
@@ -273,8 +334,27 @@ For issues or questions:
 3. Test with devnet before mainnet
 4. Review x402 protocol documentation
 
+## Next Steps for Production
+
+To complete the x402 integration, choose one of the transaction building approaches above and implement:
+
+1. Proper Solana transaction building
+2. Test with devnet facilitator
+3. Add comprehensive error handling
+4. Create transaction monitoring UI
+5. Add spending limits and budget management
+6. Full integration tests
+
+### Quick Test (When Complete)
+
+```kotlin
+// This will work once transaction building is implemented
+val response = solana_payment(url = "https://x402.payai.network/test")
+// Should successfully pay and return resource content
+```
+
 ---
 
 **Last Updated**: 2025-10-07
 **Version**: 1.0.7
-**Status**: MVP Implementation Complete
+**Status**: ⚠️ MVP INCOMPLETE - Transaction Building Needed

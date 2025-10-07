@@ -495,6 +495,26 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activ
 
                 "Successfully accessed paid resource at $url$settlementInfo\n\nResponse:\n${response.body}"
             }
+            response.statusCode == 402 && response.body != null -> {
+                // Parse the error response to provide more context
+                try {
+                    val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    val errorResponse = json.decodeFromString<com.quantaliz.solaibot.data.x402.PaymentRequirementsResponse>(response.body)
+
+                    val errorReason = when {
+                        errorResponse.error.contains("invalid_exact_svm_payload_transaction") ->
+                            "Transaction validation failed. The x402 payment feature is currently in development and cannot yet create valid Solana transactions. " +
+                            "This requires implementing proper transaction building with blockhash, SPL token instructions, and compute budget. " +
+                            "See docs/x402-integration.md for implementation details."
+                        else -> errorResponse.error
+                    }
+
+                    "Payment failed: $errorReason"
+                } catch (e: Exception) {
+                    "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}\n\nNote: The x402 payment feature is still in development. " +
+                    "Transaction building needs to be completed for production use."
+                }
+            }
             else -> {
                 "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}"
             }
