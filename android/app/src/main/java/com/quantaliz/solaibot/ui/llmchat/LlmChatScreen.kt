@@ -24,18 +24,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.bundleOf
 import com.quantaliz.solaibot.data.BuiltInTaskId
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageAudioClip
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageImage
 import com.quantaliz.solaibot.ui.common.chat.ChatMessageText
 import com.quantaliz.solaibot.ui.common.chat.ChatView
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
+import com.quantaliz.solaibot.ui.wallet.WalletViewModel
 
 @Composable
 fun LlmChatScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
   viewModel: LlmChatViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
@@ -44,6 +45,7 @@ fun LlmChatScreen(
     taskId = BuiltInTaskId.LLM_CHAT,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -52,6 +54,7 @@ fun LlmAskImageScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
   viewModel: LlmAskImageViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
@@ -60,6 +63,7 @@ fun LlmAskImageScreen(
     taskId = BuiltInTaskId.LLM_ASK_IMAGE,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -68,6 +72,7 @@ fun LlmAskAudioScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
   viewModel: LlmAskAudioViewModel = hiltViewModel(),
 ) {
   ChatViewWrapper(
@@ -76,6 +81,7 @@ fun LlmAskAudioScreen(
     taskId = BuiltInTaskId.LLM_ASK_AUDIO,
     navigateUp = navigateUp,
     modifier = modifier,
+    activityResultSender = activityResultSender,
   )
 }
 
@@ -86,9 +92,28 @@ fun ChatViewWrapper(
   taskId: String,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  onWalletConnectClicked: (() -> Unit)? = null,
 ) {
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
+  val walletViewModel: WalletViewModel = hiltViewModel()
+
+  // Sync wallet view model with shared connection state when the composable is first composed
+  androidx.compose.runtime.LaunchedEffect(Unit) {
+    walletViewModel.syncWithSharedState()
+  }
+
+  // Use the direct callback if provided, otherwise use the internal implementation
+  val effectiveOnWalletConnect: (() -> Unit)? = onWalletConnectClicked ?: {
+    if (activityResultSender != null) {
+      walletViewModel.connectWallet(activityResultSender)
+    } else {
+      // Log that the wallet connection was attempted but no activityResultSender was available
+      android.util.Log.e("ChatViewWrapper", "Wallet connect attempted but activityResultSender is null")
+    }
+    Unit
+  }
 
   ChatView(
     task = task,
@@ -115,26 +140,41 @@ fun ChatViewWrapper(
       }
       if ((text.isNotEmpty() && chatMessageText != null) || audioMessages.isNotEmpty()) {
         modelManagerViewModel.addTextInputHistory(text)
-        viewModel.generateResponse(
-          model = model,
-          input = text,
-          images = images,
-          audioMessages = audioMessages,
-          onError = {
-            viewModel.handleError(
-              context = context,
-              task = task,
-              model = model,
-              modelManagerViewModel = modelManagerViewModel,
-              triggeredMessage = chatMessageText,
-            )
-          },
-        )
-
-        firebaseAnalytics?.logEvent(
-          "generate_action",
-          bundleOf("capability_name" to task.id, "model_id" to model.name),
-        )
+        if (model.llmSupportFunctionCalling) {
+          viewModel.generateResponseWithContext(
+            context = context,
+            model = model,
+            input = text,
+            images = images,
+            audioMessages = audioMessages,
+            activityResultSender = activityResultSender,
+            onError = {
+              viewModel.handleError(
+                context = context,
+                task = task,
+                model = model,
+                modelManagerViewModel = modelManagerViewModel,
+                triggeredMessage = chatMessageText,
+              )
+            },
+          )
+        } else {
+          viewModel.generateResponse(
+            model = model,
+            input = text,
+            images = images,
+            audioMessages = audioMessages,
+            onError = {
+              viewModel.handleError(
+                context = context,
+                task = task,
+                model = model,
+                modelManagerViewModel = modelManagerViewModel,
+                triggeredMessage = chatMessageText,
+              )
+            },
+          )
+        }
       }
     },
     onRunAgainClicked = { model, message ->
@@ -160,5 +200,8 @@ fun ChatViewWrapper(
     onStopButtonClicked = { model -> viewModel.stopResponse(model = model) },
     navigateUp = navigateUp,
     modifier = modifier,
+    walletViewModel = walletViewModel,
+    activityResultSender = activityResultSender,
+    onWalletConnectClicked = effectiveOnWalletConnect,
   )
 }

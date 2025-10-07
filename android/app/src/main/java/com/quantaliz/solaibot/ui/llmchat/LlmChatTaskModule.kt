@@ -27,8 +27,10 @@ import com.quantaliz.solaibot.customtasks.common.CustomTask
 import com.quantaliz.solaibot.customtasks.common.CustomTaskDataForBuiltinTask
 import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.Category
+import com.quantaliz.solaibot.data.MODEL_HAMMER_2_1_1_5B
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
+import com.quantaliz.solaibot.ui.llmchat.LlmFunctionCallingModelHelper
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,10 +46,10 @@ class LlmChatTask @Inject constructor() : CustomTask {
   override val task: Task =
     Task(
       id = BuiltInTaskId.LLM_CHAT,
-      label = "AI Chat",
+      label = "SolAIBot",
       category = Category.LLM,
       icon = Icons.Outlined.Forum,
-      models = mutableListOf(),
+      models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
       description = "Chat with on-device large language models",
       docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
       sourceCodeUrl =
@@ -61,13 +63,23 @@ class LlmChatTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = false,
-      supportAudio = false,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -76,13 +88,21 @@ class LlmChatTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
   override fun MainScreen(data: Any) {
     val myData = data as CustomTaskDataForBuiltinTask
-    LlmChatScreen(modelManagerViewModel = myData.modelManagerViewModel, navigateUp = myData.onNavUp)
+    LlmChatScreen(
+      modelManagerViewModel = myData.modelManagerViewModel, 
+      navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
+    )
   }
 }
 
@@ -120,13 +140,23 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = true,
-      supportAudio = false,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = true,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = true,
+        supportAudio = false,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -135,7 +165,11 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
@@ -144,6 +178,7 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
     LlmAskImageScreen(
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
     )
   }
 }
@@ -183,13 +218,23 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: (String) -> Unit,
   ) {
-    LlmChatModelHelper.initialize(
-      context = context,
-      model = model,
-      supportImage = false,
-      supportAudio = true,
-      onDone = onDone,
-    )
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = true,
+        onDone = onDone,
+      )
+    } else {
+      LlmChatModelHelper.initialize(
+        context = context,
+        model = model,
+        supportImage = false,
+        supportAudio = true,
+        onDone = onDone,
+      )
+    }
   }
 
   override fun cleanUpModelFn(
@@ -198,7 +243,11 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     model: Model,
     onDone: () -> Unit,
   ) {
-    LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    if (model.llmSupportFunctionCalling) {
+      LlmFunctionCallingModelHelper.cleanUp(model = model, onDone = onDone)
+    } else {
+      LlmChatModelHelper.cleanUp(model = model, onDone = onDone)
+    }
   }
 
   @Composable
@@ -207,6 +256,7 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
     LlmAskAudioScreen(
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
+      activityResultSender = myData.activityResultSender
     )
   }
 }

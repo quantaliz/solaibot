@@ -91,6 +91,9 @@ fun ChatView(
   onStreamImageMessage: (Model, ChatMessageImage) -> Unit = { _, _ -> },
   onStopButtonClicked: (Model) -> Unit = {},
   showStopButtonInInputWhenInProgress: Boolean = false,
+  walletViewModel: com.quantaliz.solaibot.ui.wallet.WalletViewModel? = null,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+  onWalletConnectClicked: (() -> Unit)? = null,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -165,6 +168,8 @@ fun ChatView(
           }
           modelManagerViewModel.selectModel(model = curModel)
         },
+        walletViewModel = walletViewModel,
+        onWalletConnectClicked = onWalletConnectClicked,
       )
     },
   ) { innerPadding ->

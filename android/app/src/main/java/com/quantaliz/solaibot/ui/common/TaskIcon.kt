@@ -113,7 +113,12 @@ fun TaskIcon(
 
 @Composable
 private fun getTaskIconBgShape(task: Task): Painter {
-  val colorIndex: Int = task.index % SHAPES.size
+  // Ensure colorIndex is always valid (0 to SHAPES.size-1)
+  val colorIndex: Int = if (task.index >= 0) {
+    task.index % SHAPES.size
+  } else {
+    0 // Default to first shape if index is invalid
+  }
   return painterResource(SHAPES[colorIndex])
 }
 

@@ -171,7 +171,7 @@ val lightCustomColors =
       ),
     taskIconShapeBgColor = Color.White,
     homeBottomGradient = listOf(Color(0x00F8F9FF), Color(0xffFFEFC9)),
-    agentBubbleBgColor = Color(0xFFe9eef6),
+    agentBubbleBgColor = Color(0xFFD4EDDA), // Light green bubble for agent responses
     userBubbleBgColor = Color(0xFF32628D),
     linkColor = Color(0xFF32628D),
     successColor = Color(0xff3d860b),
@@ -220,7 +220,7 @@ val darkCustomColors =
       ),
     taskIconShapeBgColor = Color(0xFF202124),
     homeBottomGradient = listOf(Color(0x00F8F9FF), Color(0x1AF6AD01)),
-    agentBubbleBgColor = Color(0xFF1b1c1d),
+    agentBubbleBgColor = Color(0xFF2D4A2D), // Dark green bubble for agent responses in dark mode
     userBubbleBgColor = Color(0xFF1f3760),
     linkColor = Color(0xFF9DCAFC),
     successColor = Color(0xFFA1CE83),

@@ -56,6 +56,244 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     audioMessages: List<ChatMessageAudioClip> = listOf(),
     onError: () -> Unit,
   ) {
+    // This method is for non-function-calling models only
+    if (model.llmSupportFunctionCalling) {
+      Log.e(TAG, "Function calling models require context. Use generateResponseWithContext instead.")
+      onError()
+      return
+    }
+    
+    runStandardInference(model, input, images, audioMessages, onError)
+  }
+  
+  fun generateResponseWithContext(
+    context: Context,
+    model: Model,
+    input: String,
+    images: List<Bitmap> = listOf(),
+    audioMessages: List<ChatMessageAudioClip> = listOf(),
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
+    onError: () -> Unit,
+  ) {
+    val accelerator = model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = "")
+    viewModelScope.launch(Dispatchers.Default) {
+      setInProgress(true)
+      setPreparing(true)
+
+      // Loading.
+      addMessage(model = model, message = ChatMessageLoading(accelerator = accelerator))
+
+      // Wait for instance to be initialized.
+      while (model.instance == null) {
+        delay(100)
+      }
+      delay(500)
+
+      // Run inference.
+      // Handle both LlmModelInstance and FunctionCallingModelInstance
+      val session = when (val instance = model.instance) {
+        is LlmModelInstance -> instance.session
+        is FunctionCallingModelInstance -> instance.session
+        else -> throw IllegalStateException("Unknown model instance type")
+      }
+      var prefillTokens = images.size * 257
+      val audioClips: MutableList<ByteArray> = mutableListOf()
+      for (audioMessage in audioMessages) {
+        audioClips.add(audioMessage.genByteArrayForWav())
+        // 150ms = 1 audio token
+        val duration = audioMessage.getDurationInSeconds()
+        prefillTokens += (duration * 1000f / 150f).toInt()
+      }
+
+      var firstRun = true
+      var timeToFirstToken = 0f
+      var firstTokenTs = 0L
+      var decodeTokens = 0
+      var prefillSpeed = 0f
+      var decodeSpeed: Float
+      val start = System.currentTimeMillis()
+
+      try {
+        if (model.llmSupportFunctionCalling) {
+          // Use the function calling helper which can handle function calls
+          LlmFunctionCallingModelHelper.runInference(
+            model = model,
+            input = input,
+            images = images,
+            audioClips = audioClips,
+            resultListener = { partialResult, done ->
+              val curTs = System.currentTimeMillis()
+
+              if (firstRun) {
+                firstTokenTs = System.currentTimeMillis()
+                timeToFirstToken = (firstTokenTs - start) / 1000f
+                prefillTokens += session.getBenchmarkInfo().lastPrefillTokenCount
+                prefillSpeed = prefillTokens / timeToFirstToken
+                firstRun = false
+                setPreparing(false)
+              } else {
+                decodeTokens++
+              }
+
+              // Remove the last message if it is a "loading" message.
+              // This will only be done once.
+              val lastMessage = getLastMessage(model = model)
+              if (lastMessage?.type == ChatMessageType.LOADING) {
+                removeLastMessage(model = model)
+
+                // Add an empty message that will receive streaming results.
+                addMessage(
+                  model = model,
+                  message =
+                    ChatMessageText(content = "", side = ChatSide.AGENT, accelerator = accelerator),
+                )
+              }
+
+              // Incrementally update the streamed partial results.
+              val latencyMs: Long = if (done) System.currentTimeMillis() - start else -1
+              updateLastTextMessageContentIncrementally(
+                model = model,
+                partialContent = partialResult,
+                latencyMs = latencyMs.toFloat(),
+              )
+
+              if (done) {
+                setInProgress(false)
+
+                decodeSpeed = decodeTokens / ((curTs - firstTokenTs) / 1000f)
+                if (decodeSpeed.isNaN()) {
+                  decodeSpeed = 0f
+                }
+
+                if (lastMessage is ChatMessageText) {
+                  updateLastTextMessageLlmBenchmarkResult(
+                    model = model,
+                    llmBenchmarkResult =
+                      ChatMessageBenchmarkLlmResult(
+                        orderedStats = STATS,
+                        statValues =
+                          mutableMapOf(
+                            "prefill_speed" to prefillSpeed,
+                            "decode_speed" to decodeSpeed,
+                            "time_to_first_token" to timeToFirstToken,
+                            "latency" to (curTs - start).toFloat() / 1000f,
+                          ),
+                        running = false,
+                        latencyMs = -1f,
+                        accelerator = accelerator,
+                      ),
+                  )
+                }
+              }
+            },
+            cleanUpListener = {
+              setInProgress(false)
+              setPreparing(false)
+            },
+            context = context,
+            activityResultSender = activityResultSender
+          )
+        } else {
+          // Use the standard helper for non-function-calling models
+          LlmChatModelHelper.runInference(
+            model = model,
+            input = input,
+            images = images,
+            audioClips = audioClips,
+            resultListener = { partialResult, done ->
+              val curTs = System.currentTimeMillis()
+
+              if (firstRun) {
+                firstTokenTs = System.currentTimeMillis()
+                timeToFirstToken = (firstTokenTs - start) / 1000f
+                prefillTokens += session.getBenchmarkInfo().lastPrefillTokenCount
+                prefillSpeed = prefillTokens / timeToFirstToken
+                firstRun = false
+                setPreparing(false)
+              } else {
+                decodeTokens++
+              }
+
+              // Remove the last message if it is a "loading" message.
+              // This will only be done once.
+              val lastMessage = getLastMessage(model = model)
+              if (lastMessage?.type == ChatMessageType.LOADING) {
+                removeLastMessage(model = model)
+
+                // Add an empty message that will receive streaming results.
+                addMessage(
+                  model = model,
+                  message =
+                    ChatMessageText(content = "", side = ChatSide.AGENT, accelerator = accelerator),
+                )
+              }
+
+              // Incrementally update the streamed partial results.
+              val latencyMs: Long = if (done) System.currentTimeMillis() - start else -1
+              updateLastTextMessageContentIncrementally(
+                model = model,
+                partialContent = partialResult,
+                latencyMs = latencyMs.toFloat(),
+              )
+
+              if (done) {
+                setInProgress(false)
+
+                decodeSpeed = decodeTokens / ((curTs - firstTokenTs) / 1000f)
+                if (decodeSpeed.isNaN()) {
+                  decodeSpeed = 0f
+                }
+
+                if (lastMessage is ChatMessageText) {
+                  updateLastTextMessageLlmBenchmarkResult(
+                    model = model,
+                    llmBenchmarkResult =
+                      ChatMessageBenchmarkLlmResult(
+                        orderedStats = STATS,
+                        statValues =
+                          mutableMapOf(
+                            "prefill_speed" to prefillSpeed,
+                            "decode_speed" to decodeSpeed,
+                            "time_to_first_token" to timeToFirstToken,
+                            "latency" to (curTs - start).toFloat() / 1000f,
+                          ),
+                        running = false,
+                        latencyMs = -1f,
+                        accelerator = accelerator,
+                      ),
+                  )
+                }
+              }
+            },
+            cleanUpListener = {
+              setInProgress(false)
+              setPreparing(false)
+            },
+          )
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Error occurred while running inference", e)
+        setInProgress(false)
+        setPreparing(false)
+        onError()
+      }
+    }
+  }
+  
+  private fun runStandardInference(
+    model: Model,
+    input: String,
+    images: List<Bitmap>,
+    audioMessages: List<ChatMessageAudioClip>,
+    onError: () -> Unit,
+  ) {
+    // Ensure this is only called for non-function-calling models
+    if (model.llmSupportFunctionCalling) {
+      Log.e(TAG, "runStandardInference should not be called for function calling models")
+      onError()
+      return
+    }
+    
     val accelerator = model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = "")
     viewModelScope.launch(Dispatchers.Default) {
       setInProgress(true)
@@ -72,6 +310,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
 
       // Run inference.
       val instance = model.instance as LlmModelInstance
+      val session = instance.session
       var prefillTokens = images.size * 257
       val audioClips: MutableList<ByteArray> = mutableListOf()
       for (audioMessage in audioMessages) {
@@ -101,7 +340,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
             if (firstRun) {
               firstTokenTs = System.currentTimeMillis()
               timeToFirstToken = (firstTokenTs - start) / 1000f
-              prefillTokens += instance.session.getBenchmarkInfo().lastPrefillTokenCount
+              prefillTokens += session.getBenchmarkInfo().lastPrefillTokenCount
               prefillSpeed = prefillTokens / timeToFirstToken
               firstRun = false
               setPreparing(false)

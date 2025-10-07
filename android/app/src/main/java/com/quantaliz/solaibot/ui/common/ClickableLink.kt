@@ -35,7 +35,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.theme.customColors
 
 @Composable
@@ -69,7 +68,6 @@ fun ClickableLink(url: String, linkText: String, icon: ImageVector? = null) {
       modifier =
         Modifier.padding(start = 6.dp).clickable {
           uriHandler.openUri(url)
-          firebaseAnalytics?.logEvent("resource_link_click", bundleOf("link_destination" to url))
         },
     )
   }

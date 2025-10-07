@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -56,6 +57,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -115,7 +117,6 @@ import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.Category
 import com.quantaliz.solaibot.data.CategoryInfo
 import com.quantaliz.solaibot.data.Task
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.proto.ImportedModel
 import com.quantaliz.solaibot.ui.common.RevealingText
 import com.quantaliz.solaibot.ui.common.SwipingText
@@ -125,6 +126,8 @@ import com.quantaliz.solaibot.ui.common.tos.TosDialog
 import com.quantaliz.solaibot.ui.common.tos.TosViewModel
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
 import com.quantaliz.solaibot.ui.theme.customColors
+import com.quantaliz.solaibot.ui.wallet.WalletViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.quantaliz.solaibot.ui.theme.homePageTitleStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -163,14 +166,18 @@ private val PREDEFINED_LLM_TASK_ORDER =
 fun HomeScreen(
   modelManagerViewModel: ModelManagerViewModel,
   tosViewModel: TosViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
   navigateToTaskScreen: (Task) -> Unit,
   modifier: Modifier = Modifier,
+  walletViewModel: WalletViewModel = hiltViewModel(),
 ) {
   val uiState by modelManagerViewModel.uiState.collectAsState()
+  val walletUiState by walletViewModel.uiState.collectAsState()
   var showSettingsDialog by remember { mutableStateOf(false) }
   var showImportModelSheet by remember { mutableStateOf(false) }
   var showUnsupportedFileTypeDialog by remember { mutableStateOf(false) }
   var showUnsupportedWebModelDialog by remember { mutableStateOf(false) }
+  var showWalletDialog by remember { mutableStateOf(false) }
   val sheetState = rememberModalBottomSheetState()
   var showImportDialog by remember { mutableStateOf(false) }
   var showImportingDialog by remember { mutableStateOf(false) }
@@ -351,15 +358,31 @@ fun HomeScreen(
           }
         },
         floatingActionButton = {
-          // A floating action button to show "import model" bottom sheet.
-          val cdImportModelFab = stringResource(R.string.cd_import_model_button)
-          SmallFloatingActionButton(
-            onClick = { showImportModelSheet = true },
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.semantics { contentDescription = cdImportModelFab },
+          // Row containing wallet button and import model button
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.wrapContentSize()
           ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
+            // Wallet connection button
+            SmallFloatingActionButton(
+              onClick = { showWalletDialog = true },
+              containerColor = MaterialTheme.colorScheme.primaryContainer,
+              contentColor = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.semantics { contentDescription = "Connect to Solana wallet" },
+            ) {
+              Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null)
+            }
+
+            // A floating action button to show "import model" bottom sheet.
+            val cdImportModelFab = stringResource(R.string.cd_import_model_button)
+            SmallFloatingActionButton(
+              onClick = { showImportModelSheet = true },
+              containerColor = MaterialTheme.colorScheme.secondaryContainer,
+              contentColor = MaterialTheme.colorScheme.secondary,
+              modifier = Modifier.semantics { contentDescription = cdImportModelFab },
+            ) {
+              Icon(Icons.Filled.Add, contentDescription = null)
+            }
           }
         },
       ) { innerPadding ->
@@ -590,6 +613,19 @@ fun HomeScreen(
       },
     )
   }
+
+  // Wallet connection dialog
+  if (showWalletDialog) {
+    WalletConnectionDialog(
+      walletUiState = walletUiState,
+      walletViewModel = walletViewModel,
+      activityResultSender = activityResultSender,
+      onDismiss = {
+        showWalletDialog = false
+        walletViewModel.clearError()
+      }
+    )
+  }
 }
 
 @Composable
@@ -601,7 +637,7 @@ private fun AppTitle() {
   val fontSize = with(LocalDensity.current) { (screenWidthInDp.toPx() * 0.12f).toSp() }
   val titleStyle = homePageTitleStyle.copy(fontSize = fontSize, lineHeight = fontSize)
 
-  // First line text "Google AI" and its animation.
+  // First line text "SolAIBot" and its animation.
   //
   // The animation starts with the first line of text swiping in from left to right, progressively
   // revealing itself in the title color (blue). Then, after a brief delay, the exact same text, but
@@ -627,7 +663,7 @@ private fun AppTitle() {
       animationDurationMs = TITLE_FIRST_LINE_ANIMATION_DURATION,
     )
   }
-  // Second line text "Edge Gallery" and its animation.
+  // Second line text "SolAIBot" and its animation.
   //
   // The initial animation is the same as the first line text. Right before it is done, the final
   // text with a gradient is revealed.
@@ -692,7 +728,6 @@ private fun IntroText() {
               style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
             ),
           linkInteractionListener = { _ ->
-            firebaseAnalytics?.logEvent("resource_link_click", bundleOf("link_destination" to url))
             uriHandler.openUri(url)
           },
         )
@@ -939,6 +974,86 @@ private fun getCategoryLabel(context: Context, category: CategoryInfo): String {
     return label
   }
   return context.getString(R.string.category_unlabeled)
+}
+
+@Composable
+private fun WalletConnectionDialog(
+  walletUiState: com.quantaliz.solaibot.ui.wallet.WalletUiState,
+  walletViewModel: WalletViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
+  onDismiss: () -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    icon = {
+      Icon(
+        Icons.Rounded.AccountBalanceWallet,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+      )
+    },
+    title = { Text("Solana Wallet Connection") },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (walletUiState.isConnecting) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            CircularProgressIndicator(
+              modifier = Modifier.size(20.dp),
+              strokeWidth = 2.dp
+            )
+            Text("Connecting to wallet...")
+          }
+        } else if (walletUiState.isConnected) {
+          Text("Connected to wallet")
+          walletUiState.publicKey?.let { publicKey ->
+            Text(
+              "Public Key: ${publicKey.take(8)}...${publicKey.takeLast(8)}",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        } else {
+          Text("Connect to your Phantom wallet or any MWA-compatible Solana wallet to enable blockchain features.")
+        }
+
+        walletUiState.error?.let { error ->
+          Text(
+            error,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
+      }
+    },
+    confirmButton = {
+      if (walletUiState.isConnected) {
+        Button(
+          onClick = {
+            walletViewModel.disconnectWallet(activityResultSender)
+          }
+        ) {
+          Text("Disconnect")
+        }
+      } else {
+        Button(
+          onClick = {
+            walletViewModel.connectWallet(activityResultSender)
+          },
+          enabled = !walletUiState.isConnecting
+        ) {
+          Text("Connect")
+        }
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text("Close")
+      }
+    }
+  )
 }
 
 // @Preview

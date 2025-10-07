@@ -29,6 +29,7 @@ import com.quantaliz.solaibot.data.DEFAULT_TOPP
 import com.quantaliz.solaibot.data.MAX_IMAGE_COUNT
 import com.quantaliz.solaibot.data.Model
 import com.google.ai.edge.litertlm.Backend
+import com.quantaliz.solaibot.ui.llmchat.LlmFunctionCallingModelHelper
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.InputData
@@ -57,6 +58,10 @@ object LlmChatModelHelper {
     supportAudio: Boolean,
     onDone: (String) -> Unit,
   ) {
+    // Non-function calling models only - function calling models should be handled separately
+    if (model.llmSupportFunctionCalling) {
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
+    }
     // Prepare options.
     val maxTokens =
       model.getIntConfigValue(key = ConfigKeys.MAX_TOKENS, defaultValue = DEFAULT_MAX_TOKEN)
@@ -87,6 +92,7 @@ object LlmChatModelHelper {
       )
 
     // Create an instance of the LLM Inference task and session.
+    // Try GPU first, fallback to CPU if it fails
     try {
       val engine = Engine(engineConfig)
       engine.initialize()
@@ -97,14 +103,50 @@ object LlmChatModelHelper {
         )
       val session = engine.createSession(sessionConfig)
       model.instance = LlmModelInstance(engine = engine, session = session)
+      Log.d(TAG, "Model initialized successfully with ${if (preferredBackend == Backend.GPU) "GPU" else "CPU"}")
     } catch (e: Exception) {
-      onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
-      return
+      // If GPU failed, try CPU fallback
+      if (preferredBackend == Backend.GPU) {
+        Log.w(TAG, "GPU initialization failed, trying CPU fallback: ${e.message}")
+        try {
+          val cpuEngineConfig =
+            EngineConfig(
+              modelPath = model.getPath(context = context),
+              backend = Backend.CPU,
+              visionBackend = if (shouldEnableImage) Backend.GPU else null,
+              audioBackend = if (shouldEnableAudio) Backend.CPU else null,
+              maxNumTokens = maxTokens,
+              enableBenchmark = true,
+            )
+          val engine = Engine(cpuEngineConfig)
+          engine.initialize()
+
+          val sessionConfig =
+            SessionConfig(
+              SamplerConfig(topK = topK, topP = topP.toDouble(), temperature = temperature.toDouble())
+            )
+          val session = engine.createSession(sessionConfig)
+          model.instance = LlmModelInstance(engine = engine, session = session)
+          Log.d(TAG, "Model initialized successfully with CPU fallback")
+        } catch (cpuException: Exception) {
+          Log.e(TAG, "CPU fallback also failed: ${cpuException.message}", cpuException)
+          onDone(cleanUpMediapipeTaskErrorMessage(cpuException.message ?: "Unknown error"))
+          return
+        }
+      } else {
+        onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
+        return
+      }
     }
     onDone("")
   }
 
   fun resetSession(model: Model, supportImage: Boolean, supportAudio: Boolean) {
+    // Non-function calling models only - function calling models should be handled separately
+    if (model.llmSupportFunctionCalling) {
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
+    }
+
     try {
       Log.d(TAG, "Resetting session for model '${model.name}'")
 
@@ -133,6 +175,11 @@ object LlmChatModelHelper {
   }
 
   fun cleanUp(model: Model, onDone: () -> Unit) {
+    // Non-function calling models only - function calling models should be handled separately
+    if (model.llmSupportFunctionCalling) {
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmFunctionCallingModelHelper directly")
+    }
+
     if (model.instance == null) {
       return
     }
@@ -169,6 +216,14 @@ object LlmChatModelHelper {
     images: List<Bitmap> = listOf(),
     audioClips: List<ByteArray> = listOf(),
   ) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+    // Route to function calling implementation if supported
+    if (model.llmSupportFunctionCalling) {
+      throw UnsupportedOperationException("Function calling models should be handled via the LlmChatViewModelBase.generateResponseWithContext method")
+    }
+    }
+
     val instance = model.instance as LlmModelInstance
 
     // Set listener.

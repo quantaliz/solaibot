@@ -56,8 +56,9 @@ This project has been developed for:
 ## 🛠️ Technology Highlights
 
 *   **Google AI Edge:** Core APIs and tools for on-device ML.
-*   **LiteRT:** Lightweight runtime for optimized model execution.
-*   **LLM Inference API:** Powering on-device Large Language Models.
+*   **LiteRT:** Lightweight runtime for optimized local model execution.
+*   **Hammer 2.1 LLM:** Powered by on-device [Large Language Models](https://huggingface.co/litert-community/Hammer2.1-1.5b/).
+
 
 ## 📄 License
 
@@ -73,3 +74,6 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 
 🚀 **Where AI Meets Web3 — All on Your Device.**
 Built with ❤️ for **Cypherpunk** & **Hackaroo 2025**
+
+## Default LLM
+By default, this app uses [Hammer2.1-1.5b](https://huggingface.co/MadeAgents/Hammer2.1-1.5b)

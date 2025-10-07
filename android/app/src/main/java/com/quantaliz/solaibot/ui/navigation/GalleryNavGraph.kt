@@ -32,12 +32,14 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +64,6 @@ import com.quantaliz.solaibot.customtasks.common.CustomTaskDataForBuiltinTask
 import com.quantaliz.solaibot.data.ModelDownloadStatusType
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.data.isBuiltInTask
-import com.quantaliz.solaibot.firebaseAnalytics
 import com.quantaliz.solaibot.ui.common.ErrorDialog
 import com.quantaliz.solaibot.ui.common.ModelPageAppBar
 import com.quantaliz.solaibot.ui.common.chat.ModelDownloadStatusInfoPanel
@@ -115,10 +116,24 @@ fun GalleryNavHost(
   navController: NavHostController,
   modifier: Modifier = Modifier,
   modelManagerViewModel: ModelManagerViewModel,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
 ) {
   val lifecycleOwner = LocalLifecycleOwner.current
   var showModelManager by remember { mutableStateOf(false) }
   var pickedTask by remember { mutableStateOf<Task?>(null) }
+  
+  val uiState by modelManagerViewModel.uiState.collectAsState()
+
+  // Get the first available LLM chat model
+  val firstLlmChatModel by remember(uiState) {
+    derivedStateOf {
+      val llmChatTask = uiState.tasks.find { it.id == "llm_chat" }
+      llmChatTask?.models?.find { model ->
+        val downloadStatus = uiState.modelDownloadStatus[model.name]
+        downloadStatus?.status == ModelDownloadStatusType.SUCCEEDED
+      }
+    }
+  }
 
   // Track whether app is in foreground.
   DisposableEffect(lifecycleOwner) {
@@ -143,38 +158,96 @@ fun GalleryNavHost(
     onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
   }
 
-  HomeScreen(
-    modelManagerViewModel = modelManagerViewModel,
-    tosViewModel = hiltViewModel(),
-    navigateToTaskScreen = { task ->
-      pickedTask = task
-      showModelManager = true
-      firebaseAnalytics?.logEvent("capability_select", bundleOf("capability_name" to task.id))
-    },
-  )
-
-  // Model manager.
-  AnimatedVisibility(
-    visible = showModelManager,
-    enter = slideInHorizontally(initialOffsetX = { it }),
-    exit = slideOutHorizontally(targetOffsetX = { it }),
-  ) {
-    val curPickedTask = pickedTask
-    if (curPickedTask != null) {
-      ModelManager(
-        viewModel = modelManagerViewModel,
-        task = curPickedTask,
-        onModelClicked = { model ->
-          navController.navigate("$ROUTE_MODEL/${curPickedTask.id}/${model.name}")
-        },
-        navigateUp = { showModelManager = false },
-      )
+  // Check if there are any downloaded models for LLM chat
+  val hasDownloadedLlmModel by remember(uiState) {
+    derivedStateOf {
+      val llmChatTask = uiState.tasks.find { it.id == "llm_chat" }
+      llmChatTask?.models?.any { model ->
+        val downloadStatus = uiState.modelDownloadStatus[model.name]
+        downloadStatus?.status == ModelDownloadStatusType.SUCCEEDED
+      } ?: false
     }
+  }
+  
+  var initialCheckDone by remember { mutableStateOf(false) }
+  var shouldShowLlmModelManager by remember { mutableStateOf(false) }
+  var shouldNavigateToLlmModel by remember { mutableStateOf(false) }
+  
+  // Perform initial check based on model availability
+  LaunchedEffect(uiState.modelDownloadStatus, uiState.loadingModelAllowlist) {
+    if (!initialCheckDone && !uiState.loadingModelAllowlist) {
+      if (hasDownloadedLlmModel && firstLlmChatModel != null) {
+        // Select the model and mark that we should navigate to it
+        modelManagerViewModel.selectModel(firstLlmChatModel!!)
+        shouldNavigateToLlmModel = true
+      } else if (!uiState.loadingModelAllowlist) {
+        // Mark that we should show model manager for LLM_CHAT task
+        shouldShowLlmModelManager = true
+        val llmChatTask = uiState.tasks.find { it.id == "llm_chat" }
+        if (llmChatTask != null) {
+          pickedTask = llmChatTask
+        }
+      }
+      initialCheckDone = true
+    }
+  }
+  
+  // Navigate to the LLM model when marked
+  LaunchedEffect(shouldNavigateToLlmModel) {
+    if (shouldNavigateToLlmModel && firstLlmChatModel != null) {
+      navController.navigate("$ROUTE_MODEL/llm_chat/${firstLlmChatModel!!.name}")
+      shouldNavigateToLlmModel = false
+    }
+  }
+
+  // Show HomeScreen or LLM model manager based on state
+  if (showModelManager && !shouldShowLlmModelManager) {
+    HomeScreen(
+      modelManagerViewModel = modelManagerViewModel,
+      tosViewModel = hiltViewModel(),
+      activityResultSender = activityResultSender,
+      navigateToTaskScreen = { task ->
+        pickedTask = task
+        showModelManager = true
+      },
+    )
+  } else if (shouldShowLlmModelManager && initialCheckDone) {
+    AnimatedVisibility(
+      visible = true,
+      enter = slideInHorizontally(initialOffsetX = { it }),
+      exit = slideOutHorizontally(targetOffsetX = { it }),
+    ) {
+      val curPickedTask = pickedTask
+      if (curPickedTask != null) {
+        ModelManager(
+          viewModel = modelManagerViewModel,
+          task = curPickedTask,
+          onModelClicked = { model ->
+            navController.navigate("$ROUTE_MODEL/${curPickedTask.id}/${model.name}")
+          },
+          navigateUp = { 
+            shouldShowLlmModelManager = false
+          },
+        )
+      }
+    }
+  } else if (initialCheckDone && !hasDownloadedLlmModel && !shouldNavigateToLlmModel) {
+    // If initial check is done and there are no downloaded models and we're not navigating,
+    // show HomeScreen as fallback
+    HomeScreen(
+      modelManagerViewModel = modelManagerViewModel,
+      tosViewModel = hiltViewModel(),
+      activityResultSender = activityResultSender,
+      navigateToTaskScreen = { task ->
+        pickedTask = task
+        showModelManager = true
+      },
+    )
   }
 
   NavHost(
     navController = navController,
-    // Default to open home screen.
+    // Default to open home screen initially, but we will redirect based on model availability
     startDestination = ROUTE_PLACEHOLDER,
     enterTransition = { EnterTransition.None },
     exitTransition = { ExitTransition.None },
@@ -183,7 +256,10 @@ fun GalleryNavHost(
     //
     // Having a non-empty placeholder here is needed to make the exit transition below work.
     // We can't have an empty Text here because it will block TalkBack.
-    composable(route = ROUTE_PLACEHOLDER) { Box {} }
+    composable(route = ROUTE_PLACEHOLDER) { 
+      // Show a minimal placeholder while checking model availability
+      Box(modifier = Modifier.fillMaxSize()) 
+    }
 
     composable(
       route = "$ROUTE_MODEL/{taskId}/{modelName}",
@@ -207,7 +283,16 @@ fun GalleryNavHost(
               data =
                 CustomTaskDataForBuiltinTask(
                   modelManagerViewModel = modelManagerViewModel,
-                  onNavUp = { navController.navigateUp() },
+                  onNavUp = {
+                    // Set state to show model manager
+                    pickedTask = customTask.task
+                    shouldShowLlmModelManager = true
+                    // Navigate back
+                    if (navController.previousBackStackEntry != null) {
+                      navController.popBackStack()
+                    }
+                  },
+                  activityResultSender = activityResultSender,
                 )
             )
           } else {
@@ -217,6 +302,7 @@ fun GalleryNavHost(
               modelManagerViewModel = modelManagerViewModel,
               onNavigateUp = { navController.navigateUp() },
               disableAppBarControls = disableAppBarControls,
+              activityResultSender = activityResultSender,
             ) { bottomPadding ->
               customTask.MainScreen(
                 data =
@@ -259,6 +345,7 @@ private fun CustomTaskScreen(
   modelManagerViewModel: ModelManagerViewModel,
   disableAppBarControls: Boolean,
   onNavigateUp: () -> Unit,
+  activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender,
   content: @Composable (bottomPadding: Dp) -> Unit,
 ) {
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()

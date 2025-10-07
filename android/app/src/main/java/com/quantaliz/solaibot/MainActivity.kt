@@ -49,7 +49,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.quantaliz.solaibot.ui.modelmanager.ModelManagerViewModel
 import com.quantaliz.solaibot.ui.theme.GalleryTheme
-import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,6 +57,10 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
   private val modelManagerViewModel: ModelManagerViewModel by viewModels()
+
+  // Create ActivityResultSender early - must be created before onCreate completes
+  // to satisfy ActivityResult API requirements
+  private val activityResultSender = com.solana.mobilewalletadapter.clientlib.ActivityResultSender(this)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -95,7 +98,10 @@ class MainActivity : ComponentActivity() {
         setContent {
           GalleryTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
-              SolAIBotApp(modelManagerViewModel = modelManagerViewModel)
+              SolAIBotApp(
+                modelManagerViewModel = modelManagerViewModel,
+                activityResultSender = activityResultSender
+              )
 
               // Fade out a "mask" that has the same color as the background of the splash screen
               // to reveal the actual app content.
@@ -130,15 +136,6 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
-
-    firebaseAnalytics?.logEvent(
-      FirebaseAnalytics.Event.APP_OPEN,
-      bundleOf(
-        "app_version" to BuildConfig.VERSION_NAME,
-        "os_version" to Build.VERSION.SDK_INT.toString(),
-        "device_model" to Build.MODEL,
-      ),
-    )
   }
 
   companion object {
