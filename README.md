@@ -60,6 +60,20 @@ This project has been developed for:
 *   **Hammer 2.1 LLM:** Powered by on-device [Large Language Models](https://huggingface.co/litert-community/Hammer2.1-1.5b/).
 
 
+## x402 Payments - How It Works
+
+When a user asks the LLM to access a paid resource:
+
+1. LLM generates: FUNCTION_CALL: solana_payment(url="https://x402.payai.network/test")
+2. Client requests the URL without payment
+3. Server responds with 402 Payment Required + payment details
+4. Client builds Solana transaction to pay the required amount
+5. User signs transaction via Mobile Wallet Adapter
+6. Client retries request with X-PAYMENT header
+7. Facilitator verifies and settles payment on blockchain
+8. Server returns content + settlement confirmation
+9. LLM presents the paid content to the user
+
 ## 📄 License
 
 Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.

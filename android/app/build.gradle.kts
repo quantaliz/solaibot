@@ -108,6 +108,7 @@ dependencies {
   implementation("com.solanamobile:rpc-solana:0.2.10")
   implementation("com.solanamobile:rpc-core:0.2.10")
   implementation("com.solanamobile:rpc-ktordriver:0.2.10")
+  implementation(libs.okhttp)
   kapt(libs.hilt.android.compiler)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)

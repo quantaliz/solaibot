@@ -390,6 +390,18 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
                     required = true
                 )
             )
+        ),
+        FunctionDefinition(
+            name = "solana_payment",
+            description = "Make a payment to access a paid API or resource using the x402 protocol. This handles the full payment flow: requesting the resource, receiving payment requirements, signing the payment transaction, and retrieving the paid content.",
+            parameters = listOf(
+                FunctionParameter(
+                    name = "url",
+                    type = "string",
+                    description = "The URL of the paid resource or API endpoint to access",
+                    required = true
+                )
+            )
         )
     )
 }
@@ -441,6 +453,59 @@ suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
 }
 
 /**
+ * Makes a payment to a x402-enabled resource.
+ * This handles the full x402 payment flow including signing with MWA.
+ */
+suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
+    val url = args["url"] ?: return "Error: Missing URL parameter"
+
+    // Check if wallet is connected
+    val connectionState = WalletConnectionManager.getConnectionState()
+    if (!connectionState.isConnected || connectionState.address == null) {
+        return "Wallet not connected. Please connect your wallet first before making payments."
+    }
+
+    // Check if activityResultSender is provided
+    if (activityResultSender == null) {
+        return "Payment requires user interaction. Please connect your wallet first."
+    }
+
+    return try {
+        val client = com.quantaliz.solaibot.data.x402.X402HttpClient(
+            context = context,
+            facilitatorUrl = "https://x402.payai.network"
+        )
+
+        Log.d(TAG, "Making x402 payment to: $url")
+
+        val response = client.get(url, activityResultSender)
+
+        when {
+            response.success -> {
+                val settlementInfo = response.settlementResponse?.let { settlement ->
+                    if (settlement.success) {
+                        "\n\nPayment settled successfully!\n" +
+                                "Transaction: ${settlement.transaction}\n" +
+                                "Network: ${settlement.network}\n" +
+                                "Payer: ${settlement.payer}"
+                    } else {
+                        "\n\nPayment failed: ${settlement.errorReason}"
+                    }
+                } ?: ""
+
+                "Successfully accessed paid resource at $url$settlementInfo\n\nResponse:\n${response.body}"
+            }
+            else -> {
+                "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}"
+            }
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error making x402 payment: ${e.message}", e)
+        "Error making payment: ${e.message}"
+    }
+}
+
+/**
  * Executes Solana wallet functions based on the function name and parameters.
  * This is called by the LLM function calling system when a Solana function is called.
  */
@@ -454,6 +519,9 @@ suspend fun executeSolanaWalletFunction(context: Context, functionName: String, 
         }
         "send_solana" -> {
             sendSolana(context, args, activityResultSender)
+        }
+        "solana_payment" -> {
+            makeSolanaPayment(context, args, activityResultSender)
         }
         else -> {
             "Error: Unknown Solana wallet function '$functionName'"

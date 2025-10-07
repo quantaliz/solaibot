@@ -125,7 +125,8 @@ Important:
  */
 suspend fun executeFunction(context: Context, functionName: String, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Check if it's a Solana wallet function
-    if (functionName.startsWith("get_solana") || functionName.startsWith("connect_solana")) {
+    if (functionName.startsWith("get_solana") || functionName.startsWith("connect_solana") ||
+        functionName.startsWith("send_solana") || functionName == "solana_payment") {
         return executeSolanaWalletFunction(context, functionName, args, activityResultSender)
     }
     

@@ -35,6 +35,7 @@ googleService = "4.4.3"
 firebaseBom = "33.16.0"
 exifinterface = "1.4.1"
 securityCrypto = "1.1.0"
+okhttp = "4.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -82,6 +83,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 # library dependencies.
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
