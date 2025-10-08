@@ -782,15 +782,21 @@ Facilitator Error: invalid_exact_svm_payload_transaction
 
 ## Detailed Implementation Plan
 
-### Phase 1: Implement Transaction Signing via Third-Party Service (PRIORITY 1)
+### Phase 1: Implement Native Transaction Building with sol4k (PRIORITY 1)
 
 **Architecture:**
 ```
-SolAIBot (Client)
-    ↓ (sends userPublicKey + PaymentRequirements)
-x402.payai.network/build-transaction
-    ↓ (returns unsigned transaction)
-SolAIBot receives unsigned tx bytes
+SolAIBot (Self-Contained)
+    ↓ (has PaymentRequirements + userPublicKey)
+Build Transaction Natively
+    ├─ Connect to Solana RPC (devnet/mainnet)
+    ├─ Fetch recent blockhash
+    ├─ Derive ATAs using sol4k
+    ├─ Build SPL token transfer instruction
+    ├─ Create transaction with sol4k
+    └─ Serialize to bytes
+    ↓
+Sign via MWA
     ↓ (calls MWA signTransactions)
 User's Wallet App (Phantom/Solflare)
     ↓ (returns signed transaction)
@@ -798,18 +804,41 @@ SolAIBot submits to x402 resource server
 ```
 
 **Pros:**
-- Uses existing third-party transaction building service
-- No need to deploy backend infrastructure
-- Minimal Android code changes
-- Service handles all Solana transaction complexity
+- ✅ **Fully self-contained** - No external service dependency
+- ✅ **Better performance** - Direct RPC, no extra hop
+- ✅ **Full control** - Can customize transaction building
+- ✅ **Production-ready library** - sol4k is actively maintained
+- ✅ **Open source** - Can audit and modify if needed
 
 **Cons:**
-- Dependency on third-party service availability
-- Network latency (~200-500ms for transaction building)
+- ⚠️ More code (~200-300 lines vs ~50 lines)
+- ⚠️ Additional dependency (~2MB: sol4k library)
+- ⚠️ Need to handle RPC connection management
+
+**Why This Approach:**
+Given the requirement for a **self-contained app**, native transaction building with sol4k is the best solution. It eliminates external service dependencies and gives SolAIBot full control over the payment flow.
 
 **Implementation Steps:**
 
-1. **Implement SolanaPaymentBuilder.kt** - Complete implementation using third-party service
+1. **Add sol4k Dependency**
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+    // Existing dependencies
+    implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.3")
+    implementation("com.solanamobile:web3-solana:0.2.5")
+
+    // Add sol4k for native transaction building
+    implementation("org.sol4k:sol4k:0.5.17")
+
+    // Existing dependencies
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+}
+```
+
+2. **Implement SolanaPaymentBuilder.kt** - Complete native implementation using sol4k
 
 ```kotlin
 // app/src/main/java/com/quantaliz/solaibot/data/x402/SolanaPaymentBuilder.kt
@@ -823,32 +852,36 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import org.sol4k.Connection
+import org.sol4k.Commitment
+import org.sol4k.PublicKey
+import org.sol4k.Transaction
+import org.sol4k.instruction.SplTransferInstruction
+import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object SolanaPaymentBuilder {
-    private const val TRANSACTION_BUILDER_URL = "https://x402.payai.network/build-transaction"
 
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    // RPC endpoints by network
+    private val RPC_ENDPOINTS = mapOf(
+        "solana" to "https://api.mainnet-beta.solana.com",
+        "solana-devnet" to "https://api.devnet.solana.com",
+        "solana-testnet" to "https://api.testnet.solana.com"
+    )
 
     /**
-     * Builds and signs a Solana transaction for x402 payment.
+     * Builds and signs a Solana transaction for x402 payment using sol4k.
      *
      * Process:
-     * 1. Get user's public key from wallet connection
-     * 2. Request pre-built unsigned transaction from third-party service
-     * 3. Sign transaction via Mobile Wallet Adapter
-     * 4. Return base64-encoded signed transaction
+     * 1. Connect to Solana RPC based on network
+     * 2. Fetch recent blockhash
+     * 3. Derive source and destination ATAs
+     * 4. Check if destination ATA exists
+     * 5. Build transaction with transfer (and ATA creation if needed)
+     * 6. Sign transaction via Mobile Wallet Adapter
+     * 7. Return base64-encoded signed transaction
      */
     suspend fun buildAndSignTransaction(
         context: Context,
@@ -857,15 +890,15 @@ object SolanaPaymentBuilder {
         activityResultSender: ActivityResultSender,
         walletAdapter: MobileWalletAdapter
     ): String = withContext(Dispatchers.IO) {
-        // 1. Request unsigned transaction from x402.payai.network
-        val unsignedTxBase64 = requestUnsignedTransaction(
+        // 1. Build unsigned transaction natively with sol4k
+        val unsignedTxBytes = buildUnsignedTransaction(
             requirement = requirement,
             userPublicKey = userPublicKey
         )
 
         // 2. Sign transaction via MWA
         val signedTxBase64 = signTransactionViaMwa(
-            unsignedTransactionBase64 = unsignedTxBase64,
+            unsignedTransactionBytes = unsignedTxBytes,
             activityResultSender = activityResultSender,
             walletAdapter = walletAdapter
         )
@@ -874,51 +907,83 @@ object SolanaPaymentBuilder {
     }
 
     /**
-     * Request pre-built unsigned transaction from third-party service.
+     * Build unsigned Solana transaction natively using sol4k.
      *
-     * API: POST https://x402.payai.network/build-transaction
-     * Request body:
-     * {
-     *   "paymentRequirement": { ... },
-     *   "userPublicKey": "base58-encoded-pubkey"
-     * }
-     *
-     * Response:
-     * {
-     *   "success": true,
-     *   "transaction": "base64-encoded-unsigned-transaction-bytes"
-     * }
+     * This replaces the need for a third-party transaction building service.
+     * SolAIBot is now fully self-contained!
      */
-    private suspend fun requestUnsignedTransaction(
+    private suspend fun buildUnsignedTransaction(
         requirement: PaymentRequirement,
         userPublicKey: String
-    ): String = withContext(Dispatchers.IO) {
-        val requestBody = buildJsonObject {
-            put("paymentRequirement", Json.encodeToJsonElement(requirement))
-            put("userPublicKey", userPublicKey)
+    ): ByteArray = withContext(Dispatchers.IO) {
+        // 1. Get RPC endpoint for network
+        val rpcUrl = RPC_ENDPOINTS[requirement.network]
+            ?: throw IllegalArgumentException("Unsupported network: ${requirement.network}")
+
+        val connection = Connection(rpcUrl)
+
+        // 2. Parse public keys
+        val userPubKey = PublicKey(userPublicKey)
+        val tokenMint = PublicKey(requirement.asset)
+        val recipient = PublicKey(requirement.payTo)
+        val feePayer = requirement.extra?.get("feePayer")?.let { PublicKey(it.toString()) }
+            ?: throw IllegalArgumentException("Missing feePayer in requirement.extra")
+
+        // 3. Fetch recent blockhash
+        val recentBlockhash = connection.getLatestBlockhash(Commitment.CONFIRMED)
+
+        // 4. Derive Associated Token Accounts (ATAs)
+        val sourceAta = PublicKey.findAssociatedTokenAddress(
+            owner = userPubKey,
+            mint = tokenMint
+        )
+
+        val destAta = PublicKey.findAssociatedTokenAddress(
+            owner = recipient,
+            mint = tokenMint
+        )
+
+        // 5. Check if destination ATA exists
+        val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
+
+        try {
+            connection.getAccountInfo(destAta)
+            // ATA exists, no need to create
+        } catch (e: Exception) {
+            // ATA doesn't exist, add creation instruction
+            instructions.add(
+                CreateAssociatedTokenAccountInstruction(
+                    payer = feePayer,
+                    associatedToken = destAta,
+                    owner = recipient,
+                    mint = tokenMint
+                )
+            )
         }
 
-        val request = Request.Builder()
-            .url(TRANSACTION_BUILDER_URL)
-            .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
-            .build()
+        // 6. Add SPL token transfer instruction
+        val amount = requirement.maxAmountRequired.toLongOrNull()
+            ?: throw IllegalArgumentException("Invalid amount: ${requirement.maxAmountRequired}")
 
-        val response = httpClient.newCall(request).execute()
+        instructions.add(
+            SplTransferInstruction(
+                source = sourceAta,
+                destination = destAta,
+                owner = userPubKey,
+                amount = amount
+            )
+        )
 
-        if (!response.isSuccessful) {
-            val errorBody = response.body?.string() ?: "Unknown error"
-            throw IOException("Transaction builder failed (${response.code}): $errorBody")
-        }
+        // 7. Build transaction
+        val transaction = Transaction()
+        transaction.recentBlockhash = recentBlockhash
+        transaction.feePayer = feePayer
 
-        val jsonResponse = Json.parseToJsonElement(response.body!!.string()).jsonObject
+        // Add all instructions
+        instructions.forEach { transaction.add(it) }
 
-        if (jsonResponse["success"]?.jsonPrimitive?.boolean != true) {
-            val error = jsonResponse["error"]?.jsonPrimitive?.content ?: "Unknown error"
-            throw IOException("Transaction builder error: $error")
-        }
-
-        jsonResponse["transaction"]?.jsonPrimitive?.content
-            ?: throw IllegalStateException("No transaction in response")
+        // 8. Serialize unsigned transaction
+        transaction.serialize(requireAllSignatures = false)
     }
 
     /**
@@ -941,26 +1006,15 @@ object SolanaPaymentBuilder {
      * - signedPayloads[i] contains fully-signed transaction bytes
      */
     private suspend fun signTransactionViaMwa(
-        unsignedTransactionBase64: String,
+        unsignedTransactionBytes: ByteArray,
         activityResultSender: ActivityResultSender,
         walletAdapter: MobileWalletAdapter
     ): String = suspendCancellableCoroutine { continuation ->
-        // Decode base64 to byte array
-        val unsignedTxBytes = try {
-            Base64.decode(unsignedTransactionBase64, Base64.NO_WRAP)
-        } catch (e: IllegalArgumentException) {
-            continuation.resumeWithException(
-                IOException("Invalid base64 transaction: ${e.message}")
-            )
-            return@suspendCancellableCoroutine
-        }
-
         // Start MWA session and request signature
         val result = walletAdapter.transact(activityResultSender) { authResult ->
             // authResult contains authorized account info
             // Now request signature for the transaction
-
-            signTransactions(arrayOf(unsignedTxBytes))
+            signTransactions(arrayOf(unsignedTransactionBytes))
         }
 
         // Handle result from MWA
@@ -1150,177 +1204,121 @@ curl -X POST https://x402.payai.network/build-transaction \
 
 ---
 
-## Running the Transaction Builder Service
+## Native Transaction Building with sol4k
 
-### Understanding the Service Architecture
+### Why Native Implementation?
 
-The transaction builder service at `https://x402.payai.network` is a **third-party TypeScript service** that runs independently from SolAIBot. Here's how they work together:
+SolAIBot now builds Solana transactions **natively using sol4k** instead of relying on external services. This makes the app fully self-contained and eliminates dependencies.
 
+### Architecture Comparison
+
+**OLD (Third-Party Service):**
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                      System Architecture                        │
-└────────────────────────────────────────────────────────────────┘
-
-┌─────────────────┐         ┌──────────────────────┐         ┌──────────────┐
-│                 │         │                      │         │              │
-│   SolAIBot      │         │  Transaction Builder │         │   Solana     │
-│   (Android)     │────────>│  Service             │────────>│   RPC Node   │
-│                 │  POST   │  (TypeScript)        │  HTTP   │              │
-│                 │         │                      │         │              │
-└─────────────────┘         └──────────────────────┘         └──────────────┘
-         │                           │
-         │                           │
-         │                           ├─ Fetches blockhash
-         │                           ├─ Derives ATAs
-         │                           ├─ Builds transaction
-         │                           └─ Returns unsigned tx
-         │
-         └─ Receives unsigned tx
-         └─ Signs via MWA
-         └─ Returns to x402 resource server
+SolAIBot → HTTP POST → x402.payai.network/build-transaction → Returns TX → Sign → Done
+         ❌ External dependency
+         ❌ Service could go down
+         ❌ Extra network hop
 ```
 
-### Service Endpoints
+**NEW (Native with sol4k):**
+```
+SolAIBot → sol4k library → Solana RPC → Build TX → Sign → Done
+         ✅ Self-contained
+         ✅ No external service
+         ✅ Direct RPC connection
+```
 
-The service provides these endpoints:
+### What sol4k Provides
 
-| Endpoint | Purpose | SolAIBot Uses? |
-|----------|---------|----------------|
-| `POST /build-transaction` | Build unsigned transaction | ✅ Yes |
-| `POST /verify` | Verify payment signature | ❌ No (resource server uses) |
-| `POST /settle` | Settle payment on-chain | ❌ No (resource server uses) |
-| `GET /supported` | List supported networks | ⚠️  Optional (for discovery) |
-| `GET /api/solana-devnet/paid-content` | Test paid endpoint | ✅ Yes (for testing) |
+| Feature | sol4k Implementation | Status |
+|---------|---------------------|--------|
+| **Connection to Solana RPC** | `Connection(rpcUrl)` | ✅ |
+| **Fetch recent blockhash** | `connection.getLatestBlockhash()` | ✅ |
+| **Derive ATAs** | `PublicKey.findAssociatedTokenAddress()` | ✅ |
+| **Check account exists** | `connection.getAccountInfo()` | ✅ |
+| **Create ATA instruction** | `CreateAssociatedTokenAccountInstruction()` | ✅ |
+| **SPL token transfer** | `SplTransferInstruction()` | ✅ |
+| **Build transaction** | `Transaction()` | ✅ |
+| **Serialize transaction** | `transaction.serialize()` | ✅ |
 
-### How SolAIBot Interacts with the Service
+### sol4k Capabilities
 
-**1. During Payment Flow:**
+**What SolAIBot does with sol4k:**
 ```kotlin
-// SolAIBot calls this during Step 4a of the payment flow
-POST https://x402.payai.network/build-transaction
-Body: {
-  "paymentRequirement": { ... },
-  "userPublicKey": "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH"
-}
+// 1. Connect to Solana RPC
+val connection = Connection("https://api.devnet.solana.com")
 
-// Service responds with:
-{
-  "success": true,
-  "transaction": "base64-encoded-unsigned-transaction"
-}
+// 2. Fetch recent blockhash
+val blockhash = connection.getLatestBlockhash(Commitment.CONFIRMED)
 
-// SolAIBot then:
-// 1. Decodes the transaction
-// 2. Signs it via MWA
-// 3. Sends signed tx to resource server
+// 3. Derive ATAs (no external service needed!)
+val sourceAta = PublicKey.findAssociatedTokenAddress(
+    owner = userPublicKey,
+    mint = tokenMint
+)
+
+// 4. Build SPL token transfer instruction
+val transferInstruction = SplTransferInstruction(
+    source = sourceAta,
+    destination = destAta,
+    owner = userPublicKey,
+    amount = 1000000L // 1.0 USDC
+)
+
+// 5. Build and serialize transaction
+val tx = Transaction()
+tx.recentBlockhash = blockhash
+tx.feePayer = facilitatorPublicKey
+tx.add(transferInstruction)
+val unsignedBytes = tx.serialize(requireAllSignatures = false)
+
+// 6. Sign via MWA (existing code)
+val signedTx = signViaMwa(unsignedBytes)
 ```
 
-**2. Service Does the Heavy Lifting:**
-- ✅ Connects to Solana RPC
-- ✅ Fetches recent blockhash
-- ✅ Derives source and destination ATAs
-- ✅ Checks if destination ATA needs to be created
-- ✅ Builds SPL token transfer instruction
-- ✅ Adds compute budget instructions
-- ✅ Serializes to Solana wire format
-- ✅ Base64 encodes
+### Benefits of Native Implementation
 
-**3. SolAIBot's Simple Role:**
-- ❌ No RPC connections
-- ❌ No PDA derivation
-- ❌ No transaction building
-- ✅ Just HTTP POST → Decode → Sign → Send
+**Independence:**
+- ✅ No reliance on `x402.payai.network` availability
+- ✅ Works even if external services are down
+- ✅ No third-party trust required
 
-### Testing the Service is Available
+**Performance:**
+- ✅ One less network hop (no transaction builder service call)
+- ✅ Direct RPC connection
+- ✅ Faster overall payment flow
 
-Before implementing, verify the service is accessible:
+**Control:**
+- ✅ Can customize transaction building logic
+- ✅ Can add compute budget optimizations
+- ✅ Can implement retry logic at RPC level
+- ✅ Can switch RPC providers easily
 
-```bash
-# Test 1: Check /build-transaction endpoint exists
-curl -X POST https://x402.payai.network/build-transaction \
-  -H "Content-Type: application/json" \
-  -d '{}' \
-  -v
+**Cost:**
+- ✅ No potential service fees
+- ✅ Free to use (just RPC calls)
 
-# Expected: 400 Bad Request (but endpoint exists!)
-# If you get 404, the service might be down
+### RPC Endpoint Configuration
 
-# Test 2: Check test paid endpoint
-curl https://x402.payai.network/api/solana-devnet/paid-content \
-  -v
+SolAIBot supports multiple Solana networks:
 
-# Expected: 402 Payment Required with payment requirements JSON
-
-# Test 3: Check supported networks
-curl https://x402.payai.network/supported
-
-# Expected: JSON list of supported networks and schemes
-```
-
-### Service Availability
-
-**Production Service:**
-- URL: `https://x402.payai.network`
-- Maintained by: Coinbase/PayAI
-- Uptime: Public service (check status before deploying to production)
-- Rate Limits: Unknown (implement retry logic)
-
-**If Service is Down:**
-
-You have three options:
-
-#### Option A: Wait for Service Recovery
 ```kotlin
-// Add retry logic in SolanaPaymentBuilder.kt
-private suspend fun requestUnsignedTransaction(
-    requirement: PaymentRequirement,
-    userPublicKey: String,
-    maxRetries: Int = 3
-): String {
-    var lastException: Exception? = null
-
-    repeat(maxRetries) { attempt ->
-        try {
-            return doRequestUnsignedTransaction(requirement, userPublicKey)
-        } catch (e: IOException) {
-            lastException = e
-            if (attempt < maxRetries - 1) {
-                delay(1000 * (attempt + 1)) // Exponential backoff
-            }
-        }
-    }
-
-    throw lastException ?: IOException("Transaction builder unavailable")
-}
+private val RPC_ENDPOINTS = mapOf(
+    "solana" to "https://api.mainnet-beta.solana.com",
+    "solana-devnet" to "https://api.devnet.solana.com",
+    "solana-testnet" to "https://api.testnet.solana.com"
+)
 ```
 
-#### Option B: Run Your Own Instance
-```bash
-# Clone x402 repo
-git clone https://github.com/coinbase/x402.git
-cd x402/typescript
+**Using Custom RPC Providers:**
+You can easily switch to premium RPC providers like QuickNode, Alchemy, or Helius:
 
-# Install dependencies
-npm install
-
-# Build transaction builder service
-cd packages/x402
-npm run build
-
-# Run service
-npm start
-
-# Service runs on http://localhost:3000
-```
-
-Then update SolAIBot:
 ```kotlin
-// In SolanaPaymentBuilder.kt
-private const val TRANSACTION_BUILDER_URL = "http://your-server.com/build-transaction"
+private val RPC_ENDPOINTS = mapOf(
+    "solana" to "https://your-quicknode-endpoint.solana-mainnet.quiknode.pro/...",
+    "solana-devnet" to "https://api.devnet.solana.com"
+)
 ```
-
-#### Option C: Implement Native Kotlin (Advanced)
-Port the TypeScript transaction building logic from `/proj/docs/Coinbasex402/typescript/packages/x402/src/schemes/exact/svm/client.ts` to Kotlin (~1-2 weeks).
 
 ---
 
@@ -1834,12 +1832,28 @@ private val client = OkHttpClient.Builder()
 
 ---
 
-**Document Version**: 3.0.0
+**Document Version**: 4.0.0
 **Last Updated**: 2025-10-08
 **Author**: Claude Code
-**Status**: Complete implementation guide - ready for development
+**Status**: Complete implementation guide - native sol4k implementation
 
 ## Changelog
+
+### v4.0.0 (2025-10-08)
+- **MAJOR: Switched to native transaction building with sol4k library** (v0.5.17)
+- **Removed third-party service dependency** - now fully self-contained
+- **Added sol4k dependency instructions** for build.gradle.kts
+- **Completely rewrote SolanaPaymentBuilder.kt** (~200 lines) with native implementation:
+  - Native RPC connection with sol4k `Connection` class
+  - Recent blockhash fetching via `getLatestBlockhash()`
+  - ATA derivation with `PublicKey.findAssociatedTokenAddress()`
+  - SPL token transfer via `SplTransferInstruction`
+  - ATA creation via `CreateAssociatedTokenAccountInstruction`
+  - Proper transaction serialization with `Transaction.serialize()`
+- **Updated architecture section** showing OLD (third-party) vs NEW (native sol4k)
+- **Added sol4k capabilities documentation** with code examples
+- **Added benefits of native implementation**: independence, performance, control, cost
+- **Updated "Running the Transaction Builder Service"** to "Native Transaction Building with sol4k"
 
 ### v3.0.0 (2025-10-08)
 - **Added complete end-to-end flow walkthrough** with 8 detailed steps
