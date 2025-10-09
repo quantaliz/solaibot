@@ -6,7 +6,6 @@ This document provides a comprehensive implementation guide for integrating the 
 
 **Status**: Implementation guide for completing the integration
 **Last Updated**: 2025-10-08
-**Prerequisites**: Read `docs/x402-integration.md` and `docs/x402-status.md`
 
 ---
 
@@ -121,10 +120,7 @@ Content-Type: application/json
 **Client must:**
 1. Parse `PaymentRequirements` from 402 response
 2. Choose compatible payment option (match network + asset)
-3. **Request pre-built unsigned transaction** from third-party service:
-   - Service: `https://x402.payai.network/build-transaction`
-   - Provides: User's public key + PaymentRequirements
-   - Receives: Base64-encoded unsigned transaction (ready for signing)
+3. **Build transaction** Choose elements from the `PaymentRequirements` needed to build a transaction
 4. **Sign transaction** via Mobile Wallet Adapter (MWA):
    - Decode base64 transaction to byte array
    - Call `signTransactions()` with transaction bytes
@@ -308,8 +304,7 @@ object SolanaPaymentBuilder {
 
 **Responsibilities:**
 - Get user's public key from wallet connection
-- Request unsigned transaction from `https://x402.payai.network/build-transaction`
-- Decode transaction bytes
+- Build an unsigned transaction
 - Request signature via MWA using `signTransactions()` API
 - Extract signed transaction bytes from MWA response
 - Base64-encode and return
@@ -337,7 +332,6 @@ LLM responds: "I successfully paid 1.0 USDC and retrieved the weather data. It's
 ```
 
 ### Detailed Step-by-Step Flow
-
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
 │ STEP 1: LLM Function Call Detection                                   │
@@ -444,15 +438,10 @@ Build request body:
      "userPublicKey": "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH"
    }
    ↓
-HTTP Request:
-   POST https://x402.payai.network/build-transaction
-   Content-Type: application/json
-   Body: [request body above]
-   ↓
 
 ┌─────────────────────────────────────────────────────────────────┐
-│ Transaction Builder Service (Third-Party)                       │
-│ Running at: https://x402.payai.network                          │
+│ Transaction Builder Service (sol4k library)                     │
+│ Running within SolAIBot                                         │
 └─────────────────────────────────────────────────────────────────┘
 Service receives request and executes:
    ↓
@@ -520,15 +509,6 @@ Service receives request and executes:
     ↓
 11. Base64 encode
     base64Tx = serialized.toString('base64')
-    ↓
-Response:
-   HTTP/1.1 200 OK
-   Content-Type: application/json
-
-   {
-     "success": true,
-     "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..."
-   }
    ↓
 
 ┌───────────────────────────────────────────────────────────────────────┐
@@ -735,16 +715,12 @@ Display to user in chat
 **What SolAIBot Does:**
 - ✅ Makes HTTP requests
 - ✅ Parses JSON responses
+- ✅ Build Solana transactions
 - ✅ Calls MWA for signing
 - ✅ Formats headers
 
 **What SolAIBot Does NOT Do:**
-- ❌ Build Solana transactions
-- ❌ Derive PDAs or ATAs
-- ❌ Fetch blockhash from RPC
 - ❌ Broadcast transactions
-
-**The third-party service handles all transaction complexity!**
 
 ---
 
@@ -1080,7 +1056,7 @@ object SolanaPaymentBuilder {
    ```
 
 **For x402, we MUST use `signTransactions()`:**
-- Only signs the transaction (doesn't broadcast)
+- Only signs the transaction (it doesn't broadcast)
 - Returns signed transaction bytes
 - x402 facilitator handles broadcasting
 
@@ -1120,88 +1096,6 @@ val response = makeSolanaPayment(
 // Should return resource content + settlement details
 ```
 
-### Third-Party Transaction Builder Service API
-
-**Service:** `https://x402.payai.network/build-transaction`
-
-**Purpose:** Builds unsigned Solana transactions for x402 payments
-
-**Endpoint:** `POST /build-transaction`
-
-**Request Body:**
-```json
-{
-  "paymentRequirement": {
-    "scheme": "exact",
-    "network": "solana-devnet",
-    "maxAmountRequired": "1000000",
-    "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "payTo": "6oD1Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k",
-    "resource": "https://x402.payai.network/api/solana-devnet/paid-content",
-    "description": "Access to paid content",
-    "maxTimeoutSeconds": 60,
-    "extra": {
-      "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4"
-    }
-  },
-  "userPublicKey": "YourBase58WalletPublicKey..."
-}
-```
-
-**Success Response:**
-```json
-{
-  "success": true,
-  "transaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAHDt..."
-}
-```
-
-**Error Response:**
-```json
-{
-  "success": false,
-  "error": "Invalid user public key"
-}
-```
-
-**What the service does:**
-1. Fetches recent blockhash from Solana RPC
-2. Derives Associated Token Accounts (ATAs) for sender and recipient
-3. Creates SPL token transfer instruction
-4. Adds compute budget instructions if needed
-5. Sets fee payer to facilitator's address (from `extra.feePayer`)
-6. Serializes unsigned transaction to bytes
-7. Base64-encodes and returns
-
-**Testing the service:**
-
-```bash
-# Test with valid devnet wallet
-curl -X POST https://x402.payai.network/build-transaction \
-  -H "Content-Type: application/json" \
-  -d '{
-    "paymentRequirement": {
-      "scheme": "exact",
-      "network": "solana-devnet",
-      "maxAmountRequired": "1000000",
-      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      "payTo": "6oD1Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k8Qw1k",
-      "resource": "https://x402.payai.network/api/solana-devnet/paid-content",
-      "maxTimeoutSeconds": 60,
-      "extra": {
-        "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4"
-      }
-    },
-    "userPublicKey": "YourWalletPublicKeyBase58..."
-  }'
-
-# Should return:
-# {
-#   "success": true,
-#   "transaction": "base64-string..."
-# }
-```
-
 ---
 
 ## Native Transaction Building with sol4k
@@ -1209,24 +1103,6 @@ curl -X POST https://x402.payai.network/build-transaction \
 ### Why Native Implementation?
 
 SolAIBot now builds Solana transactions **natively using sol4k** instead of relying on external services. This makes the app fully self-contained and eliminates dependencies.
-
-### Architecture Comparison
-
-**OLD (Third-Party Service):**
-```
-SolAIBot → HTTP POST → x402.payai.network/build-transaction → Returns TX → Sign → Done
-         ❌ External dependency
-         ❌ Service could go down
-         ❌ Extra network hop
-```
-
-**NEW (Native with sol4k):**
-```
-SolAIBot → sol4k library → Solana RPC → Build TX → Sign → Done
-         ✅ Self-contained
-         ✅ No external service
-         ✅ Direct RPC connection
-```
 
 ### What sol4k Provides
 
@@ -1432,113 +1308,11 @@ class PaymentHistoryRepository @Inject constructor(
 }
 ```
 
-#### 3.3 Spending Limits
-
-**Implement daily spending caps:**
-
-```kotlin
-class SpendingLimitManager(
-    private val dataStore: DataStore<Settings>
-) {
-    suspend fun checkLimit(amount: Long): Boolean {
-        val settings = dataStore.data.first()
-        val dailyLimit = settings.x402DailyLimitMicroUsd
-
-        // Get today's spending
-        val todaySpending = getTodaySpending()
-
-        return (todaySpending + amount) <= dailyLimit
-    }
-
-    suspend fun setDailyLimit(limitMicroUsd: Long) {
-        dataStore.updateData {
-            it.toBuilder()
-                .setX402DailyLimitMicroUsd(limitMicroUsd)
-                .build()
-        }
-    }
-}
-```
-
 ---
 
 ### Phase 4: Testing
 
-#### 4.1 Unit Tests
-
-```kotlin
-// X402HttpClientTest.kt
-class X402HttpClientTest {
-    private lateinit var mockServer: MockWebServer
-    private lateinit var client: X402HttpClient
-
-    @Before
-    fun setup() {
-        mockServer = MockWebServer()
-        mockServer.start()
-        client = X402HttpClient(context, mockServer.url("/").toString())
-    }
-
-    @Test
-    fun `test 402 response parsing`() = runTest {
-        mockServer.enqueue(MockResponse()
-            .setResponseCode(402)
-            .setBody("""
-                {
-                  "x402Version": 1,
-                  "error": "Payment required",
-                  "accepts": [...]
-                }
-            """.trimIndent())
-        )
-
-        // Test should extract PaymentRequirements correctly
-    }
-
-    @Test
-    fun `test X-PAYMENT header encoding`() {
-        val payload = PaymentPayload(
-            x402Version = 1,
-            scheme = "exact",
-            network = "solana-devnet",
-            payload = SolanaPaymentPayload(transaction = "test-tx-base64")
-        )
-
-        val encoded = encodePaymentHeader(payload)
-        val decoded = decodePaymentHeader(encoded)
-
-        assertEquals(payload, decoded)
-    }
-}
-```
-
-#### 4.2 Integration Tests (Devnet)
-
-```kotlin
-@Test
-fun `end-to-end payment flow on devnet`() = runTest {
-    // 1. Fund test wallet with devnet USDC
-    // 2. Connect wallet via MWA
-    // 3. Call makeSolanaPayment with test endpoint
-    // 4. Verify transaction on-chain
-
-    val response = client.get(
-        url = "https://x402.payai.network/api/solana-devnet/paid-content",
-        activityResultSender = testActivityResultSender
-    )
-
-    assertTrue(response.success)
-    assertNotNull(response.settlementResponse)
-    assertNotNull(response.settlementResponse?.transaction)
-
-    // Verify on-chain
-    val signature = response.settlementResponse!!.transaction
-    val status = connection.getSignatureStatus(signature)
-    assertEquals(ConfirmationStatus.CONFIRMED, status)
-}
-```
-
-#### 4.3 Manual Testing Checklist
+#### 4.1 Manual Testing Checklist
 
 - [ ] Connect wallet via MWA
 - [ ] LLM triggers `solana_payment` function
@@ -1609,174 +1383,6 @@ fun validatePaymentRequirement(req: PaymentRequirements): Result<Unit> {
 }
 ```
 
-### 3. URL Validation
-
-**Prevent phishing:**
-```kotlin
-fun isTrustedDomain(url: String): Boolean {
-    val trustedDomains = listOf(
-        "x402.payai.network",
-        "api.coinbase.com",
-        // Add trusted domains
-    )
-
-    val host = URL(url).host
-    return trustedDomains.any { host.endsWith(it) }
-}
-
-// Warn user for unknown domains
-if (!isTrustedDomain(url)) {
-    showSecurityWarning("This domain is not verified. Proceed with caution.")
-}
-```
-
-### 4. Spending Limits
-
-**Enforce daily/per-transaction limits:**
-```kotlin
-const val DEFAULT_DAILY_LIMIT_USD = 10_000_000 // $10 in micro-USD
-const val DEFAULT_TX_LIMIT_USD = 1_000_000     // $1 per transaction
-
-suspend fun enforceSpendingLimits(amount: Long) {
-    if (amount > DEFAULT_TX_LIMIT_USD) {
-        throw Exception("Transaction exceeds per-transaction limit")
-    }
-
-    if (!spendingLimitManager.checkLimit(amount)) {
-        throw Exception("Transaction exceeds daily spending limit")
-    }
-}
-```
-
-### 5. Network Security
-
-**Use HTTPS only:**
-```kotlin
-private val client = OkHttpClient.Builder()
-    .connectTimeout(30, TimeUnit.SECONDS)
-    .readTimeout(30, TimeUnit.SECONDS)
-    .addInterceptor { chain ->
-        val request = chain.request()
-        if (request.url.scheme != "https") {
-            throw SecurityException("Only HTTPS allowed")
-        }
-        chain.proceed(request)
-    }
-    .build()
-```
-
----
-
-## Future Enhancements
-
-### 1. Multi-Chain Support
-
-**Add EVM support (Base, Ethereum):**
-- Implement EIP-3009 for USDC transfers
-- Add EVM transaction builder
-- Support MetaMask Mobile integration
-
-### 2. Streaming Payments
-
-**For long-running operations:**
-- Implement payment streaming (pay per second)
-- Use Solana Payment Streaming Protocol
-- Useful for AI model inference that takes time
-
-### 3. Payment Caching
-
-**Cache payment authorizations:**
-- Store recent payment proofs
-- Reuse for duplicate requests (within validity window)
-- Reduce wallet prompts
-
-### 4. Batch Payments
-
-**Pay for multiple resources at once:**
-- Aggregate multiple x402 requests
-- Single transaction for multiple payments
-- Better UX and lower fees
-
-### 5. AI Agent Budget Management
-
-**LLM-managed spending:**
-- Set budget at conversation start
-- LLM tracks remaining budget
-- Automatic prioritization of paid resources
-
-### 6. Resource Discovery
-
-**Implement bazaar client:**
-- Query `GET /discovery/resources` from facilitators
-- Let LLM discover available paid APIs
-- Filter by category, price, provider
-
----
-
-## Testing Strategy
-
-### Development Workflow
-
-1. **Local Testing** (No blockchain)
-   - Mock 402 responses
-   - Test payment header encoding/decoding
-   - Test MWA integration with test wallet
-
-2. **Devnet Testing** (Solana devnet)
-   - Use `https://x402.payai.network/api/solana-devnet/paid-content`
-   - Fund test wallet with devnet USDC (airdrop)
-   - Test full payment flow
-
-3. **Mainnet Testing** (Real USDC)
-   - Start with small amounts ($0.01)
-   - Test with trusted endpoints only
-   - Monitor transactions on Solscan
-
-### Test Endpoints
-
-| Endpoint | Network | Cost | Purpose |
-|----------|---------|------|---------|
-| `https://x402.payai.network/api/solana-devnet/test` | Devnet | 0.001 USDC | Basic test |
-| `https://x402.payai.network/api/solana-devnet/paid-content` | Devnet | 0.01 USDC | Full test |
-| `https://x402.payai.network/api/solana/paid-content` | Mainnet | 0.01 USDC | Production test |
-
----
-
-## Quick Start (After Implementation)
-
-### For Developers
-
-1. **Verify third-party service** is accessible:
-   ```bash
-   curl https://x402.payai.network/build-transaction -I
-   # Should return 200 or 405 (method not allowed for GET)
-   ```
-
-2. **Implement `SolanaPaymentBuilder.kt`** with code from Phase 1
-
-3. **Test on devnet**:
-   ```kotlin
-   // In LlmChatViewModel or test
-   val response = makeSolanaPayment(
-       context = context,
-       args = mapOf("url" to "https://x402.payai.network/api/solana-devnet/test"),
-       activityResultSender = activityResultSender
-   )
-   println("Payment success: ${response}")
-   ```
-
-### For Users
-
-1. **Install SolAIBot** and a Solana wallet (Phantom, Solflare)
-2. **Fund wallet** with USDC (devnet or mainnet)
-3. **Connect wallet** in SolAIBot settings
-4. **Chat with LLM**:
-   ```
-   User: "Get data from https://x402.payai.network/api/solana-devnet/paid-content"
-   LLM: "I'll pay for that resource..." [triggers payment]
-   LLM: "Here's the data: ..."
-   ```
-
 ---
 
 ## Summary
@@ -1788,25 +1394,6 @@ private val client = OkHttpClient.Builder()
 3. **No API keys** - Blockchain authentication
 4. **User control** - Every payment approved in wallet
 5. **Global reach** - Works anywhere Solana is supported
-
-### Implementation Priorities
-
-| Priority | Task | Status | Blocker |
-|----------|------|--------|---------|
-| **P0** | Implement MWA transaction signing via third-party service | ❌ Not done | **YES - CRITICAL** |
-| **P1** | Error handling & retries | ⚠️  Partial | No |
-| **P2** | Payment confirmation UI | ❌ Not done | No |
-| **P3** | Transaction history | ❌ Not done | No |
-| **P4** | Spending limits | ❌ Not done | No |
-
-### Next Steps
-
-1. **Implement `SolanaPaymentBuilder.kt`** using third-party service at `https://x402.payai.network/build-transaction`
-2. **Integrate with MWA** using `signTransactions()` API (NOT `signAndSendTransactions()`)
-3. **Update `X402HttpClient.kt`** to call the new builder
-4. **Test on devnet** with `https://x402.payai.network/api/solana-devnet/paid-content`
-5. **Add error handling** and user confirmation dialogs
-6. **Ship MVP** to testnet users
 
 ---
 
@@ -1829,93 +1416,11 @@ private val client = OkHttpClient.Builder()
 - [Solana Web3.js Docs](https://solana-labs.github.io/solana-web3.js/)
 - [SPL Token Program](https://spl.solana.com/token)
 - [x402 Test Facilitator](https://x402.payai.network)
+- [sol4k](https://sol4k.org/)
+- [sol4k repository](https://github.com/sol4k/sol4k)
 
 ---
 
-**Document Version**: 4.0.0
 **Last Updated**: 2025-10-08
 **Author**: Claude Code
 **Status**: Complete implementation guide - native sol4k implementation
-
-## Changelog
-
-### v4.0.0 (2025-10-08)
-- **MAJOR: Switched to native transaction building with sol4k library** (v0.5.17)
-- **Removed third-party service dependency** - now fully self-contained
-- **Added sol4k dependency instructions** for build.gradle.kts
-- **Completely rewrote SolanaPaymentBuilder.kt** (~200 lines) with native implementation:
-  - Native RPC connection with sol4k `Connection` class
-  - Recent blockhash fetching via `getLatestBlockhash()`
-  - ATA derivation with `PublicKey.findAssociatedTokenAddress()`
-  - SPL token transfer via `SplTransferInstruction`
-  - ATA creation via `CreateAssociatedTokenAccountInstruction`
-  - Proper transaction serialization with `Transaction.serialize()`
-- **Updated architecture section** showing OLD (third-party) vs NEW (native sol4k)
-- **Added sol4k capabilities documentation** with code examples
-- **Added benefits of native implementation**: independence, performance, control, cost
-- **Updated "Running the Transaction Builder Service"** to "Native Transaction Building with sol4k"
-
-### v3.0.0 (2025-10-08)
-- **Added complete end-to-end flow walkthrough** with 8 detailed steps
-- **Added "Running the Transaction Builder Service" section** explaining third-party service architecture
-- **Added service availability testing instructions** with curl examples
-- **Added comprehensive step-by-step payment flow** showing exact data at each stage
-- **Added MWA user interaction flow** with wallet approval screen mockup
-- **Added service fallback options** (retry logic, self-hosting, native implementation)
-- **Clarified what SolAIBot does vs. what service does** with clear separation of concerns
-
-### v2.0.0 (2025-10-08)
-- **Updated to use third-party transaction building service** at `https://x402.payai.network/build-transaction`
-- **Added detailed MWA API specifications** for `signTransactions()` method
-- **Removed backend deployment requirements** (no longer needed)
-- **Clarified transaction signing flow** with Mobile Wallet Adapter
-- **Added third-party service API documentation** with request/response examples
-- **Updated all code examples** to reflect third-party service integration
-
-### v1.0.0 (2025-10-08)
-- Initial implementation guide
-- Original server-side transaction building approach
-
----
-
-## Quick Start Checklist
-
-Before starting implementation tomorrow, verify these prerequisites:
-
-### 1. Service Availability
-```bash
-# Test transaction builder service
-curl -X POST https://x402.payai.network/build-transaction \
-  -H "Content-Type: application/json" \
-  -d '{}' \
-  -v
-
-# Expected: 400 (service is up, just needs valid payload)
-# If 404 or timeout: Service may be down, see "Running the Transaction Builder Service"
-```
-
-### 2. Test Endpoint Access
-```bash
-# Verify test paid endpoint exists
-curl https://x402.payai.network/api/solana-devnet/paid-content \
-  -v
-
-# Expected: 402 with payment requirements JSON
-```
-
-### 3. Wallet Setup
-- ✅ Install Phantom or Solflare wallet on Android device
-- ✅ Create devnet wallet
-- ✅ Fund with devnet SOL: https://faucet.solana.com/
-- ✅ Fund with devnet USDC (if available)
-
-### 4. Code Review
-- ✅ Read the complete flow walkthrough (section 3)
-- ✅ Review `SolanaPaymentBuilder.kt` code example (Phase 1, step 1)
-- ✅ Understand MWA API details (Important MWA API Details section)
-
-### 5. Implementation Priority
-1. **P0** (Critical): Implement `SolanaPaymentBuilder.kt` with service integration
-2. **P1** (Important): Add error handling and retry logic
-3. **P2** (Nice to have): Add payment confirmation UI
-4. **P3** (Future): Add transaction history and spending limits
