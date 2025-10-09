@@ -32,10 +32,21 @@ import org.sol4k.TransactionMessage
 import org.sol4k.instruction.TransferInstruction
 import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
 import org.sol4k.instruction.SplTransferInstruction
-import org.sol4k.instruction.BaseInstruction
+import org.sol4k.instruction.AccountMeta
 import java.io.IOException
 
 private const val TAG = "SolanaPaymentBuilder"
+
+/**
+ * Helper data class for creating custom compute budget instructions.
+ * Implements the sol4k Instruction interface.
+ */
+private data class ComputeBudgetInstruction(
+    override val programId: PublicKey,
+    override val data: ByteArray
+) : org.sol4k.instruction.Instruction {
+    override val keys: List<AccountMeta> = emptyList()
+}
 
 /**
  * Builds Solana payment transactions natively using sol4k library.
@@ -63,14 +74,6 @@ object SolanaPaymentBuilder {
         else -> "https://api.devnet.solana.com"
     }
 
-    // SPL Token program ID
-    private const val TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-
-    // Associated Token Account program ID
-    private const val ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-
-    // Compute Budget program ID
-    private const val COMPUTE_BUDGET_PROGRAM_ID = "ComputeBudget111111111111111111111111111111"
 
     /**
      * Builds and signs a Solana payment transaction for x402 payment.
@@ -98,13 +101,16 @@ object SolanaPaymentBuilder {
         }
 
         val userPublicKey = connectionState.address
+        Log.d(TAG, "=== Starting x402 Payment Transaction Build ===")
         Log.d(TAG, "Building x402 payment transaction for user: $userPublicKey")
         Log.d(TAG, "  Network: ${requirement.network}")
         Log.d(TAG, "  Amount: ${requirement.maxAmountRequired}")
         Log.d(TAG, "  Asset: ${requirement.asset}")
         Log.d(TAG, "  PayTo: ${requirement.payTo}")
+        Log.d(TAG, "  FeePayer: ${requirement.extra["feePayer"]}")
 
         // 1. Build unsigned transaction natively with sol4k
+        // Returns the full transaction in Solana wire format with empty signature placeholders
         val unsignedTxBytes = buildUnsignedTransaction(
             requirement = requirement,
             userPublicKey = userPublicKey
@@ -113,6 +119,7 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "Built unsigned transaction (${unsignedTxBytes.size} bytes)")
 
         // 2. Sign transaction via MWA
+        // MWA expects the full transaction wire format and will fill in the signatures
         val signedTxBase64 = signTransactionViaMwa(
             unsignedTransactionBytes = unsignedTxBytes,
             activityResultSender = activityResultSender
@@ -192,43 +199,64 @@ object SolanaPaymentBuilder {
             TransactionMessage.newMessage(feePayer, recentBlockhash, instructions)
         }
 
-        // 7. Serialize unsigned transaction in Solana wire format
-        // MWA expects: [num_signatures][signature_placeholders][message]
-        // For unsigned transaction, we put empty (all-zeros) signature placeholders
-        Log.d(TAG, "Serializing unsigned transaction in Solana wire format...")
+        // 7. Serialize transaction in Solana wire format for MWA
+        // MWA expects: [num_signatures (compact-u16)][message_bytes]
+        // The compact-u16 encoding for small numbers (< 128) is just the number itself
+        Log.d(TAG, "Serializing transaction for MWA...")
 
         val messageBytes = message.serialize()
 
+        // Log first 20 bytes of message for debugging
+        val previewBytes = messageBytes.take(20).joinToString(" ") {
+            String.format("0x%02X", it.toInt() and 0xFF)
+        }
+        Log.d(TAG, "Message bytes (first 20): $previewBytes")
+        Log.d(TAG, "Full message size: ${messageBytes.size} bytes")
+
+        // Log the complete message for analysis
+        val fullMessageHex = messageBytes.joinToString(" ") {
+            String.format("0x%02X", it.toInt() and 0xFF)
+        }
+        Log.d(TAG, "Full message bytes: $fullMessageHex")
+
         // Calculate number of required signatures from the message bytes
-        // The message header starts at byte 0 and contains:
+        // For V0 transactions (versioned):
+        // - byte 0: 0x80 (version marker for V0)
+        // - byte 1: numRequiredSignatures
+        // - byte 2: numReadonlySignedAccounts
+        // - byte 3: numReadonlyUnsignedAccounts
+        // For legacy transactions:
         // - byte 0: numRequiredSignatures
-        // - byte 1: numReadonlySignedAccounts
-        // - byte 2: numReadonlyUnsignedAccounts
-        val numSignatures = messageBytes[0].toInt() and 0xFF
-
-        Log.d(TAG, "Transaction requires $numSignatures signatures")
-
-        // Build unsigned transaction bytes in Solana wire format
-        val unsignedTxBytes = ByteArray(1 + (numSignatures * 64) + messageBytes.size)
-        var offset = 0
-
-        // Write number of signatures
-        unsignedTxBytes[offset++] = numSignatures.toByte()
-
-        // Write empty signature placeholders (64 bytes of zeros for each signature)
-        for (i in 0 until numSignatures) {
-            // Leave 64 bytes as zeros for each signature placeholder
-            offset += 64
+        val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
+        val numSignatures = if (isVersioned) {
+            messageBytes[1].toInt() and 0xFF
+        } else {
+            messageBytes[0].toInt() and 0xFF
         }
 
-        // Write the message
-        System.arraycopy(messageBytes, 0, unsignedTxBytes, offset, messageBytes.size)
+        Log.d(TAG, "Message format: ${if (isVersioned) "V0 (versioned)" else "Legacy"}")
+        Log.d(TAG, "Transaction requires $numSignatures signatures")
+        Log.d(TAG, "Message size: ${messageBytes.size} bytes")
+
+        // Build unsigned transaction in format MWA expects:
+        // Just prepend the signature count (as compact-u16) before the message
+        // MWA will know to leave signature slots empty
+        val unsignedTxBytes = ByteArray(1 + messageBytes.size)
+        unsignedTxBytes[0] = numSignatures.toByte()
+        System.arraycopy(messageBytes, 0, unsignedTxBytes, 1, messageBytes.size)
+
+        Log.d(TAG, "Unsigned transaction format: [numSigs(1)][message(${messageBytes.size})] = ${unsignedTxBytes.size} bytes total")
 
         unsignedTxBytes
     }
 
     /**
      * Build instructions for a native SOL transfer.
+     *
+     * x402 facilitator REQUIRES exactly 3 instructions for SOL transfer:
+     * 1. Compute limit instruction (required by facilitator)
+     * 2. Compute price instruction (required by facilitator, max 5 lamports)
+     * 3. Transfer instruction (the actual payment)
      */
     private fun buildSolTransferInstructions(
         connection: Connection,
@@ -239,10 +267,48 @@ object SolanaPaymentBuilder {
     ): List<org.sol4k.instruction.Instruction> {
         val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
 
-        // Add compute budget instruction (estimate ~5000 units for simple transfer)
-        instructions.add(createSetComputeUnitLimitInstruction(5000))
+        // Compute Budget Program address
+        val computeBudgetProgram = PublicKey("ComputeBudget111111111111111111111111111111")
 
-        // Add transfer instruction
+        // 1. Add compute unit limit instruction
+        // Format: [discriminator(1)][units(4, little-endian u32)]
+        // discriminator = 2 for SetComputeUnitLimit
+        // Use 200,000 units (standard for simple transfers)
+        val computeUnits = 200_000
+        val computeLimitData = ByteArray(5)
+        computeLimitData[0] = 2 // discriminator
+        computeLimitData[1] = (computeUnits and 0xFF).toByte()
+        computeLimitData[2] = ((computeUnits shr 8) and 0xFF).toByte()
+        computeLimitData[3] = ((computeUnits shr 16) and 0xFF).toByte()
+        computeLimitData[4] = ((computeUnits shr 24) and 0xFF).toByte()
+
+        instructions.add(ComputeBudgetInstruction(
+            programId = computeBudgetProgram,
+            data = computeLimitData
+        ))
+
+        // 2. Add compute unit price instruction
+        // Format: [discriminator(1)][microLamports(8, little-endian u64)]
+        // discriminator = 3 for SetComputeUnitPrice
+        // Use 1 microlamport (minimum, meets facilitator's max of 5,000,000 microlamports)
+        val computePrice = 1L // 1 microlamport
+        val computePriceData = ByteArray(9)
+        computePriceData[0] = 3 // discriminator
+        computePriceData[1] = (computePrice and 0xFF).toByte()
+        computePriceData[2] = ((computePrice shr 8) and 0xFF).toByte()
+        computePriceData[3] = ((computePrice shr 16) and 0xFF).toByte()
+        computePriceData[4] = ((computePrice shr 24) and 0xFF).toByte()
+        computePriceData[5] = ((computePrice shr 32) and 0xFF).toByte()
+        computePriceData[6] = ((computePrice shr 40) and 0xFF).toByte()
+        computePriceData[7] = ((computePrice shr 48) and 0xFF).toByte()
+        computePriceData[8] = ((computePrice shr 56) and 0xFF).toByte()
+
+        instructions.add(ComputeBudgetInstruction(
+            programId = computeBudgetProgram,
+            data = computePriceData
+        ))
+
+        // 3. Add transfer instruction
         instructions.add(TransferInstruction(
             from = userPubKey,
             to = recipient,
@@ -254,6 +320,12 @@ object SolanaPaymentBuilder {
 
     /**
      * Build instructions for an SPL token transfer.
+     *
+     * x402 facilitator REQUIRES exactly 3 or 4 instructions for SPL token transfer:
+     * 1. Compute limit instruction (required by facilitator)
+     * 2. Compute price instruction (required by facilitator, max 5 lamports)
+     * 3. Create ATA instruction (optional, only if destination ATA doesn't exist)
+     * 4. Transfer instruction (the actual payment)
      */
     private suspend fun buildSplTokenTransferInstructions(
         connection: Connection,
@@ -264,6 +336,42 @@ object SolanaPaymentBuilder {
         amount: Long
     ): List<org.sol4k.instruction.Instruction> = withContext(Dispatchers.IO) {
         val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
+
+        // Compute Budget Program address
+        val computeBudgetProgram = PublicKey("ComputeBudget111111111111111111111111111111")
+
+        // 1. Add compute unit limit instruction
+        // Use 300,000 units for SPL token transfers (may include ATA creation)
+        val computeUnits = 300_000
+        val computeLimitData = ByteArray(5)
+        computeLimitData[0] = 2 // discriminator
+        computeLimitData[1] = (computeUnits and 0xFF).toByte()
+        computeLimitData[2] = ((computeUnits shr 8) and 0xFF).toByte()
+        computeLimitData[3] = ((computeUnits shr 16) and 0xFF).toByte()
+        computeLimitData[4] = ((computeUnits shr 24) and 0xFF).toByte()
+
+        instructions.add(ComputeBudgetInstruction(
+            programId = computeBudgetProgram,
+            data = computeLimitData
+        ))
+
+        // 2. Add compute unit price instruction
+        val computePrice = 1L // 1 microlamport
+        val computePriceData = ByteArray(9)
+        computePriceData[0] = 3 // discriminator
+        computePriceData[1] = (computePrice and 0xFF).toByte()
+        computePriceData[2] = ((computePrice shr 8) and 0xFF).toByte()
+        computePriceData[3] = ((computePrice shr 16) and 0xFF).toByte()
+        computePriceData[4] = ((computePrice shr 24) and 0xFF).toByte()
+        computePriceData[5] = ((computePrice shr 32) and 0xFF).toByte()
+        computePriceData[6] = ((computePrice shr 40) and 0xFF).toByte()
+        computePriceData[7] = ((computePrice shr 48) and 0xFF).toByte()
+        computePriceData[8] = ((computePrice shr 56) and 0xFF).toByte()
+
+        instructions.add(ComputeBudgetInstruction(
+            programId = computeBudgetProgram,
+            data = computePriceData
+        ))
 
         // Derive Associated Token Accounts (ATAs) using sol4k's PDA function
         Log.d(TAG, "Deriving source ATA...")
@@ -285,11 +393,7 @@ object SolanaPaymentBuilder {
             false
         }
 
-        // Estimate compute units based on whether we need to create ATA
-        val estimatedUnits = if (destAtaExists) 85000 else 150000
-        instructions.add(createSetComputeUnitLimitInstruction(estimatedUnits))
-
-        // Add ATA creation instruction if needed
+        // 3. Add ATA creation instruction if needed
         if (!destAtaExists) {
             Log.d(TAG, "Adding CreateAssociatedTokenAccount instruction")
             instructions.add(CreateAssociatedTokenAccountInstruction(
@@ -300,7 +404,7 @@ object SolanaPaymentBuilder {
             ))
         }
 
-        // Add SPL token transfer instruction
+        // 4. Add SPL token transfer instruction
         Log.d(TAG, "Adding SplTransfer instruction")
         instructions.add(SplTransferInstruction(
             from = sourceAta,
@@ -314,99 +418,201 @@ object SolanaPaymentBuilder {
         instructions
     }
 
-    /**
-     * Create a SetComputeUnitLimit instruction using BaseInstruction.
-     * This is necessary because sol4k doesn't have a built-in SetComputeUnitLimitInstruction.
-     */
-    private fun createSetComputeUnitLimitInstruction(units: Int): org.sol4k.instruction.Instruction {
-        // SetComputeUnitLimit instruction data format:
-        // - Discriminator: 2 (u8)
-        // - Units: [units as u32 little-endian]
-        val data = byteArrayOf(
-            2, // Instruction discriminator for SetComputeUnitLimit
-            (units and 0xFF).toByte(),
-            ((units shr 8) and 0xFF).toByte(),
-            ((units shr 16) and 0xFF).toByte(),
-            ((units shr 24) and 0xFF).toByte()
-        )
-
-        return BaseInstruction(
-            programId = PublicKey(COMPUTE_BUDGET_PROGRAM_ID),
-            keys = emptyList(), // No accounts needed for this instruction
-            data = data
-        )
-    }
 
     /**
      * Sign transaction using Mobile Wallet Adapter.
      *
-     * MWA API Flow:
-     * 1. Call walletAdapter.transact() to establish session
-     * 2. Inside transact callback, call signTransactions()
-     * 3. Wallet app prompts user to approve
-     * 4. On approval, MWA returns signed transaction bytes
+     * NEW APPROACH - Using signMessagesDetached():
+     * Problem: signTransactions() is deprecated and wallets modify the transaction
+     * (adding compute budget instructions), which x402 facilitator rejects.
      *
-     * IMPORTANT:
-     * - Use signTransactions() NOT signAndSendTransactions()
-     * - We only want signature, not broadcasting
-     * - x402 facilitator will broadcast the transaction
+     * Solution: Use signMessagesDetached() to sign the message directly without
+     * wallet modification, then manually construct the signed transaction.
+     *
+     * Flow:
+     * 1. Extract the message from our transaction format
+     * 2. Ask wallet to sign the message (not the full transaction)
+     * 3. Wallet returns just the signature(s)
+     * 4. Manually construct signed transaction: [numSigs][signatures][message]
      */
     private suspend fun signTransactionViaMwa(
         unsignedTransactionBytes: ByteArray,
         activityResultSender: ActivityResultSender
     ): String = withContext(Dispatchers.Main) {
-        Log.d(TAG, "Requesting MWA signature for ${unsignedTransactionBytes.size} byte transaction")
+        Log.d(TAG, "=== Starting MWA Signing Process ===")
+        Log.d(TAG, "Input unsigned transaction size: ${unsignedTransactionBytes.size} bytes")
+
+        // The unsignedTransactionBytes we receive is: [numSigs(1)][message]
+        val numSignatures = unsignedTransactionBytes[0].toInt() and 0xFF
+        val messageBytes = unsignedTransactionBytes.copyOfRange(1, unsignedTransactionBytes.size)
+
+        Log.d(TAG, "Transaction requires $numSignatures signatures")
+        Log.d(TAG, "Message size: ${messageBytes.size} bytes")
+
+        // Get user's public key from wallet connection state
+        val connectionState = WalletConnectionManager.getConnectionState()
+        if (!connectionState.isConnected || connectionState.publicKey == null) {
+            throw IllegalStateException("Wallet not connected or public key not available")
+        }
+
+        // Convert hex public key to bytes for MWA
+        val userPublicKeyBytes = connectionState.publicKey!!.chunked(2)
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
+
+        Log.d(TAG, "User public key: ${connectionState.address}")
 
         val adapter = SharedMobileWalletAdapter.getAdapter()
+        Log.d(TAG, "Got MWA adapter instance")
 
         try {
-            // Start MWA session and request signature
-            // The transact call is a suspend function, so we can call it directly
+            Log.d(TAG, "Calling adapter.transact()...")
+            // Start MWA session and request message signature
             val result = adapter.transact(activityResultSender) {
-                Log.d(TAG, "MWA session authorized, requesting signature")
+                Log.d(TAG, "Inside transact lambda - MWA session authorized")
+                Log.d(TAG, "Using signMessagesDetached() to sign transaction message...")
+                Log.d(TAG, "This prevents wallet from modifying the transaction")
 
-                // Call signTransactions directly - the transact lambda context supports this
-                signTransactions(arrayOf(unsignedTransactionBytes))
+                // Sign the message directly using signMessagesDetached
+                // This signs the raw message without wallet adding compute budget instructions
+                val signResult = signMessagesDetached(
+                    arrayOf(messageBytes),
+                    arrayOf(userPublicKeyBytes)
+                )
+                Log.d(TAG, "signMessagesDetached() returned successfully")
+                signResult
             }
+
+            Log.d(TAG, "adapter.transact() completed, processing result...")
 
             // Handle result from MWA
             when (result) {
                 is TransactionResult.Success -> {
-                    Log.d(TAG, "MWA signTransactions succeeded")
+                    Log.d(TAG, "Result type: TransactionResult.Success")
 
-                    // Extract signed transaction bytes from the result
-                    // MWA returns signed payloads in the result payload
-                    val signedTxBytes = try {
-                        // Access the payload directly from the Success result
-                        result.payload?.signedPayloads?.firstOrNull()
+                    // Extract signature from signMessagesDetached response
+                    // According to MWA docs: result.successPayload?.messages?.first()?.signatures?.first()
+                    val userSignature: ByteArray = try {
+                        Log.d(TAG, "Extracting signature from signMessagesDetached result...")
+
+                        // Access the MWA response - the payload contains the signed messages
+                        val payload = result.payload
+                        if (payload == null) {
+                            Log.e(TAG, "result.payload is null")
+                            throw IOException("No payload in result")
+                        }
+
+                        // For signMessagesDetached, the response is in payload.messages
+                        val messages = payload.messages
+                        if (messages == null || messages.size == 0) {
+                            Log.e(TAG, "No messages in payload")
+                            throw IOException("No messages returned from wallet")
+                        }
+
+                        val signedMessage = messages[0]
+                        if (signedMessage == null) {
+                            Log.e(TAG, "First message is null")
+                            throw IOException("First message is null")
+                        }
+
+                        val signatures = signedMessage.signatures
+                        if (signatures == null || signatures.size == 0) {
+                            Log.e(TAG, "No signatures in signed message")
+                            throw IOException("No signature in signed message")
+                        }
+
+                        val signature = signatures[0]
+                        if (signature == null) {
+                            Log.e(TAG, "First signature is null")
+                            throw IOException("Signature is null")
+                        }
+
+                        Log.d(TAG, "Successfully extracted signature (${signature.size} bytes)")
+                        if (signature.size != 64) {
+                            Log.e(TAG, "Invalid signature size: ${signature.size}, expected 64")
+                            throw IOException("Invalid signature size: ${signature.size}, expected 64")
+                        }
+
+                        // Log signature preview
+                        val sigPreview = signature.take(20).joinToString(" ") {
+                            String.format("0x%02X", it.toInt() and 0xFF)
+                        }
+                        Log.d(TAG, "User signature (first 20 bytes): $sigPreview")
+
+                        signature
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error accessing signed payload: ${e.message}", e)
-                        null
+                        Log.e(TAG, "Error extracting signature: ${e.message}", e)
+                        throw IOException("Failed to extract signature: ${e.message}", e)
                     }
 
-                    if (signedTxBytes == null) {
-                        Log.e(TAG, "No signed transaction in MWA response")
-                        throw IOException("No signed transaction returned from wallet")
+                    // Now construct the partially-signed transaction
+                    // Format: [numSigs(1)][userSignature(64)][facilitatorSignatureZeros(64)][message]
+                    // The facilitator will fill in the second signature when they co-sign
+                    Log.d(TAG, "Constructing partially-signed transaction...")
+
+                    val partiallySignedTx = ByteArray(1 + (64 * numSignatures) + messageBytes.size)
+                    var offset = 0
+
+                    // Byte 0: number of signatures
+                    partiallySignedTx[offset++] = numSignatures.toByte()
+
+                    // First signature: user's signature (we just got this)
+                    System.arraycopy(userSignature, 0, partiallySignedTx, offset, 64)
+                    offset += 64
+
+                    // Second signature: zeros (facilitator will fill this in)
+                    // Already zero-initialized, so skip
+                    offset += 64
+
+                    // Message bytes
+                    System.arraycopy(messageBytes, 0, partiallySignedTx, offset, messageBytes.size)
+
+                    Log.d(TAG, "Partially-signed transaction: [numSigs(1)][userSig(64)][facilSig(64 zeros)][message(${messageBytes.size})] = ${partiallySignedTx.size} bytes")
+
+                    // Log first 80 bytes to verify structure
+                    val txPreview = partiallySignedTx.take(80).joinToString(" ") {
+                        String.format("0x%02X", it.toInt() and 0xFF)
+                    }
+                    Log.d(TAG, "Partially-signed tx (first 80 bytes): $txPreview")
+
+                    // Verify the message starts at the correct offset (129 = 1 + 64 + 64)
+                    val messageStart = 129
+                    val extractedMessageBytes = partiallySignedTx.copyOfRange(messageStart, partiallySignedTx.size)
+                    val messageMatch = extractedMessageBytes.contentEquals(messageBytes)
+                    Log.d(TAG, "Message verification: starts at byte $messageStart, matches original: $messageMatch")
+                    if (!messageMatch) {
+                        Log.e(TAG, "ERROR: Message in partially-signed tx does not match original message!")
+                        Log.e(TAG, "Expected message size: ${messageBytes.size}, extracted size: ${extractedMessageBytes.size}")
                     }
 
-                    Log.d(TAG, "Got signed transaction (${signedTxBytes.size} bytes)")
+                    // Log the message portion from the partially-signed tx
+                    val extractedMsgPreview = extractedMessageBytes.take(20).joinToString(" ") {
+                        String.format("0x%02X", it.toInt() and 0xFF)
+                    }
+                    Log.d(TAG, "Extracted message from tx (first 20 bytes): $extractedMsgPreview")
 
                     // Encode to base64 for x402 protocol
-                    Base64.encodeToString(signedTxBytes, Base64.NO_WRAP)
+                    val base64Result = Base64.encodeToString(partiallySignedTx, Base64.NO_WRAP)
+                    Log.d(TAG, "Encoded to base64 (${base64Result.length} chars)")
+                    Log.d(TAG, "=== MWA Signing Process Complete ===")
+                    base64Result
                 }
 
                 is TransactionResult.NoWalletFound -> {
-                    Log.e(TAG, "No MWA-compatible wallet found")
+                    Log.e(TAG, "Result type: TransactionResult.NoWalletFound")
                     throw IOException("No MWA-compatible wallet app found on device. Please install Phantom, Solflare, or another Solana wallet.")
                 }
 
                 is TransactionResult.Failure -> {
-                    Log.e(TAG, "MWA signing failed: ${result.e.message}", result.e)
+                    Log.e(TAG, "Result type: TransactionResult.Failure")
+                    Log.e(TAG, "Failure reason: ${result.e.message}", result.e)
                     throw IOException("Wallet signing failed: ${result.e.message}", result.e)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception during MWA transaction: ${e.message}", e)
+            Log.e(TAG, "=== MWA Exception Caught ===")
+            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
+            Log.e(TAG, "Exception message: ${e.message}", e)
             throw IOException("MWA transaction failed: ${e.message}", e)
         }
     }
