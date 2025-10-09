@@ -18,6 +18,7 @@ package com.quantaliz.solaibot.data.x402
 
 import android.content.Context
 import android.util.Log
+import com.quantaliz.solaibot.data.NetworkConnectivityHelper
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -84,6 +85,18 @@ class X402HttpClient(
         url: String,
         activityResultSender: ActivityResultSender?
     ): X402Response = withContext(Dispatchers.IO) {
+        // Check network connectivity before making any requests
+        if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+            val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+            Log.e(TAG, "No internet connection: $networkStatus")
+            return@withContext X402Response(
+                success = false,
+                statusCode = 0,
+                body = null,
+                errorMessage = "No internet connection. $networkStatus"
+            )
+        }
+
         if (activityResultSender == null) {
             return@withContext X402Response(
                 success = false,
@@ -200,7 +213,7 @@ class X402HttpClient(
         requirement: PaymentRequirements,
         activityResultSender: ActivityResultSender
     ): PaymentPayload {
-        val transaction = buildSolanaPaymentTransaction(
+        val transaction = SolanaPaymentBuilder.buildSolanaPaymentTransaction(
             context = context,
             requirement = requirement,
             activityResultSender = activityResultSender

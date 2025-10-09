@@ -459,6 +459,12 @@ suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
 suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     val url = args["url"] ?: return "Error: Missing URL parameter"
 
+    // Check network connectivity first
+    if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+        val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+        return "No internet connection available. Please check your network settings.\n\nNetwork status: $networkStatus"
+    }
+
     // Check if wallet is connected
     val connectionState = WalletConnectionManager.getConnectionState()
     if (!connectionState.isConnected || connectionState.address == null) {
@@ -500,19 +506,9 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activ
                 try {
                     val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                     val errorResponse = json.decodeFromString<com.quantaliz.solaibot.data.x402.PaymentRequirementsResponse>(response.body)
-
-                    val errorReason = when {
-                        errorResponse.error.contains("invalid_exact_svm_payload_transaction") ->
-                            "Transaction validation failed. The x402 payment feature is currently in development and cannot yet create valid Solana transactions. " +
-                            "This requires implementing proper transaction building with blockhash, SPL token instructions, and compute budget. " +
-                            "See docs/x402-integration.md for implementation details."
-                        else -> errorResponse.error
-                    }
-
-                    "Payment failed: $errorReason"
+                    "Payment failed: ${errorResponse.error}"
                 } catch (e: Exception) {
-                    "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}\n\nNote: The x402 payment feature is still in development. " +
-                    "Transaction building needs to be completed for production use."
+                    "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}"
                 }
             }
             else -> {

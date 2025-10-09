@@ -19,324 +19,395 @@ package com.quantaliz.solaibot.data.x402
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import com.quantaliz.solaibot.data.NetworkConnectivityHelper
 import com.quantaliz.solaibot.data.SharedMobileWalletAdapter
 import com.quantaliz.solaibot.data.WalletConnectionManager
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
-import com.solana.publickey.SolanaPublicKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import org.sol4k.Connection
+import org.sol4k.PublicKey
+import org.sol4k.TransactionMessage
+import org.sol4k.instruction.TransferInstruction
+import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
+import org.sol4k.instruction.SplTransferInstruction
+import org.sol4k.instruction.BaseInstruction
+import java.io.IOException
 
 private const val TAG = "SolanaPaymentBuilder"
 
 /**
- * Builds Solana payment transactions for x402 payments.
+ * Builds Solana payment transactions natively using sol4k library.
  *
- * This creates a transfer instruction and signs it via Mobile Wallet Adapter.
- * The transaction is partially signed (user's signature only), and the facilitator
- * will add their signature as the fee payer before submitting to the network.
+ * This implementation is fully self-contained and does not rely on external transaction
+ * building services. It directly communicates with Solana RPC to build transactions,
+ * then uses Mobile Wallet Adapter (MWA) to obtain user signatures.
+ *
+ * Process:
+ * 1. Connect to Solana RPC based on payment requirements network
+ * 2. Fetch recent blockhash
+ * 3. Build SPL token transfer instruction (or SOL transfer)
+ * 4. Create transaction with proper fee payer
+ * 5. Serialize unsigned transaction
+ * 6. Request signature via MWA
+ * 7. Return base64-encoded signed transaction
  */
+object SolanaPaymentBuilder {
 
-/**
- * Builds a Solana payment transaction based on x402 payment requirements.
- *
- * IMPORTANT: This is a placeholder implementation that returns a mock transaction.
- * For production use, this needs to be replaced with proper Solana transaction building:
- *
- * Required steps:
- * 1. Fetch recent blockhash from RPC
- * 2. Create SPL token transfer instruction
- * 3. Derive associated token accounts
- * 4. Add compute budget instructions
- * 5. Set fee payer to facilitator address
- * 6. Properly serialize and sign via MWA
- *
- * Current limitation: The Solana mobile libraries don't provide full transaction
- * building capabilities. A full implementation would need:
- * - solana-kotlin or similar library for transaction building
- * - Or native integration with @solana/web3.js via WebView bridge
- * - Or server-side transaction building with client-side signing only
- *
- * @param context Android context
- * @param requirement Payment requirements from resource server
- * @param activityResultSender For wallet interaction
- * @return Base64-encoded serialized transaction (currently placeholder)
- */
-suspend fun buildSolanaPaymentTransaction(
-    context: Context,
-    requirement: PaymentRequirements,
-    activityResultSender: ActivityResultSender
-): String = withContext(Dispatchers.IO) {
-    // Verify wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        throw IllegalStateException("Wallet not connected. Please connect wallet first.")
+    // RPC endpoints by network
+    private fun getRpcEndpoint(network: String): String = when (network) {
+        "solana" -> "https://api.mainnet-beta.solana.com"
+        "solana-devnet" -> "https://api.devnet.solana.com"
+        "solana-testnet" -> "https://api.testnet.solana.com"
+        else -> "https://api.devnet.solana.com"
     }
 
-    val payerAddress = connectionState.address
-    val recipientAddress = requirement.payTo
-    val amount = requirement.maxAmountRequired.toLongOrNull()
-        ?: throw IllegalArgumentException("Invalid amount: ${requirement.maxAmountRequired}")
+    // SPL Token program ID
+    private const val TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
-    // Get fee payer from extras (facilitator's address)
-    val feePayerAddress = requirement.extra["feePayer"]
-        ?: throw IllegalArgumentException("Missing feePayer in payment requirements")
+    // Associated Token Account program ID
+    private const val ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 
-    Log.d(TAG, "Building Solana payment transaction:")
-    Log.d(TAG, "  Payer: $payerAddress")
-    Log.d(TAG, "  Recipient: $recipientAddress")
-    Log.d(TAG, "  Amount: $amount lamports")
-    Log.d(TAG, "  Fee Payer: $feePayerAddress")
-    Log.d(TAG, "  Asset: ${requirement.asset}")
+    // Compute Budget program ID
+    private const val COMPUTE_BUDGET_PROGRAM_ID = "ComputeBudget111111111111111111111111111111"
 
-    // Build transaction based on asset type
-    val transaction = if (requirement.asset.uppercase() == "SOL" || requirement.asset.isEmpty()) {
-        buildSolTransferTransaction(
-            from = payerAddress,
-            to = recipientAddress,
-            amount = amount,
-            feePayer = feePayerAddress
-        )
-    } else {
-        buildSplTokenTransferTransaction(
-            from = payerAddress,
-            to = recipientAddress,
-            tokenMint = requirement.asset,
-            amount = amount,
-            feePayer = feePayerAddress
-        )
-    }
-
-    // Sign the transaction using MWA
-    val signedTransaction = signTransactionWithMWA(
-        context = context,
-        transaction = transaction,
-        activityResultSender = activityResultSender
-    )
-
-    // Return base64-encoded transaction
-    Base64.encodeToString(signedTransaction, Base64.NO_WRAP)
-}
-
-/**
- * Builds a SOL transfer transaction.
- *
- * Note: This is a simplified implementation. In production, you would use
- * the Solana SDK to build proper transactions with recent blockhash, etc.
- */
-private fun buildSolTransferTransaction(
-    from: String,
-    to: String,
-    amount: Long,
-    feePayer: String
-): ByteArray {
-    Log.d(TAG, "Building SOL transfer transaction")
-
-    // For now, we'll create a minimal transaction structure
-    // In production, use Solana's Transaction class from solana-kotlin or similar
-
-    // This is a placeholder - the actual implementation would:
-    // 1. Get recent blockhash from RPC
-    // 2. Create SystemProgram.transfer instruction
-    // 3. Build versioned transaction
-    // 4. Serialize to wire format
-
-    // For the MVP, we'll create a message that the wallet can sign
-    val message = buildTransferMessage(
-        fromPubkey = from,
-        toPubkey = to,
-        lamports = amount,
-        feePayer = feePayer
-    )
-
-    return message
-}
-
-/**
- * Builds an SPL token transfer transaction.
- */
-private fun buildSplTokenTransferTransaction(
-    from: String,
-    to: String,
-    tokenMint: String,
-    amount: Long,
-    feePayer: String
-): ByteArray {
-    Log.d(TAG, "Building SPL token transfer transaction for mint: $tokenMint")
-
-    // Similar to SOL transfer, but uses TokenProgram.transfer
-    // This would require:
-    // 1. Get associated token accounts for from/to addresses
-    // 2. Create TokenProgram.transfer instruction
-    // 3. Build and serialize transaction
-
-    val message = buildSplTransferMessage(
-        fromPubkey = from,
-        toPubkey = to,
-        tokenMint = tokenMint,
-        amount = amount,
-        feePayer = feePayer
-    )
-
-    return message
-}
-
-/**
- * Builds a Solana transaction message for SOL transfer.
- *
- * Transaction message format (simplified):
- * - Header (3 bytes): num_required_signatures, num_readonly_signed, num_readonly_unsigned
- * - Account addresses (variable): array of public keys
- * - Recent blockhash (32 bytes)
- * - Instructions (variable): program_id, accounts, data
- */
-private fun buildTransferMessage(
-    fromPubkey: String,
-    toPubkey: String,
-    lamports: Long,
-    feePayer: String
-): ByteArray {
-    // This is a simplified version
-    // In production, use proper Solana transaction builder
-
-    val buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN)
-
-    // Message header
-    buffer.put(2.toByte()) // 2 required signatures (fee payer + from)
-    buffer.put(0.toByte()) // 0 readonly signed accounts
-    buffer.put(1.toByte()) // 1 readonly unsigned account (system program)
-
-    // Account keys (compact array)
-    buffer.put(4.toByte()) // 4 accounts
-
-    // Fee payer
-    val feePayerPubkey = SolanaPublicKey.from(feePayer)
-    buffer.put(feePayerPubkey.bytes)
-
-    // From account
-    val fromPubkeyObj = SolanaPublicKey.from(fromPubkey)
-    buffer.put(fromPubkeyObj.bytes)
-
-    // To account
-    val toPubkeyObj = SolanaPublicKey.from(toPubkey)
-    buffer.put(toPubkeyObj.bytes)
-
-    // System program
-    val systemProgram = SolanaPublicKey.from("11111111111111111111111111111111")
-    buffer.put(systemProgram.bytes)
-
-    // Recent blockhash (placeholder - should be fetched from RPC)
-    buffer.put(ByteArray(32) { 0 })
-
-    // Instructions (compact array)
-    buffer.put(1.toByte()) // 1 instruction
-
-    // Transfer instruction
-    buffer.put(3.toByte()) // program_id index (system program)
-    buffer.put(2.toByte()) // 2 accounts
-    buffer.put(1.toByte()) // from index
-    buffer.put(2.toByte()) // to index
-
-    // Instruction data (transfer = 2, followed by u64 lamports)
-    buffer.put(12.toByte()) // data length
-    buffer.putInt(2) // instruction discriminator for transfer
-    buffer.putLong(lamports)
-
-    val length = buffer.position()
-    val result = ByteArray(length)
-    buffer.rewind()
-    buffer.get(result)
-
-    return result
-}
-
-/**
- * Builds a Solana transaction message for SPL token transfer.
- */
-private fun buildSplTransferMessage(
-    fromPubkey: String,
-    toPubkey: String,
-    tokenMint: String,
-    amount: Long,
-    feePayer: String
-): ByteArray {
-    // Similar to SOL transfer but uses Token Program
-    // For MVP, we'll use a simplified structure
-
-    val buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN)
-
-    // Message header
-    buffer.put(2.toByte()) // 2 required signatures
-    buffer.put(0.toByte())
-    buffer.put(1.toByte())
-
-    // For SPL token transfer, we need:
-    // - Fee payer
-    // - Source token account
-    // - Destination token account
-    // - Owner (from pubkey)
-    // - Token program
-
-    // This is a placeholder - real implementation would:
-    // 1. Derive associated token accounts
-    // 2. Build proper TokenProgram.transfer instruction
-    // 3. Include all necessary accounts and data
-
-    Log.w(TAG, "SPL token transfers not yet fully implemented - using placeholder")
-
-    // For now, return a basic structure
-    return buildTransferMessage(fromPubkey, toPubkey, amount, feePayer)
-}
-
-/**
- * Signs a transaction using Mobile Wallet Adapter.
- *
- * @param context Android context
- * @param transaction The transaction bytes to sign
- * @param activityResultSender For wallet interaction
- * @return Signed transaction bytes
- */
-private suspend fun signTransactionWithMWA(
-    context: Context,
-    transaction: ByteArray,
-    activityResultSender: ActivityResultSender
-): ByteArray {
-    Log.d(TAG, "Signing transaction with MWA (${transaction.size} bytes)")
-
-    val adapter = SharedMobileWalletAdapter.getAdapter()
-
-    // Use MWA to sign the transaction
-    val result = adapter.transact(activityResultSender) { authResult ->
-        // In the transact block, we can request transaction signing
-        // The authResult gives us the authorized account
-        val account = authResult.accounts.firstOrNull()
-            ?: throw IllegalStateException("No account authorized")
-
-        Log.d(TAG, "Account authorized, requesting signature")
-
-        // For MVP, we'll just return the transaction as-is
-        // In production, we would:
-        // 1. Use signTransactions() from the auth scope
-        // 2. Get the signed transaction bytes back
-        // 3. Return the fully serialized and signed transaction
-
-        transaction
-    }
-
-    return when (result) {
-        is TransactionResult.Success -> {
-            Log.d(TAG, "Transaction signed successfully")
-            // For MVP, return the original transaction
-            // In production, extract signed transaction from result
-            transaction
+    /**
+     * Builds and signs a Solana payment transaction for x402 payment.
+     *
+     * @param context Android context
+     * @param requirement Payment requirements from x402 server
+     * @param activityResultSender For MWA interaction
+     * @return Base64-encoded signed transaction
+     */
+    suspend fun buildSolanaPaymentTransaction(
+        context: Context,
+        requirement: PaymentRequirements,
+        activityResultSender: ActivityResultSender
+    ): String = withContext(Dispatchers.IO) {
+        // Check network connectivity before attempting RPC calls
+        if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+            val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+            throw IOException("No internet connection. Cannot connect to Solana RPC. $networkStatus")
         }
-        is TransactionResult.NoWalletFound -> {
-            throw IllegalStateException("No wallet found. Please install a Solana wallet app.")
+
+        // Verify wallet is connected
+        val connectionState = WalletConnectionManager.getConnectionState()
+        if (!connectionState.isConnected || connectionState.address == null) {
+            throw IllegalStateException("Wallet not connected. Please connect wallet first.")
         }
-        is TransactionResult.Failure -> {
-            throw IllegalStateException("Failed to sign transaction: ${result.e.message}", result.e)
+
+        val userPublicKey = connectionState.address
+        Log.d(TAG, "Building x402 payment transaction for user: $userPublicKey")
+        Log.d(TAG, "  Network: ${requirement.network}")
+        Log.d(TAG, "  Amount: ${requirement.maxAmountRequired}")
+        Log.d(TAG, "  Asset: ${requirement.asset}")
+        Log.d(TAG, "  PayTo: ${requirement.payTo}")
+
+        // 1. Build unsigned transaction natively with sol4k
+        val unsignedTxBytes = buildUnsignedTransaction(
+            requirement = requirement,
+            userPublicKey = userPublicKey
+        )
+
+        Log.d(TAG, "Built unsigned transaction (${unsignedTxBytes.size} bytes)")
+
+        // 2. Sign transaction via MWA
+        val signedTxBase64 = signTransactionViaMwa(
+            unsignedTransactionBytes = unsignedTxBytes,
+            activityResultSender = activityResultSender
+        )
+
+        Log.d(TAG, "Transaction signed successfully")
+
+        signedTxBase64
+    }
+
+    /**
+     * Build unsigned Solana transaction natively using sol4k.
+     *
+     * This eliminates the need for external transaction building services.
+     * SolAIBot is now fully self-contained!
+     */
+    private suspend fun buildUnsignedTransaction(
+        requirement: PaymentRequirements,
+        userPublicKey: String
+    ): ByteArray = withContext(Dispatchers.IO) {
+        // 1. Get RPC endpoint for network
+        val rpcUrl = getRpcEndpoint(requirement.network)
+
+        Log.d(TAG, "Connecting to RPC: $rpcUrl")
+        val connection = Connection(rpcUrl)
+
+        // 2. Parse public keys
+        val userPubKey = PublicKey(userPublicKey)
+        val recipient = PublicKey(requirement.payTo)
+        val feePayerStr = requirement.extra["feePayer"]
+            ?: throw IllegalArgumentException("Missing feePayer in requirement.extra")
+        val feePayer = PublicKey(feePayerStr)
+
+        Log.d(TAG, "Transaction participants:")
+        Log.d(TAG, "  User: $userPublicKey")
+        Log.d(TAG, "  Recipient: ${requirement.payTo}")
+        Log.d(TAG, "  FeePayer: $feePayerStr")
+
+        // 3. Fetch recent blockhash
+        Log.d(TAG, "Fetching recent blockhash...")
+        val recentBlockhash = connection.getLatestBlockhash()
+        Log.d(TAG, "Recent blockhash: $recentBlockhash")
+
+        // 4. Parse amount
+        val amount = requirement.maxAmountRequired.toLongOrNull()
+            ?: throw IllegalArgumentException("Invalid amount: ${requirement.maxAmountRequired}")
+
+        // 5. Build instructions based on asset type
+        val instructions = if (requirement.asset.uppercase() == "SOL" || requirement.asset.isEmpty()) {
+            // Native SOL transfer
+            Log.d(TAG, "Building native SOL transfer")
+            buildSolTransferInstructions(
+                connection = connection,
+                userPubKey = userPubKey,
+                recipient = recipient,
+                feePayer = feePayer,
+                amount = amount
+            )
+        } else {
+            // SPL token transfer
+            Log.d(TAG, "Building SPL token transfer for mint: ${requirement.asset}")
+            buildSplTokenTransferInstructions(
+                connection = connection,
+                userPubKey = userPubKey,
+                recipient = recipient,
+                tokenMint = PublicKey(requirement.asset),
+                feePayer = feePayer,
+                amount = amount
+            )
+        }
+
+        // 6. Create transaction message with sol4k
+        Log.d(TAG, "Creating transaction message with ${instructions.size} instructions")
+        val message = if (instructions.size == 1) {
+            TransactionMessage.newMessage(feePayer, recentBlockhash, instructions[0])
+        } else {
+            TransactionMessage.newMessage(feePayer, recentBlockhash, instructions)
+        }
+
+        // 7. Serialize unsigned transaction in Solana wire format
+        // MWA expects: [num_signatures][signature_placeholders][message]
+        // For unsigned transaction, we put empty (all-zeros) signature placeholders
+        Log.d(TAG, "Serializing unsigned transaction in Solana wire format...")
+
+        val messageBytes = message.serialize()
+
+        // Calculate number of required signatures from the message bytes
+        // The message header starts at byte 0 and contains:
+        // - byte 0: numRequiredSignatures
+        // - byte 1: numReadonlySignedAccounts
+        // - byte 2: numReadonlyUnsignedAccounts
+        val numSignatures = messageBytes[0].toInt() and 0xFF
+
+        Log.d(TAG, "Transaction requires $numSignatures signatures")
+
+        // Build unsigned transaction bytes in Solana wire format
+        val unsignedTxBytes = ByteArray(1 + (numSignatures * 64) + messageBytes.size)
+        var offset = 0
+
+        // Write number of signatures
+        unsignedTxBytes[offset++] = numSignatures.toByte()
+
+        // Write empty signature placeholders (64 bytes of zeros for each signature)
+        for (i in 0 until numSignatures) {
+            // Leave 64 bytes as zeros for each signature placeholder
+            offset += 64
+        }
+
+        // Write the message
+        System.arraycopy(messageBytes, 0, unsignedTxBytes, offset, messageBytes.size)
+
+        unsignedTxBytes
+    }
+
+    /**
+     * Build instructions for a native SOL transfer.
+     */
+    private fun buildSolTransferInstructions(
+        connection: Connection,
+        userPubKey: PublicKey,
+        recipient: PublicKey,
+        feePayer: PublicKey,
+        amount: Long
+    ): List<org.sol4k.instruction.Instruction> {
+        val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
+
+        // Add compute budget instruction (estimate ~5000 units for simple transfer)
+        instructions.add(createSetComputeUnitLimitInstruction(5000))
+
+        // Add transfer instruction
+        instructions.add(TransferInstruction(
+            from = userPubKey,
+            to = recipient,
+            lamports = amount
+        ))
+
+        return instructions
+    }
+
+    /**
+     * Build instructions for an SPL token transfer.
+     */
+    private suspend fun buildSplTokenTransferInstructions(
+        connection: Connection,
+        userPubKey: PublicKey,
+        recipient: PublicKey,
+        tokenMint: PublicKey,
+        feePayer: PublicKey,
+        amount: Long
+    ): List<org.sol4k.instruction.Instruction> = withContext(Dispatchers.IO) {
+        val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
+
+        // Derive Associated Token Accounts (ATAs) using sol4k's PDA function
+        Log.d(TAG, "Deriving source ATA...")
+        val (sourceAta) = PublicKey.findProgramDerivedAddress(userPubKey, tokenMint)
+        Log.d(TAG, "Source ATA: $sourceAta")
+
+        Log.d(TAG, "Deriving destination ATA...")
+        val (destAta) = PublicKey.findProgramDerivedAddress(recipient, tokenMint)
+        Log.d(TAG, "Destination ATA: $destAta")
+
+        // Check if destination ATA exists
+        Log.d(TAG, "Checking if destination ATA exists...")
+        val destAtaExists = try {
+            connection.getAccountInfo(destAta)
+            Log.d(TAG, "Destination ATA exists")
+            true
+        } catch (e: Exception) {
+            Log.d(TAG, "Destination ATA does not exist, will create")
+            false
+        }
+
+        // Estimate compute units based on whether we need to create ATA
+        val estimatedUnits = if (destAtaExists) 85000 else 150000
+        instructions.add(createSetComputeUnitLimitInstruction(estimatedUnits))
+
+        // Add ATA creation instruction if needed
+        if (!destAtaExists) {
+            Log.d(TAG, "Adding CreateAssociatedTokenAccount instruction")
+            instructions.add(CreateAssociatedTokenAccountInstruction(
+                payer = feePayer,
+                associatedToken = destAta,
+                owner = recipient,
+                mint = tokenMint
+            ))
+        }
+
+        // Add SPL token transfer instruction
+        Log.d(TAG, "Adding SplTransfer instruction")
+        instructions.add(SplTransferInstruction(
+            from = sourceAta,
+            to = destAta,
+            owner = userPubKey,
+            amount = amount,
+            mint = tokenMint,
+            decimals = 6  // Default to 6 decimals (USDC standard)
+        ))
+
+        instructions
+    }
+
+    /**
+     * Create a SetComputeUnitLimit instruction using BaseInstruction.
+     * This is necessary because sol4k doesn't have a built-in SetComputeUnitLimitInstruction.
+     */
+    private fun createSetComputeUnitLimitInstruction(units: Int): org.sol4k.instruction.Instruction {
+        // SetComputeUnitLimit instruction data format:
+        // - Discriminator: 2 (u8)
+        // - Units: [units as u32 little-endian]
+        val data = byteArrayOf(
+            2, // Instruction discriminator for SetComputeUnitLimit
+            (units and 0xFF).toByte(),
+            ((units shr 8) and 0xFF).toByte(),
+            ((units shr 16) and 0xFF).toByte(),
+            ((units shr 24) and 0xFF).toByte()
+        )
+
+        return BaseInstruction(
+            programId = PublicKey(COMPUTE_BUDGET_PROGRAM_ID),
+            keys = emptyList(), // No accounts needed for this instruction
+            data = data
+        )
+    }
+
+    /**
+     * Sign transaction using Mobile Wallet Adapter.
+     *
+     * MWA API Flow:
+     * 1. Call walletAdapter.transact() to establish session
+     * 2. Inside transact callback, call signTransactions()
+     * 3. Wallet app prompts user to approve
+     * 4. On approval, MWA returns signed transaction bytes
+     *
+     * IMPORTANT:
+     * - Use signTransactions() NOT signAndSendTransactions()
+     * - We only want signature, not broadcasting
+     * - x402 facilitator will broadcast the transaction
+     */
+    private suspend fun signTransactionViaMwa(
+        unsignedTransactionBytes: ByteArray,
+        activityResultSender: ActivityResultSender
+    ): String = withContext(Dispatchers.Main) {
+        Log.d(TAG, "Requesting MWA signature for ${unsignedTransactionBytes.size} byte transaction")
+
+        val adapter = SharedMobileWalletAdapter.getAdapter()
+
+        try {
+            // Start MWA session and request signature
+            // The transact call is a suspend function, so we can call it directly
+            val result = adapter.transact(activityResultSender) {
+                Log.d(TAG, "MWA session authorized, requesting signature")
+
+                // Call signTransactions directly - the transact lambda context supports this
+                signTransactions(arrayOf(unsignedTransactionBytes))
+            }
+
+            // Handle result from MWA
+            when (result) {
+                is TransactionResult.Success -> {
+                    Log.d(TAG, "MWA signTransactions succeeded")
+
+                    // Extract signed transaction bytes from the result
+                    // MWA returns signed payloads in the result payload
+                    val signedTxBytes = try {
+                        // Access the payload directly from the Success result
+                        result.payload?.signedPayloads?.firstOrNull()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error accessing signed payload: ${e.message}", e)
+                        null
+                    }
+
+                    if (signedTxBytes == null) {
+                        Log.e(TAG, "No signed transaction in MWA response")
+                        throw IOException("No signed transaction returned from wallet")
+                    }
+
+                    Log.d(TAG, "Got signed transaction (${signedTxBytes.size} bytes)")
+
+                    // Encode to base64 for x402 protocol
+                    Base64.encodeToString(signedTxBytes, Base64.NO_WRAP)
+                }
+
+                is TransactionResult.NoWalletFound -> {
+                    Log.e(TAG, "No MWA-compatible wallet found")
+                    throw IOException("No MWA-compatible wallet app found on device. Please install Phantom, Solflare, or another Solana wallet.")
+                }
+
+                is TransactionResult.Failure -> {
+                    Log.e(TAG, "MWA signing failed: ${result.e.message}", result.e)
+                    throw IOException("Wallet signing failed: ${result.e.message}", result.e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception during MWA transaction: ${e.message}", e)
+            throw IOException("MWA transaction failed: ${e.message}", e)
         }
     }
 }
