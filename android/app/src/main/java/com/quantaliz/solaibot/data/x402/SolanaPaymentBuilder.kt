@@ -26,9 +26,11 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.sol4k.Base58
 import org.sol4k.Connection
 import org.sol4k.PublicKey
 import org.sol4k.TransactionMessage
+import org.sol4k.VersionedTransaction
 import org.sol4k.instruction.TransferInstruction
 import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
 import org.sol4k.instruction.SplTransferInstruction
@@ -435,6 +437,7 @@ object SolanaPaymentBuilder {
             // Handle result from MWA
             when (result) {
                 is TransactionResult.Success -> {
+                    var signatureBase58: String = ""
                     Log.d(TAG, "Result type: TransactionResult.Success")
 
                     // Extract signature from signMessagesDetached response
@@ -480,66 +483,50 @@ object SolanaPaymentBuilder {
                             throw IOException("Invalid signature size: ${signature.size}, expected 64")
                         }
 
-                        // Log signature preview
-                        val sigPreview = signature.take(20).joinToString(" ") {
-                            String.format("0x%02X", it.toInt() and 0xFF)
-                        }
-                        Log.d(TAG, "User signature (first 20 bytes): $sigPreview")
+                        // Convert signature to Base58 for VersionedTransaction
+                        signatureBase58 = Base58.encode(signature)
+                        Log.d(TAG, "User signature (Base58): ${signatureBase58.take(20)}...")
 
+                        // Also keep the raw bytes for transaction creation
                         signature
                     } catch (e: Exception) {
                         Log.e(TAG, "Error extracting signature: ${e.message}", e)
                         throw IOException("Failed to extract signature: ${e.message}", e)
                     }
 
-                    // Now construct the partially-signed transaction
-                    // Format: [numSigs(1)][userSignature(64)][facilitatorSignatureZeros(64)][message]
-                    // The facilitator will fill in the second signature when they co-sign
-                    Log.d(TAG, "Constructing partially-signed transaction...")
+                    // Create a properly formatted Solana transaction using VersionedTransaction
+                    // This creates a valid transaction that the x402 facilitator can process
+                    Log.d(TAG, "Creating properly formatted Solana transaction...")
 
-                    val partiallySignedTx = ByteArray(1 + (64 * numSignatures) + messageBytes.size)
-                    var offset = 0
+                    // Convert message bytes to base64 string for VersionedTransaction
+                    val messageBase64 = Base64.encodeToString(messageBytes, Base64.NO_WRAP)
+                    val transaction = VersionedTransaction.from(messageBase64)
 
-                    // Byte 0: number of signatures
-                    partiallySignedTx[offset++] = numSignatures.toByte()
+                    // Add the user's signature (Base58 encoded)
+                    transaction.addSignature(signatureBase58)
 
-                    // First signature: user's signature (we just got this)
-                    System.arraycopy(userSignature, 0, partiallySignedTx, offset, 64)
-                    offset += 64
-
-                    // Second signature: zeros (facilitator will fill this in)
-                    // Already zero-initialized, so skip
-                    offset += 64
-
-                    // Message bytes
-                    System.arraycopy(messageBytes, 0, partiallySignedTx, offset, messageBytes.size)
-
-                    Log.d(TAG, "Partially-signed transaction: [numSigs(1)][userSig(64)][facilSig(64 zeros)][message(${messageBytes.size})] = ${partiallySignedTx.size} bytes")
+                    // Serialize to proper Solana wire format
+                    val signedTransactionBytes = transaction.serialize()
 
                     // Log first 80 bytes to verify structure
-                    val txPreview = partiallySignedTx.take(80).joinToString(" ") {
+                    val txPreview = signedTransactionBytes.take(80).joinToString(" ") {
                         String.format("0x%02X", it.toInt() and 0xFF)
                     }
-                    Log.d(TAG, "Partially-signed tx (first 80 bytes): $txPreview")
+                    Log.d(TAG, "Signed transaction (first 80 bytes): $txPreview")
+                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes")
 
-                    // Verify the message starts at the correct offset (129 = 1 + 64 + 64)
-                    val messageStart = 129
-                    val extractedMessageBytes = partiallySignedTx.copyOfRange(messageStart, partiallySignedTx.size)
-                    val messageMatch = extractedMessageBytes.contentEquals(messageBytes)
-                    Log.d(TAG, "Message verification: starts at byte $messageStart, matches original: $messageMatch")
-                    if (!messageMatch) {
-                        Log.e(TAG, "ERROR: Message in partially-signed tx does not match original message!")
-                        Log.e(TAG, "Expected message size: ${messageBytes.size}, extracted size: ${extractedMessageBytes.size}")
+                    // Verify this is a valid transaction by parsing it back
+                    try {
+                        val signedBase64 = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
+                        val parsedBack = VersionedTransaction.from(signedBase64)
+                        Log.d(TAG, "Transaction validation: Successfully parsed back as valid transaction")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Transaction validation failed: ${e.message}")
+                        throw IOException("Failed to create valid transaction: ${e.message}", e)
                     }
-
-                    // Log the message portion from the partially-signed tx
-                    val extractedMsgPreview = extractedMessageBytes.take(20).joinToString(" ") {
-                        String.format("0x%02X", it.toInt() and 0xFF)
-                    }
-                    Log.d(TAG, "Extracted message from tx (first 20 bytes): $extractedMsgPreview")
 
                     // Encode to base64 for x402 protocol
-                    val base64Result = Base64.encodeToString(partiallySignedTx, Base64.NO_WRAP)
+                    val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
                     Log.d(TAG, "Encoded to base64 (${base64Result.length} chars)")
                     Log.d(TAG, "=== MWA Signing Process Complete ===")
                     base64Result
