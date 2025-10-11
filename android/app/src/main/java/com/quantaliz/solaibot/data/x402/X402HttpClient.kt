@@ -58,7 +58,7 @@ class X402HttpClient(
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)  // Increased from 60s to 120s for x402 processing
         .build()
 
     private val facilitatorClient = X402FacilitatorClient(facilitatorUrl)
@@ -170,13 +170,14 @@ class X402HttpClient(
 
             // Step 4: Make request with payment
             val paymentHeader = paymentPayload.toHeader()
+            Log.d(TAG, "Payment header (first 100 chars):\n${paymentHeader}\n...")
             val paidRequest = Request.Builder()
                 .url(url)
                 .header("X-PAYMENT", paymentHeader)
                 .get()
                 .build()
 
-            Log.d(TAG, "Making paid request with X-PAYMENT header")
+            Log.d(TAG, "Making paid request with X-PAYMENT header (60s timeout)")
 
             httpClient.newCall(paidRequest).execute().use { paidResponse ->
                 // Step 5: Parse settlement response from header
@@ -189,7 +190,7 @@ class X402HttpClient(
                     }
                 }
 
-                Log.d(TAG, "Paid request response: code=${paidResponse.code}, settlement=$settlementResponse")
+                Log.d(TAG, "Paid request response: code=${paidResponse.code}, settlement=$settlementResponse, headers: ${paidResponse.headers}")
 
                 X402Response(
                     success = paidResponse.isSuccessful,
