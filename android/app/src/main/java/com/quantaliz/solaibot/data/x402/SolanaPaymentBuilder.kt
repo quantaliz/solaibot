@@ -32,21 +32,22 @@ import org.sol4k.TransactionMessage
 import org.sol4k.instruction.TransferInstruction
 import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
 import org.sol4k.instruction.SplTransferInstruction
-import org.sol4k.instruction.AccountMeta
+import org.sol4k.instruction.SetComputeUnitLimitInstruction
+import org.sol4k.instruction.SetComputeUnitPriceInstruction
+import org.sol4k.AccountMeta
 import java.io.IOException
 
 private const val TAG = "SolanaPaymentBuilder"
 
 /**
- * Helper data class for creating custom compute budget instructions.
- * Implements the sol4k Instruction interface.
+ * Helper function for creating compute unit limit instruction.
  */
-private data class ComputeBudgetInstruction(
-    override val programId: PublicKey,
-    override val data: ByteArray
-) : org.sol4k.instruction.Instruction {
-    override val keys: List<AccountMeta> = emptyList()
-}
+private fun createComputeUnitLimitInstruction(units: Long) = SetComputeUnitLimitInstruction(units)
+
+/**
+ * Helper function for creating compute unit price instruction.
+ */
+private fun createComputeUnitPriceInstruction(microLamports: Long) = SetComputeUnitPriceInstruction(microLamports)
 
 /**
  * Builds Solana payment transactions natively using sol4k library.
@@ -267,46 +268,17 @@ object SolanaPaymentBuilder {
     ): List<org.sol4k.instruction.Instruction> {
         val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
 
-        // Compute Budget Program address
-        val computeBudgetProgram = PublicKey("ComputeBudget111111111111111111111111111111")
-
         // 1. Add compute unit limit instruction
-        // Format: [discriminator(1)][units(4, little-endian u32)]
-        // discriminator = 2 for SetComputeUnitLimit
         // Use 200,000 units (standard for simple transfers)
-        val computeUnits = 200_000
-        val computeLimitData = ByteArray(5)
-        computeLimitData[0] = 2 // discriminator
-        computeLimitData[1] = (computeUnits and 0xFF).toByte()
-        computeLimitData[2] = ((computeUnits shr 8) and 0xFF).toByte()
-        computeLimitData[3] = ((computeUnits shr 16) and 0xFF).toByte()
-        computeLimitData[4] = ((computeUnits shr 24) and 0xFF).toByte()
+        val computeUnits: Long = 200_000
 
-        instructions.add(ComputeBudgetInstruction(
-            programId = computeBudgetProgram,
-            data = computeLimitData
-        ))
+        instructions.add(createComputeUnitLimitInstruction(computeUnits))
 
         // 2. Add compute unit price instruction
-        // Format: [discriminator(1)][microLamports(8, little-endian u64)]
-        // discriminator = 3 for SetComputeUnitPrice
         // Use 1 microlamport (minimum, meets facilitator's max of 5,000,000 microlamports)
         val computePrice = 1L // 1 microlamport
-        val computePriceData = ByteArray(9)
-        computePriceData[0] = 3 // discriminator
-        computePriceData[1] = (computePrice and 0xFF).toByte()
-        computePriceData[2] = ((computePrice shr 8) and 0xFF).toByte()
-        computePriceData[3] = ((computePrice shr 16) and 0xFF).toByte()
-        computePriceData[4] = ((computePrice shr 24) and 0xFF).toByte()
-        computePriceData[5] = ((computePrice shr 32) and 0xFF).toByte()
-        computePriceData[6] = ((computePrice shr 40) and 0xFF).toByte()
-        computePriceData[7] = ((computePrice shr 48) and 0xFF).toByte()
-        computePriceData[8] = ((computePrice shr 56) and 0xFF).toByte()
 
-        instructions.add(ComputeBudgetInstruction(
-            programId = computeBudgetProgram,
-            data = computePriceData
-        ))
+        instructions.add(createComputeUnitPriceInstruction(computePrice))
 
         // 3. Add transfer instruction
         instructions.add(TransferInstruction(
@@ -337,41 +309,16 @@ object SolanaPaymentBuilder {
     ): List<org.sol4k.instruction.Instruction> = withContext(Dispatchers.IO) {
         val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
 
-        // Compute Budget Program address
-        val computeBudgetProgram = PublicKey("ComputeBudget111111111111111111111111111111")
-
         // 1. Add compute unit limit instruction
         // Use 300,000 units for SPL token transfers (may include ATA creation)
-        val computeUnits = 300_000
-        val computeLimitData = ByteArray(5)
-        computeLimitData[0] = 2 // discriminator
-        computeLimitData[1] = (computeUnits and 0xFF).toByte()
-        computeLimitData[2] = ((computeUnits shr 8) and 0xFF).toByte()
-        computeLimitData[3] = ((computeUnits shr 16) and 0xFF).toByte()
-        computeLimitData[4] = ((computeUnits shr 24) and 0xFF).toByte()
+        val computeUnits: Long = 300_000
 
-        instructions.add(ComputeBudgetInstruction(
-            programId = computeBudgetProgram,
-            data = computeLimitData
-        ))
+        instructions.add(createComputeUnitLimitInstruction(computeUnits))
 
         // 2. Add compute unit price instruction
         val computePrice = 1L // 1 microlamport
-        val computePriceData = ByteArray(9)
-        computePriceData[0] = 3 // discriminator
-        computePriceData[1] = (computePrice and 0xFF).toByte()
-        computePriceData[2] = ((computePrice shr 8) and 0xFF).toByte()
-        computePriceData[3] = ((computePrice shr 16) and 0xFF).toByte()
-        computePriceData[4] = ((computePrice shr 24) and 0xFF).toByte()
-        computePriceData[5] = ((computePrice shr 32) and 0xFF).toByte()
-        computePriceData[6] = ((computePrice shr 40) and 0xFF).toByte()
-        computePriceData[7] = ((computePrice shr 48) and 0xFF).toByte()
-        computePriceData[8] = ((computePrice shr 56) and 0xFF).toByte()
 
-        instructions.add(ComputeBudgetInstruction(
-            programId = computeBudgetProgram,
-            data = computePriceData
-        ))
+        instructions.add(createComputeUnitPriceInstruction(computePrice))
 
         // Derive Associated Token Accounts (ATAs) using sol4k's PDA function
         Log.d(TAG, "Deriving source ATA...")

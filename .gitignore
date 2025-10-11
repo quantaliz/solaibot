@@ -47,3 +47,5 @@ google-services.json
 local.properties
 *claude*
 *litertlm
+
+*pnpm-store
