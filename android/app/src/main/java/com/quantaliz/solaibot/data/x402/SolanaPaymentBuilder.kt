@@ -498,32 +498,29 @@ object SolanaPaymentBuilder {
                     // This creates a transaction that the x402 facilitator can complete
                     Log.d(TAG, "Creating properly formatted Solana transaction...")
 
-                    // For x402, we need a partially signed transaction with just the user's signature
+                    // For x402 SVM, we need a versioned transaction with just the user's signature
                     // The facilitator will add the feePayer signature later
                     val transactionMessage = TransactionMessage.deserialize(messageBytes)
 
-                    // Check if we have a versioned transaction and convert to legacy if needed
+                    // Keep the message in its original format (versioned for SVM)
                     val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
-                    val legacyMessageBytes = if (isVersioned) {
-                        // Convert versioned to legacy format by removing the version byte
-                        Log.d(TAG, "Converting versioned transaction to legacy format")
-                        messageBytes.copyOfRange(1, messageBytes.size)
-                    } else {
-                        messageBytes
+                    if (isVersioned) {
+                        Log.d(TAG, "Using versioned transaction format for SVM (as required by x402 spec)")
                     }
 
                     // Calculate how many signatures we actually have (just the user signature)
                     val numSignatures = 1 // Only user signature from MWA
 
-                    // Construct transaction manually: [numSignatures][userSignature][message]
-                    // Use the same format as the unsigned transaction for consistency
+                    // Construct transaction: [numSignatures][userSignature][message]
+                    // Use the original message format (versioned) for SVM compliance
                     val signatureBytes = Base58.decode(signatureBase58)
+                    Log.d(TAG, "Decoded signature: ${signatureBytes.size} bytes")
 
-                    // Build signed transaction in the same format MWA expects (simple byte for signature count)
-                    val signedTransactionBytes = ByteArray(1 + signatureBytes.size + legacyMessageBytes.size)
+                    // Build signed transaction: [numSignatures][userSignature][versioned_message]
+                    val signedTransactionBytes = ByteArray(1 + signatureBytes.size + messageBytes.size)
                     var offset = 0
 
-                    // Add signature count (same format as unsigned transaction)
+                    // Add signature count
                     signedTransactionBytes[0] = numSignatures.toByte()
                     offset += 1
 
@@ -531,15 +528,15 @@ object SolanaPaymentBuilder {
                     System.arraycopy(signatureBytes, 0, signedTransactionBytes, offset, signatureBytes.size)
                     offset += signatureBytes.size
 
-                    // Add the message (legacy format)
-                    System.arraycopy(legacyMessageBytes, 0, signedTransactionBytes, offset, legacyMessageBytes.size)
+                    // Add the original message (keep versioned format for SVM)
+                    System.arraycopy(messageBytes, 0, signedTransactionBytes, offset, messageBytes.size)
 
                     // Log first 80 bytes to verify structure
                     val txPreview = signedTransactionBytes.take(80).joinToString(" ") {
                         String.format("0x%02X", it.toInt() and 0xFF)
                     }
                     Log.d(TAG, "Signed transaction (first 80 bytes): $txPreview")
-                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes")
+                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes (versioned format for SVM)")
 
                     // Encode to base64 for x402 protocol
                     val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
