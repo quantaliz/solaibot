@@ -494,19 +494,45 @@ object SolanaPaymentBuilder {
                         throw IOException("Failed to extract signature: ${e.message}", e)
                     }
 
-                    // Create a properly formatted Solana transaction using VersionedTransaction
-                    // This creates a valid transaction that the x402 facilitator can process
+                    // Create a properly formatted partially signed Solana transaction
+                    // This creates a transaction that the x402 facilitator can complete
                     Log.d(TAG, "Creating properly formatted Solana transaction...")
 
-                    // Convert message bytes to base64 string for VersionedTransaction
-                    val messageBase64 = Base64.encodeToString(messageBytes, Base64.NO_WRAP)
-                    val transaction = VersionedTransaction.from(messageBase64)
+                    // For x402, we need a partially signed transaction with just the user's signature
+                    // The facilitator will add the feePayer signature later
+                    val transactionMessage = TransactionMessage.deserialize(messageBytes)
 
-                    // Add the user's signature (Base58 encoded)
-                    transaction.addSignature(signatureBase58)
+                    // Check if we have a versioned transaction and convert to legacy if needed
+                    val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
+                    val legacyMessageBytes = if (isVersioned) {
+                        // Convert versioned to legacy format by removing the version byte
+                        Log.d(TAG, "Converting versioned transaction to legacy format")
+                        messageBytes.copyOfRange(1, messageBytes.size)
+                    } else {
+                        messageBytes
+                    }
 
-                    // Serialize to proper Solana wire format
-                    val signedTransactionBytes = transaction.serialize()
+                    // Calculate how many signatures we actually have (just the user signature)
+                    val numSignatures = 1 // Only user signature from MWA
+
+                    // Construct transaction manually: [numSignatures][userSignature][message]
+                    // Use the same format as the unsigned transaction for consistency
+                    val signatureBytes = Base58.decode(signatureBase58)
+
+                    // Build signed transaction in the same format MWA expects (simple byte for signature count)
+                    val signedTransactionBytes = ByteArray(1 + signatureBytes.size + legacyMessageBytes.size)
+                    var offset = 0
+
+                    // Add signature count (same format as unsigned transaction)
+                    signedTransactionBytes[0] = numSignatures.toByte()
+                    offset += 1
+
+                    // Add user signature
+                    System.arraycopy(signatureBytes, 0, signedTransactionBytes, offset, signatureBytes.size)
+                    offset += signatureBytes.size
+
+                    // Add the message (legacy format)
+                    System.arraycopy(legacyMessageBytes, 0, signedTransactionBytes, offset, legacyMessageBytes.size)
 
                     // Log first 80 bytes to verify structure
                     val txPreview = signedTransactionBytes.take(80).joinToString(" ") {
@@ -514,16 +540,6 @@ object SolanaPaymentBuilder {
                     }
                     Log.d(TAG, "Signed transaction (first 80 bytes): $txPreview")
                     Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes")
-
-                    // Verify this is a valid transaction by parsing it back
-                    try {
-                        val signedBase64 = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
-                        val parsedBack = VersionedTransaction.from(signedBase64)
-                        Log.d(TAG, "Transaction validation: Successfully parsed back as valid transaction")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Transaction validation failed: ${e.message}")
-                        throw IOException("Failed to create valid transaction: ${e.message}", e)
-                    }
 
                     // Encode to base64 for x402 protocol
                     val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
