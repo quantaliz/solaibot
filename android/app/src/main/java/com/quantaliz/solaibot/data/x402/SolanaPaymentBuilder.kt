@@ -508,27 +508,38 @@ object SolanaPaymentBuilder {
                         Log.d(TAG, "Using versioned transaction format for SVM (as required by x402 spec)")
                     }
 
-                    // Calculate how many signatures we actually have (just the user signature)
-                    val numSignatures = 1 // Only user signature from MWA
+                    // For x402 transactions, we know the structure:
+                    // - 2 signatures required: user and feePayer
+                    // - Based on how we build the transaction, feePayer is first, user is second
+                    // - This is consistent with Solana's requirement that feePayer is first
+                    val numRequiredSignatures = 2
+                    val signatureSize = 64
+                    val totalSignatureBytes = numRequiredSignatures * signatureSize
 
-                    // Construct transaction: [numSignatures][userSignature][message]
-                    // Use the original message format (versioned) for SVM compliance
-                    val signatureBytes = Base58.decode(signatureBase58)
-                    Log.d(TAG, "Decoded signature: ${signatureBytes.size} bytes")
-
-                    // Build signed transaction: [numSignatures][userSignature][versioned_message]
-                    val signedTransactionBytes = ByteArray(1 + signatureBytes.size + messageBytes.size)
+                    // Create the transaction with all signature slots
+                    val signedTransactionBytes = ByteArray(1 + totalSignatureBytes + messageBytes.size)
                     var offset = 0
 
-                    // Add signature count
-                    signedTransactionBytes[0] = numSignatures.toByte()
+                    // Add number of signatures
+                    signedTransactionBytes[0] = numRequiredSignatures.toByte()
                     offset += 1
 
-                    // Add user signature
-                    System.arraycopy(signatureBytes, 0, signedTransactionBytes, offset, signatureBytes.size)
-                    offset += signatureBytes.size
+                    // Add signatures in the correct order:
+                    // Slot 0: feePayer (leave empty for facilitator to fill)
+                    // Slot 1: user (add the signature we got from MWA)
+                    for (j in 0 until signatureSize) {
+                        signedTransactionBytes[offset + j] = 0x00
+                    }
+                    offset += signatureSize
 
-                    // Add the original message (keep versioned format for SVM)
+                    // Add user signature in slot 1
+                    val userSignatureBytes = Base58.decode(signatureBase58)
+                    System.arraycopy(userSignatureBytes, 0, signedTransactionBytes, offset, signatureSize)
+                    Log.d(TAG, "Added user signature in slot 1 (slot 0 is feePayer)")
+
+                    offset += signatureSize
+
+                    // Add the message (versioned format)
                     System.arraycopy(messageBytes, 0, signedTransactionBytes, offset, messageBytes.size)
 
                     // Log first 80 bytes to verify structure
@@ -536,7 +547,7 @@ object SolanaPaymentBuilder {
                         String.format("0x%02X", it.toInt() and 0xFF)
                     }
                     Log.d(TAG, "Signed transaction (first 80 bytes): $txPreview")
-                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes (versioned format for SVM)")
+                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes (standard Solana format)")
 
                     // Encode to base64 for x402 protocol
                     val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
