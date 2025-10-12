@@ -34,20 +34,12 @@ import org.sol4k.VersionedTransaction
 import org.sol4k.instruction.TransferInstruction
 import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
 import org.sol4k.instruction.SplTransferInstruction
+import org.sol4k.instruction.Token2022TransferInstruction
 import org.sol4k.instruction.SetComputeUnitLimitInstruction
 import org.sol4k.instruction.SetComputeUnitPriceInstruction
-import org.sol4k.instruction.BaseInstruction
-import org.sol4k.AccountMeta
 import java.io.IOException
 
 private const val TAG = "SolanaPaymentBuilder"
-
-// Solana program addresses
-private const val TOKEN_PROGRAM_ADDRESS = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-private const val TOKEN_2022_PROGRAM_ADDRESS = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-
-// TransferChecked instruction discriminator
-private const val TRANSFER_CHECKED_DISCRIMINATOR = 3
 
 /**
  * Helper function for creating compute unit limit instruction.
@@ -55,18 +47,8 @@ private const val TRANSFER_CHECKED_DISCRIMINATOR = 3
 private fun createComputeUnitLimitInstruction(units: Long) = SetComputeUnitLimitInstruction(units)
 
 /**
- * Create TransferChecked instruction data: [discriminator(1), amount(8), decimals(1)]
+ * Helper function for creating compute unit price instruction.
  */
-private fun createTransferCheckedData(amount: Long, decimals: Int): ByteArray {
-    val data = ByteArray(10) // 1 byte discriminator + 8 bytes amount + 1 byte decimals
-    data[0] = TRANSFER_CHECKED_DISCRIMINATOR.toByte()
-    // Write amount as big-endian 64-bit integer (8 bytes) - Solana uses big-endian
-    for (i in 0 until 8) {
-        data[1 + i] = (amount ushr ((7 - i) * 8)).toByte()
-    }
-    data[9] = decimals.toByte()
-    return data
-}
 private fun createComputeUnitPriceInstruction(microLamports: Long) = SetComputeUnitPriceInstruction(microLamports)
 
 /**
@@ -397,38 +379,29 @@ object SolanaPaymentBuilder {
         // 4. Add SPL token transfer instruction
         Log.d(TAG, "Adding TransferChecked instruction for token program")
         // For devnet USDC, we need to determine if it's Token or Token2022
-        val tokenProgram = if (requirement.asset == "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU") {
+        if (requirement.asset == "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU") {
             // devnet USDC uses Token2022 program
-            Log.d(TAG, "Using Token2022 program for devnet USDC")
-            PublicKey(TOKEN_2022_PROGRAM_ADDRESS)
+            Log.d(TAG, "Using Token2022TransferInstruction for devnet USDC")
+            instructions.add(Token2022TransferInstruction(
+                from = sourceAta,
+                to = destAta,
+                mint = tokenMint,
+                owner = userPubKey,
+                amount = amount,
+                decimals = 6
+            ))
         } else {
             // Default to Token program
-            Log.d(TAG, "Using Token program")
-            PublicKey(TOKEN_PROGRAM_ADDRESS)
+            Log.d(TAG, "Using SplTransferInstruction")
+            instructions.add(SplTransferInstruction(
+                from = sourceAta,
+                to = destAta,
+                mint = tokenMint,
+                owner = userPubKey,
+                amount = amount,
+                decimals = 6
+            ))
         }
-
-        Log.d(TAG, "Token program address: $tokenProgram")
-
-        // Create TransferChecked instruction data: [discriminator(1), amount(8), decimals(1)]
-        val transferCheckedData = createTransferCheckedData(amount, 6) // Using 6 decimals for USDC
-
-        // Log the instruction data for debugging
-        val dataHex = transferCheckedData.joinToString("") {
-            String.format("%02X", it.toInt() and 0xFF)
-        }
-        Log.d(TAG, "TransferChecked instruction data: $dataHex")
-        Log.d(TAG, "Amount: $amount, Decimals: 6")
-
-        instructions.add(BaseInstruction(
-            programId = tokenProgram,
-            keys = listOf(
-                AccountMeta.signerAndWritable(sourceAta),  // source ATA (signer and writable)
-                AccountMeta.writable(destAta),          // destination ATA (writable only)
-                AccountMeta(tokenMint),               // mint (readonly)
-                AccountMeta(publicKey = userPubKey, signer = true, writable = false) // owner (signer, readonly)
-            ),
-            data = transferCheckedData
-        ))
 
         instructions
     }
