@@ -95,6 +95,7 @@ If you need documentation/code samples of the MWA/x402/sol4k dependencies, there
 Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests
 
 It is still not working. Error messages are in @log.txt
+It is getting a 502 error
 
 docs/Coinbasex402/examples/typescript/clients/fetch/index.ts
 

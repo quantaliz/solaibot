@@ -33,6 +33,7 @@ import org.sol4k.TransactionMessage
 import org.sol4k.VersionedTransaction
 import org.sol4k.instruction.TransferInstruction
 import org.sol4k.instruction.CreateAssociatedTokenAccountInstruction
+import org.sol4k.instruction.CreateAssociatedToken2022AccountInstruction
 import org.sol4k.instruction.SplTransferInstruction
 import org.sol4k.instruction.Token2022TransferInstruction
 import org.sol4k.instruction.SetComputeUnitLimitInstruction
@@ -263,9 +264,6 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "Transaction requires $numSignatures signatures (raw value from message)")
         Log.d(TAG, "Message size: ${messageBytes.size} bytes")
 
-        // Build unsigned transaction in format MWA expects:
-        // Just prepend the signature count (as compact-u16) before the message
-        // MWA will know to leave signature slots empty
         val unsignedTxBytes = ByteArray(1 + messageBytes.size)
         unsignedTxBytes[0] = numSignatures.toByte()  // Use actual signature count from message
         System.arraycopy(messageBytes, 0, unsignedTxBytes, 1, messageBytes.size)
@@ -277,7 +275,7 @@ object SolanaPaymentBuilder {
 
     /**
      * Build instructions for a native SOL transfer.
-     *
+     * 
      * x402 facilitator REQUIRES exactly 3 instructions for SOL transfer:
      * 1. Compute limit instruction (required by facilitator)
      * 2. Compute price instruction (required by facilitator, max 5 lamports)
@@ -316,7 +314,7 @@ object SolanaPaymentBuilder {
 
     /**
      * Build instructions for an SPL token transfer.
-     *
+     * 
      * x402 facilitator REQUIRES exactly 3 or 4 instructions for SPL token transfer:
      * 1. Compute limit instruction (required by facilitator)
      * 2. Compute price instruction (required by facilitator, max 5 lamports)
@@ -345,63 +343,100 @@ object SolanaPaymentBuilder {
 
         instructions.add(createComputeUnitPriceInstruction(computePrice))
 
-        // Derive Associated Token Accounts (ATAs) using sol4k's PDA function
+        // Determine token program (Token vs Token-2022) by inspecting mint owner
+        val mintAccountInfo = connection.getAccountInfo(tokenMint)
+            ?: throw IllegalStateException("Mint account not found for ${tokenMint}")
+        val isToken2022 = (mintAccountInfo.owner.toBase58() == org.sol4k.Constants.TOKEN_2022_PROGRAM_ID.toBase58())
+        Log.d(TAG, "Mint owner program: ${mintAccountInfo.owner}. isToken2022=$isToken2022")
+
+        // Derive Associated Token Accounts (ATAs) using correct token program id
         Log.d(TAG, "Deriving source ATA...")
-        val (sourceAta) = PublicKey.findProgramDerivedAddress(userPubKey, tokenMint)
+        val (sourceAta) = if (isToken2022) {
+            PublicKey.findProgramDerivedAddress(userPubKey, tokenMint, org.sol4k.Constants.TOKEN_2022_PROGRAM_ID)
+        } else {
+            PublicKey.findProgramDerivedAddress(userPubKey, tokenMint, org.sol4k.Constants.TOKEN_PROGRAM_ID)
+        }
         Log.d(TAG, "Source ATA: $sourceAta")
 
         Log.d(TAG, "Deriving destination ATA...")
-        val (destAta) = PublicKey.findProgramDerivedAddress(recipient, tokenMint)
+        val (destAta) = if (isToken2022) {
+            PublicKey.findProgramDerivedAddress(recipient, tokenMint, org.sol4k.Constants.TOKEN_2022_PROGRAM_ID)
+        } else {
+            PublicKey.findProgramDerivedAddress(recipient, tokenMint, org.sol4k.Constants.TOKEN_PROGRAM_ID)
+        }
         Log.d(TAG, "Destination ATA: $destAta")
 
         // Check if destination ATA exists
         Log.d(TAG, "Checking if destination ATA exists...")
         val destAtaExists = try {
-            connection.getAccountInfo(destAta)
-            Log.d(TAG, "Destination ATA exists")
-            true
+            val info = connection.getAccountInfo(destAta)
+            val exists = info != null
+            Log.d(TAG, if (exists) "Destination ATA exists" else "Destination ATA does not exist")
+            exists
         } catch (e: Exception) {
-            Log.d(TAG, "Destination ATA does not exist, will create")
+            Log.d(TAG, "Error checking ATA existence, assuming does not exist: ${e.message}")
             false
         }
 
         // 3. Add ATA creation instruction if needed
         if (!destAtaExists) {
-            Log.d(TAG, "Adding CreateAssociatedTokenAccount instruction")
-            instructions.add(CreateAssociatedTokenAccountInstruction(
-                payer = feePayer,
-                associatedToken = destAta,
-                owner = recipient,
-                mint = tokenMint
-            ))
+            if (isToken2022) {
+                Log.d(TAG, "Adding CreateAssociatedToken2022Account instruction")
+                instructions.add(
+                    CreateAssociatedToken2022AccountInstruction(
+                        payer = feePayer,
+                        associatedToken = destAta,
+                        owner = recipient,
+                        mint = tokenMint
+                    )
+                )
+            } else {
+                Log.d(TAG, "Adding CreateAssociatedTokenAccount instruction")
+                instructions.add(
+                    CreateAssociatedTokenAccountInstruction(
+                        payer = feePayer,
+                        associatedToken = destAta,
+                        owner = recipient,
+                        mint = tokenMint
+                    )
+                )
+            }
         }
 
         // 4. Add SPL token transfer instruction
-        Log.d(TAG, "Adding TransferChecked instruction for token program")
-        // For devnet USDC, we need to determine if it's Token or Token2022
-        if (requirement.asset == "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU") {
-            // devnet USDC uses Token2022 program
-            Log.d(TAG, "Using Token2022TransferInstruction for devnet USDC")
-            instructions.add(Token2022TransferInstruction(
-                from = sourceAta,
-                to = destAta,
-                mint = tokenMint,
-                owner = userPubKey,
-                amount = amount,
-                decimals = 6
-            ))
-        } else {
-            // Default to Token program
-            Log.d(TAG, "Using SplTransferInstruction")
-            instructions.add(SplTransferInstruction(
-                from = sourceAta,
-                to = destAta,
-                mint = tokenMint,
-                owner = userPubKey,
-                amount = amount,
-                decimals = 6
-            ))
+        // Get decimals from the mint account data directly to avoid RPC parsing issues
+        val mintDecimals = try {
+            val mintInfo = connection.getAccountInfo(tokenMint)
+                ?: throw IllegalStateException("Could not fetch mint account info for ${tokenMint.toBase58()}")
+            // For a SPL token mint, the decimals value is the first byte of the account data.
+            mintInfo.data[0].toInt()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch mint decimals from account info, defaulting to 6: ${e.message}")
+            6
         }
+        Log.d(TAG, "Mint decimals: $mintDecimals")
+
+        Log.d(TAG, "Adding TransferChecked instruction for token program")
+        val transferInstruction = object : org.sol4k.instruction.Instruction {
+            override val data: ByteArray
+                get() {
+                    val buffer = ByteArrayOutputStream()
+                    buffer.write(12) // TransferChecked instruction index
+                    buffer.write(org.sol4k.Binary.int64(amount))
+                    buffer.write(mintDecimals)
+                    return buffer.toByteArray()
+                }
+
+            override val keys: List<org.sol4k.AccountMeta> = listOf(
+                org.sol4k.AccountMeta.writable(sourceAta),
+                org.sol4k.AccountMeta(tokenMint, isSigner = false, isWritable = false),
+                org.sol4k.AccountMeta.writable(destAta),
+                org.sol4k.AccountMeta.signer(userPubKey, isWritable = false),
+            )
+
+            override val programId: PublicKey = org.sol4k.Constants.TOKEN_PROGRAM_ID
+        }
+        instructions.add(transferInstruction)
 
         instructions
     }
@@ -409,7 +444,7 @@ object SolanaPaymentBuilder {
 
     /**
      * Sign transaction using Mobile Wallet Adapter.
-     *
+     * 
      * NEW APPROACH - Using signMessagesDetached():
      * Problem: signTransactions() is deprecated and wallets modify the transaction
      * (adding compute budget instructions), which x402 facilitator rejects.
@@ -424,18 +459,20 @@ object SolanaPaymentBuilder {
      * 4. Manually construct signed transaction: [numSigs][signatures][message]
      */
     private suspend fun signTransactionViaMwa(
-        unsignedTransactionBytes: ByteArray,
+        messageBytes: ByteArray,
         activityResultSender: ActivityResultSender
     ): String = withContext(Dispatchers.Main) {
         Log.d(TAG, "=== Starting MWA Signing Process ===")
-        Log.d(TAG, "Input unsigned transaction size: ${unsignedTransactionBytes.size} bytes")
+        Log.d(TAG, "Input message size: ${messageBytes.size} bytes")
 
-        // The unsignedTransactionBytes we receive is: [numSigs(1)][message]
-        val numSignatures = unsignedTransactionBytes[0].toInt() and 0xFF
-        val messageBytes = unsignedTransactionBytes.copyOfRange(1, unsignedTransactionBytes.size)
+        val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
+        val numSignatures = if (isVersioned) {
+            messageBytes[1].toInt() and 0xFF
+        } else {
+            messageBytes[0].toInt() and 0xFF
+        }
 
         Log.d(TAG, "Transaction requires $numSignatures signatures")
-        Log.d(TAG, "Message size: ${messageBytes.size} bytes")
 
         // Get user's public key from wallet connection state
         val connectionState = WalletConnectionManager.getConnectionState()
@@ -532,13 +569,10 @@ object SolanaPaymentBuilder {
                     Log.d(TAG, "Creating properly formatted Solana transaction...")
 
                     // For x402 SVM, we create a transaction with the user's signature in the correct position
-                    val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
                     if (isVersioned) {
                         Log.d(TAG, "Using versioned transaction format for SVM (as required by x402 spec)")
                     }
 
-                    // Create transaction with actual signature count from unsigned transaction
-                    val numSignatures = unsignedTransactionBytes[0].toInt() and 0xFF
                     val signatureSize = 64
                     val totalSignatureBytes = numSignatures * signatureSize
 
@@ -620,3 +654,4 @@ object SolanaPaymentBuilder {
         }
     }
 }
+

@@ -177,7 +177,7 @@ class X402HttpClient(
                 .get()
                 .build()
 
-            Log.d(TAG, "Making paid request with X-PAYMENT header (60s timeout)")
+            Log.d(TAG, "Making paid request with X-PAYMENT header (120s timeout)")
 
             httpClient.newCall(paidRequest).execute().use { paidResponse ->
                 // Step 5: Parse settlement response from header
