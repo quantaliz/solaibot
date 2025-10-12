@@ -49,3 +49,4 @@ local.properties
 *litertlm
 
 *pnpm-store
+*.env
