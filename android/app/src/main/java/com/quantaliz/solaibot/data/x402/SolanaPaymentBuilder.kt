@@ -38,14 +38,32 @@ import org.sol4k.instruction.SplTransferInstruction
 import org.sol4k.instruction.Token2022TransferInstruction
 import org.sol4k.instruction.SetComputeUnitLimitInstruction
 import org.sol4k.instruction.SetComputeUnitPriceInstruction
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 private const val TAG = "SolanaPaymentBuilder"
 
 /**
  * Helper function for creating compute unit limit instruction.
+ *
+ * IMPORTANT: The instruction data format is:
+ * [discriminator (1 byte)][units as u32 (4 bytes)]
+ * Not u64! sol4k incorrectly uses 8 bytes, we need to create it manually.
  */
-private fun createComputeUnitLimitInstruction(units: Long) = SetComputeUnitLimitInstruction(units)
+private fun createComputeUnitLimitInstruction(units: Long): org.sol4k.instruction.Instruction {
+    return object : org.sol4k.instruction.Instruction {
+        override val data: ByteArray = ByteArray(5).apply {
+            this[0] = 2  // SetComputeUnitLimit discriminator
+            // Encode units as little-endian u32 (4 bytes)
+            this[1] = (units and 0xFF).toByte()
+            this[2] = ((units shr 8) and 0xFF).toByte()
+            this[3] = ((units shr 16) and 0xFF).toByte()
+            this[4] = ((units shr 24) and 0xFF).toByte()
+        }
+        override val keys: List<org.sol4k.AccountMeta> = emptyList()
+        override val programId: org.sol4k.PublicKey = org.sol4k.Constants.COMPUTE_BUDGET_PROGRAM_ID
+    }
+}
 
 /**
  * Helper function for creating compute unit price instruction.
@@ -125,7 +143,7 @@ object SolanaPaymentBuilder {
         // 2. Sign transaction via MWA
         // MWA expects the full transaction wire format and will fill in the signatures
         val signedTxBase64 = signTransactionViaMwa(
-            unsignedTransactionBytes = unsignedTxBytes,
+            messageBytes = unsignedTxBytes,
             activityResultSender = activityResultSender
         )
 
@@ -204,10 +222,10 @@ object SolanaPaymentBuilder {
             TransactionMessage.newMessage(feePayer, recentBlockhash, instructions)
         }
 
-        // 7. Serialize transaction in Solana wire format for MWA
-        // MWA expects: [num_signatures (compact-u16)][message_bytes]
-        // The compact-u16 encoding for small numbers (< 128) is just the number itself
-        Log.d(TAG, "Serializing transaction for MWA...")
+        // 7. Serialize transaction message for MWA signing
+        // MWA's signMessagesDetached() expects just the raw message bytes
+        // We'll manually construct the transaction after getting the signature
+        Log.d(TAG, "Serializing transaction message for MWA...")
 
         val messageBytes = message.serialize()
 
@@ -260,22 +278,17 @@ object SolanaPaymentBuilder {
             String.format("0x%02X", it.toInt() and 0xFF)
         }
         Log.d(TAG, "Full message bytes: $fullMessageHex")
-        Log.d(TAG, "Message format: ${if (isVersioned) "V0 (versioned)" else "Legacy"}")
-        Log.d(TAG, "Transaction requires $numSignatures signatures (raw value from message)")
+        Log.d(TAG, "Transaction requires $numSignatures signatures")
         Log.d(TAG, "Message size: ${messageBytes.size} bytes")
 
-        val unsignedTxBytes = ByteArray(1 + messageBytes.size)
-        unsignedTxBytes[0] = numSignatures.toByte()  // Use actual signature count from message
-        System.arraycopy(messageBytes, 0, unsignedTxBytes, 1, messageBytes.size)
-
-        Log.d(TAG, "Unsigned transaction format: [numSigs($numSignatures)][message(${messageBytes.size})] = ${unsignedTxBytes.size} bytes total")
-
-        unsignedTxBytes
+        // Return just the message bytes for MWA signing
+        // MWA will sign this message, and we'll construct the full transaction afterward
+        messageBytes
     }
 
     /**
      * Build instructions for a native SOL transfer.
-     * 
+     *
      * x402 facilitator REQUIRES exactly 3 instructions for SOL transfer:
      * 1. Compute limit instruction (required by facilitator)
      * 2. Compute price instruction (required by facilitator, max 5 lamports)
@@ -314,7 +327,7 @@ object SolanaPaymentBuilder {
 
     /**
      * Build instructions for an SPL token transfer.
-     * 
+     *
      * x402 facilitator REQUIRES exactly 3 or 4 instructions for SPL token transfer:
      * 1. Compute limit instruction (required by facilitator)
      * 2. Compute price instruction (required by facilitator, max 5 lamports)
@@ -333,8 +346,12 @@ object SolanaPaymentBuilder {
         val instructions = mutableListOf<org.sol4k.instruction.Instruction>()
 
         // 1. Add compute unit limit instruction
-        // Use 300,000 units for SPL token transfers (may include ATA creation)
-        val computeUnits: Long = 300_000
+        // Use a realistic estimate for SPL token transfer with ATA creation
+        // Typical values: ~6,000-10,000 units for transfer, ~20,000 if creating ATA
+        // The x402 facilitator simulates the transaction and will reject unrealistic values
+        // TypeScript example uses ~6,500 units estimated via simulation
+        // IMPORTANT: Must match TypeScript exactly to avoid facilitator timeout issues
+        val computeUnits: Long = 6_500
 
         instructions.add(createComputeUnitLimitInstruction(computeUnits))
 
@@ -357,6 +374,32 @@ object SolanaPaymentBuilder {
             PublicKey.findProgramDerivedAddress(userPubKey, tokenMint, org.sol4k.Constants.TOKEN_PROGRAM_ID)
         }
         Log.d(TAG, "Source ATA: $sourceAta")
+
+        // Verify source ATA exists and has sufficient balance
+        Log.d(TAG, "Checking if source ATA exists and has balance...")
+        try {
+            val sourceInfo = connection.getAccountInfo(sourceAta)
+            if (sourceInfo == null) {
+                throw IllegalStateException("Source ATA does not exist. User may not have this token.")
+            }
+            // For token accounts, the balance is at bytes 64-71 (u64 little-endian)
+            if (sourceInfo.data.size >= 72) {
+                var balance = 0L
+                for (i in 0 until 8) {
+                    balance = balance or ((sourceInfo.data[64 + i].toLong() and 0xFF) shl (i * 8))
+                }
+                Log.d(TAG, "Source ATA balance: $balance raw units")
+                if (balance < amount) {
+                    throw IllegalStateException("Insufficient balance: have $balance, need $amount")
+                }
+            } else {
+                Log.w(TAG, "Could not parse source ATA balance from account data")
+            }
+        } catch (e: IllegalStateException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Error checking source ATA: ${e.message}", e)
+        }
 
         Log.d(TAG, "Deriving destination ATA...")
         val (destAta) = if (isToken2022) {
@@ -408,8 +451,17 @@ object SolanaPaymentBuilder {
         val mintDecimals = try {
             val mintInfo = connection.getAccountInfo(tokenMint)
                 ?: throw IllegalStateException("Could not fetch mint account info for ${tokenMint.toBase58()}")
-            // For a SPL token mint, the decimals value is the first byte of the account data.
-            mintInfo.data[0].toInt()
+            // SPL Token Mint account structure:
+            // - Bytes 0-35: mint authority (optional pubkey)
+            // - Bytes 36-43: supply (u64)
+            // - Byte 44: decimals (u8) ← HERE
+            // - Bytes 45+: other fields
+            if (mintInfo.data.size < 45) {
+                Log.w(TAG, "Mint account data too small (${mintInfo.data.size} bytes), defaulting to 6 decimals")
+                6
+            } else {
+                mintInfo.data[44].toInt() and 0xFF
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch mint decimals from account info, defaulting to 6: ${e.message}")
             6
@@ -429,9 +481,9 @@ object SolanaPaymentBuilder {
 
             override val keys: List<org.sol4k.AccountMeta> = listOf(
                 org.sol4k.AccountMeta.writable(sourceAta),
-                org.sol4k.AccountMeta(tokenMint, isSigner = false, isWritable = false),
+                org.sol4k.AccountMeta(tokenMint, signer = false, writable = false),
                 org.sol4k.AccountMeta.writable(destAta),
-                org.sol4k.AccountMeta.signer(userPubKey, isWritable = false),
+                org.sol4k.AccountMeta.signer(userPubKey),
             )
 
             override val programId: PublicKey = org.sol4k.Constants.TOKEN_PROGRAM_ID
@@ -568,7 +620,9 @@ object SolanaPaymentBuilder {
                     // This creates a transaction that the x402 facilitator can complete
                     Log.d(TAG, "Creating properly formatted Solana transaction...")
 
-                    // For x402 SVM, we create a transaction with the user's signature in the correct position
+                    // For x402 SVM, we create a transaction with:
+                    // - Slot 0 = feePayer (facilitator) - EMPTY signature
+                    // - Slot 1 = user - FILLED signature
                     if (isVersioned) {
                         Log.d(TAG, "Using versioned transaction format for SVM (as required by x402 spec)")
                     }
@@ -576,7 +630,7 @@ object SolanaPaymentBuilder {
                     val signatureSize = 64
                     val totalSignatureBytes = numSignatures * signatureSize
 
-                    // Create the transaction
+                    // Create the transaction: [numSigs][signatures][message]
                     val signedTransactionBytes = ByteArray(1 + totalSignatureBytes + messageBytes.size)
                     var offset = 0
 
@@ -584,7 +638,9 @@ object SolanaPaymentBuilder {
                     signedTransactionBytes[0] = numSignatures.toByte()
                     offset += 1
 
-                    // Add signatures: slot 0 = feePayer (empty), remaining slots = user and others
+                    // Add signatures:
+                    // Slot 0 = feePayer (facilitator) - EMPTY (facilitator will add their signature)
+                    // Slot 1 = user - FILLED (user's signature)
                     // Based on account order in message: [feePayer, user, recipient, ...]
                     for (i in 0 until numSignatures) {
                         if (i == 0) {
@@ -631,6 +687,7 @@ object SolanaPaymentBuilder {
                     // Encode to base64 for x402 protocol
                     val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
                     Log.d(TAG, "Encoded to base64 (${base64Result.length} chars)")
+                    Log.d(TAG, "Base64 transaction (full): $base64Result")
                     Log.d(TAG, "=== MWA Signing Process Complete ===")
                     base64Result
                 }
