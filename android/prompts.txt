@@ -96,7 +96,7 @@ For example, @solaibot/android/docs/mobile-wallet-adapter/README.md explains the
 Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests
 Your task: identify why it is failing with Android and try to resolve the issue thinking step-by-step how to resolve it, updating related source code as necessary.
 
-Your confidence is trash, it is still not working. Error messages are in @log.txt
+It is still not working. Error messages are in @log.txt
 The "Payment header" log still does not show the "==" at the end, is it correctly transformed to Base64?
 Check the @docs/x402-Header.md which was contructed as documentation from the fetch example valid transaction flow
 

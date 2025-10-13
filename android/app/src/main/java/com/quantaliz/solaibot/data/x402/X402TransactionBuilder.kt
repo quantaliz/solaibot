@@ -31,12 +31,18 @@ class X402TransactionBuilder(
      *
      * Account ordering strategy (matching TypeScript web3.js behavior):
      * 1. Fee payer (always first)
-     * 2. Other accounts in the order they first appear in instructions
-     * 3. No lexicographic sorting (unlike sol4k)
+     * 2. Non-program accounts in the order they first appear in instructions
+     * 3. Program accounts appended at the end
+     * 4. No lexicographic sorting (unlike sol4k)
+     *
+     * This matches Solana's standard ordering where programs come after regular accounts.
      */
     fun buildMessage(): ByteArray {
-        // Collect all unique accounts in order of first appearance
+        android.util.Log.d("X402TxBuilder", "=== X402TransactionBuilder.buildMessage() START ===")
+
+        // Collect accounts and programs separately to control ordering
         val accountList = mutableListOf<PublicKey>()
+        val programList = mutableListOf<PublicKey>()
         val accountMetadata = mutableMapOf<PublicKey, AccountMeta>()
 
         // Fee payer is always first and is always a signer and writable
@@ -46,63 +52,109 @@ class X402TransactionBuilder(
             isWritable = true,
             isInvoked = false
         )
+        android.util.Log.d("X402TxBuilder", "Added feePayer: ${feePayer.toBase58().take(8)}...")
 
-        // Collect accounts from instructions in order
-        for (instruction in instructions) {
-            // Program account
-            if (!accountList.contains(instruction.programId)) {
-                accountList.add(instruction.programId)
-                accountMetadata[instruction.programId] = AccountMeta(
-                    isSigner = false,
-                    isWritable = false,
-                    isInvoked = true
-                )
-            } else {
-                accountMetadata[instruction.programId] = accountMetadata[instruction.programId]!!.copy(isInvoked = true)
+        // First pass: collect all non-program accounts from instructions
+        android.util.Log.d("X402TxBuilder", "Processing ${instructions.size} instructions...")
+        for ((instrIdx, instruction) in instructions.withIndex()) {
+            android.util.Log.d("X402TxBuilder", "Instruction $instrIdx: programId=${instruction.programId.toBase58().take(8)}...")
+
+            // Track programs separately
+            if (!programList.contains(instruction.programId)) {
+                programList.add(instruction.programId)
+                android.util.Log.d("X402TxBuilder", "  Added program: ${instruction.programId.toBase58().take(8)}...")
             }
 
-            // Instruction accounts
-            for (accountMeta in instruction.keys) {
-                if (!accountList.contains(accountMeta.publicKey)) {
-                    accountList.add(accountMeta.publicKey)
-                    accountMetadata[accountMeta.publicKey] = AccountMeta(
+            // Instruction accounts (non-programs only)
+            for ((keyIdx, accountMeta) in instruction.keys.withIndex()) {
+                val pubKey = accountMeta.publicKey
+                val shortAddr = pubKey.toBase58().take(8)
+                android.util.Log.d("X402TxBuilder", "  Key $keyIdx: $shortAddr... (signer=${accountMeta.signer}, writable=${accountMeta.writable})")
+
+                if (!accountList.contains(pubKey)) {
+                    accountList.add(pubKey)
+                    accountMetadata[pubKey] = AccountMeta(
                         isSigner = accountMeta.signer,
                         isWritable = accountMeta.writable,
                         isInvoked = false
                     )
+                    android.util.Log.d("X402TxBuilder", "    NEW account added at position ${accountList.size - 1}")
                 } else {
                     // Merge metadata (take most permissive)
-                    val existing = accountMetadata[accountMeta.publicKey]!!
-                    accountMetadata[accountMeta.publicKey] = AccountMeta(
+                    val existing = accountMetadata[pubKey]!!
+                    accountMetadata[pubKey] = AccountMeta(
                         isSigner = existing.isSigner || accountMeta.signer,
                         isWritable = existing.isWritable || accountMeta.writable,
                         isInvoked = existing.isInvoked
                     )
+                    android.util.Log.d("X402TxBuilder", "    EXISTING account, merged metadata")
                 }
             }
         }
 
-        // Calculate header counts
-        var numRequiredSignatures = 0
-        var numReadonlySignedAccounts = 0
-        var numReadonlyUnsignedAccounts = 0
+        // Second pass: append programs to the end of account list
+        android.util.Log.d("X402TxBuilder", "Appending ${programList.size} programs to account list...")
+        for (programId in programList) {
+            accountList.add(programId)
+            accountMetadata[programId] = AccountMeta(
+                isSigner = false,
+                isWritable = false,
+                isInvoked = true
+            )
+            android.util.Log.d("X402TxBuilder", "  Added program: ${programId.toBase58().take(8)}...")
+        }
+
+        android.util.Log.d("X402TxBuilder", "=== Account list BEFORE category sorting ===")
+        for ((idx, account) in accountList.withIndex()) {
+            val meta = accountMetadata[account]!!
+            val shortAddr = account.toBase58().take(8)
+            android.util.Log.d("X402TxBuilder", "[$idx] $shortAddr... (signer=${meta.isSigner}, writable=${meta.isWritable}, invoked=${meta.isInvoked})")
+        }
+
+        // Sort accounts by Solana's required categories while preserving instruction order within each category
+        // Categories:
+        // 1. Writable signers
+        // 2. Readonly signers
+        // 3. Writable non-signers
+        // 4. Readonly non-signers
+        val writableSigners = mutableListOf<PublicKey>()
+        val readonlySigners = mutableListOf<PublicKey>()
+        val writableNonSigners = mutableListOf<PublicKey>()
+        val readonlyNonSigners = mutableListOf<PublicKey>()
 
         for (account in accountList) {
             val meta = accountMetadata[account]!!
-            if (meta.isSigner) {
-                numRequiredSignatures++
-                if (!meta.isWritable) {
-                    numReadonlySignedAccounts++
-                }
-            } else {
-                if (!meta.isWritable) {
-                    numReadonlyUnsignedAccounts++
-                }
+            when {
+                meta.isSigner && meta.isWritable -> writableSigners.add(account)
+                meta.isSigner && !meta.isWritable -> readonlySigners.add(account)
+                !meta.isSigner && meta.isWritable -> writableNonSigners.add(account)
+                !meta.isSigner && !meta.isWritable -> readonlyNonSigners.add(account)
             }
         }
 
-        // Build account index map
-        val accountIndexMap = accountList.withIndex().associate { (index, account) -> account to index }
+        // Rebuild account list in correct order
+        val sortedAccountList = mutableListOf<PublicKey>()
+        sortedAccountList.addAll(writableSigners)
+        sortedAccountList.addAll(readonlySigners)
+        sortedAccountList.addAll(writableNonSigners)
+        sortedAccountList.addAll(readonlyNonSigners)
+
+        android.util.Log.d("X402TxBuilder", "=== Account list AFTER category sorting ===")
+        for ((idx, account) in sortedAccountList.withIndex()) {
+            val meta = accountMetadata[account]!!
+            val shortAddr = account.toBase58().take(8)
+            android.util.Log.d("X402TxBuilder", "[$idx] $shortAddr... (signer=${meta.isSigner}, writable=${meta.isWritable}, invoked=${meta.isInvoked})")
+        }
+
+        // Calculate header counts
+        val numRequiredSignatures = writableSigners.size + readonlySigners.size
+        val numReadonlySignedAccounts = readonlySigners.size
+        val numReadonlyUnsignedAccounts = readonlyNonSigners.size
+
+        android.util.Log.d("X402TxBuilder", "Header: numSig=$numRequiredSignatures, numRoSigned=$numReadonlySignedAccounts, numRoUnsigned=$numReadonlyUnsignedAccounts")
+
+        // Build account index map from SORTED list
+        val accountIndexMap = sortedAccountList.withIndex().associate { (index, account) -> account to index }
 
         // Compile instructions with account indices
         val compiledInstructions = instructions.map { instruction ->
@@ -115,12 +167,12 @@ class X402TransactionBuilder(
             )
         }
 
-        // Serialize to V0 message format
+        // Serialize to V0 message format (use SORTED account list)
         return serializeV0Message(
             numRequiredSignatures = numRequiredSignatures,
             numReadonlySignedAccounts = numReadonlySignedAccounts,
             numReadonlyUnsignedAccounts = numReadonlyUnsignedAccounts,
-            accounts = accountList,
+            accounts = sortedAccountList,
             recentBlockhash = recentBlockhash,
             instructions = compiledInstructions
         )
@@ -145,8 +197,12 @@ class X402TransactionBuilder(
 
             // Accounts array
             buffer.write(Binary.encodeLength(accounts.size))
-            for (account in accounts) {
-                buffer.write(account.bytes())
+            android.util.Log.d("X402TxBuilder", "=== Serializing ${accounts.size} accounts ===")
+            for ((idx, account) in accounts.withIndex()) {
+                val accountBytes = account.bytes()
+                val hexPreview = accountBytes.take(8).joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
+                android.util.Log.d("X402TxBuilder", "  Writing account [$idx]: $hexPreview... (${account.toBase58().take(8)}...)")
+                buffer.write(accountBytes)
             }
 
             // Recent blockhash

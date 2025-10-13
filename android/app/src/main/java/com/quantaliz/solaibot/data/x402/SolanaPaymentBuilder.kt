@@ -286,6 +286,7 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "Full message bytes: $fullMessageHex")
         Log.d(TAG, "Transaction requires $numSignatures signatures")
         Log.d(TAG, "Message size: ${messageBytes.size} bytes")
+        Log.d(TAG, "This was compiled after full app removal.")
 
         // Return just the message bytes for MWA signing
         // MWA will sign this message, and we'll construct the full transaction afterward
@@ -379,7 +380,8 @@ object SolanaPaymentBuilder {
         } else {
             PublicKey.findProgramDerivedAddress(userPubKey, tokenMint, org.sol4k.Constants.TOKEN_PROGRAM_ID)
         }
-        Log.d(TAG, "Source ATA: $sourceAta")
+        val sourceAtaHex = sourceAta.bytes().take(8).joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
+        Log.d(TAG, "Source ATA: $sourceAta (hex: $sourceAtaHex...)")
 
         // Verify source ATA exists and has sufficient balance
         Log.d(TAG, "Checking if source ATA exists and has balance...")
@@ -413,7 +415,8 @@ object SolanaPaymentBuilder {
         } else {
             PublicKey.findProgramDerivedAddress(recipient, tokenMint, org.sol4k.Constants.TOKEN_PROGRAM_ID)
         }
-        Log.d(TAG, "Destination ATA: $destAta")
+        val destAtaHex = destAta.bytes().take(8).joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
+        Log.d(TAG, "Destination ATA: $destAta (hex: $destAtaHex...)")
 
         // Check if destination ATA exists
         Log.d(TAG, "Checking if destination ATA exists...")
@@ -502,7 +505,7 @@ object SolanaPaymentBuilder {
 
     /**
      * Sign transaction using Mobile Wallet Adapter.
-     * 
+     *
      * NEW APPROACH - Using signMessagesDetached():
      * Problem: signTransactions() is deprecated and wallets modify the transaction
      * (adding compute budget instructions), which x402 facilitator rejects.
