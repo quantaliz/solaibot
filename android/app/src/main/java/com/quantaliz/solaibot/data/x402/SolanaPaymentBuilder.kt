@@ -235,6 +235,14 @@ object SolanaPaymentBuilder {
 
         val messageBytes = customBuilder.buildMessage()
 
+        // Log COMPLETE transaction hex for byte-by-byte comparison
+        val fullHex = messageBytes.joinToString(" ") {
+            String.format("%02X", it.toInt() and 0xFF)
+        }
+        Log.d(TAG, "=== FULL TRANSACTION HEX (${messageBytes.size} bytes) ===")
+        Log.d(TAG, fullHex)
+        Log.d(TAG, "=== END TRANSACTION HEX ===")
+
         // Log first 20 bytes of message for debugging
         val previewBytes = messageBytes.take(20).joinToString(" ") {
             String.format("0x%02X", it.toInt() and 0xFF)
