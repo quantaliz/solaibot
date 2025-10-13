@@ -116,3 +116,6 @@ The source code is in @docs/Coinbasex402/ which should allow you to reconstruct 
 @docs/Coinbasex402/examples/typescript/clients/fetch/log.txt
 I am really interested in having all the information needed to reconstruct how the "X-PAYMENT-RESPONSE header" is created. This document will be crucial for reproducing the same effects with SolAIBot. At the moment, focus only on getting all the information needed from the fetch example. Also, if necessary, modify that file (index.ts) to log more details on
 how the header is created.
+
+I used another instance to search and try to find another solution, but so far there is no simpler solution to the reordeing problem. @log.txt showed that "sol4k" was the first option of Solana SDKSs.
+To follow the "Manual Transaction Construction", consider that the whole source code of sol4K is in "docs/sol4k/src/main/kotlin/org/sol4k" which can be used to construct the transaction message with exact account order control. Follow that pattern and place all new necessary code inside "app/src/main/java/com/quantaliz/solaibot/data/x402"

@@ -214,20 +214,26 @@ object SolanaPaymentBuilder {
             )
         }
 
-        // 6. Create transaction message with sol4k
+        // 6. Create transaction message with custom builder that preserves account order
+        // NOTE: We cannot use sol4k's TransactionMessage.newMessage() because it automatically
+        // sorts accounts lexicographically, which breaks x402 facilitator compatibility.
+        // The x402 facilitator needs accounts in the exact order we specify to properly
+        // reconstruct and execute the transaction.
         Log.d(TAG, "Creating transaction message with ${instructions.size} instructions")
-        val message = if (instructions.size == 1) {
-            TransactionMessage.newMessage(feePayer, recentBlockhash, instructions[0])
-        } else {
-            TransactionMessage.newMessage(feePayer, recentBlockhash, instructions)
-        }
+        Log.d(TAG, "Using X402TransactionBuilder for exact account order control")
+
+        val customBuilder = X402TransactionBuilder(
+            feePayer = feePayer,
+            recentBlockhash = recentBlockhash,
+            instructions = instructions
+        )
 
         // 7. Serialize transaction message for MWA signing
         // MWA's signMessagesDetached() expects just the raw message bytes
         // We'll manually construct the transaction after getting the signature
         Log.d(TAG, "Serializing transaction message for MWA...")
 
-        val messageBytes = message.serialize()
+        val messageBytes = customBuilder.buildMessage()
 
         // Log first 20 bytes of message for debugging
         val previewBytes = messageBytes.take(20).joinToString(" ") {
