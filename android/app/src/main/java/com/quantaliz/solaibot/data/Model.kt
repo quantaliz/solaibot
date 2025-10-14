@@ -449,7 +449,7 @@ val EMPTY_MODEL: Model =
 val MODEL_HAMMER_2_1_1_5B: Model =
    Model(
      name = "Hammer-2.1-1.5B",
-     displayName = "Hammer 2.1 1.5B (Function Calling)",
+     displayName = "Hammer 2.1 1.5B",
      info = "Hammer 2.1 1.5B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
      configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
      url = "https://huggingface.co/litert-community/Hammer2.1-1.5b/resolve/main/Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm?download=true",

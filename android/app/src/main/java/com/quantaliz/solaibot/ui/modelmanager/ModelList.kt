@@ -212,14 +212,14 @@ fun ModelList(
                 if (task.docUrl.isNotEmpty()) {
                   ClickableLink(
                     url = task.docUrl,
-                    linkText = "API Documentation",
+                    linkText = "Homepage",
                     icon = Icons.Outlined.Description,
                   )
                 }
                 if (task.sourceCodeUrl.isNotEmpty()) {
                   ClickableLink(
                     url = task.sourceCodeUrl,
-                    linkText = "Example code",
+                    linkText = "Code repository",
                     icon = Icons.Outlined.Code,
                   )
                 }

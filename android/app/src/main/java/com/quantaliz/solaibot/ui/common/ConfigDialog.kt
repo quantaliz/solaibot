@@ -90,6 +90,7 @@ fun ConfigDialog(
   okBtnLabel: String = "OK",
   subtitle: String = "",
   showCancel: Boolean = true,
+  onClearHistory: (() -> Unit)? = null,
 ) {
   val values: SnapshotStateMap<String, Any> = remember {
     mutableStateMapOf<String, Any>().apply { putAll(initialValues) }
@@ -141,21 +142,31 @@ fun ConfigDialog(
         // Button row.
         Row(
           modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-          horizontalArrangement = Arrangement.End,
+          horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-          // Cancel button.
-          if (showCancel) {
-            TextButton(onClick = { onDismissed() }) { Text("Cancel") }
+          // Clear History button (left side).
+          if (onClearHistory != null) {
+            TextButton(onClick = { onClearHistory() }) { Text("Clear History") }
+          } else {
+            Spacer(modifier = Modifier.width(1.dp))
           }
 
-          // Ok button
-          Button(
-            onClick = {
-              Log.d(TAG, "Values from dialog: $values")
-              onOk(values.toMap())
+          // Cancel and OK buttons (right side).
+          Row(horizontalArrangement = Arrangement.End) {
+            // Cancel button.
+            if (showCancel) {
+              TextButton(onClick = { onDismissed() }) { Text("Cancel") }
             }
-          ) {
-            Text(okBtnLabel)
+
+            // Ok button
+            Button(
+              onClick = {
+                Log.d(TAG, "Values from dialog: $values")
+                onOk(values.toMap())
+              }
+            ) {
+              Text(okBtnLabel)
+            }
           }
         }
       }

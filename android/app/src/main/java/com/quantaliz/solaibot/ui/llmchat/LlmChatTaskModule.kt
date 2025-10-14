@@ -50,10 +50,10 @@ class LlmChatTask @Inject constructor() : CustomTask {
       category = Category.LLM,
       icon = Icons.Outlined.Forum,
       models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
-      description = "Chat with on-device large language models",
-      docUrl = "https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android",
+      description = "On-device Large Language Model that can make x402 payments. Developed for Hackaroo & Cypherpunk",
+      docUrl = "https://quantaliz.com/hackaroo",
       sourceCodeUrl =
-        "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
+        "https://github.com/quantaliz/solaibot",
       textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
     )
 
@@ -99,7 +99,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
   override fun MainScreen(data: Any) {
     val myData = data as CustomTaskDataForBuiltinTask
     LlmChatScreen(
-      modelManagerViewModel = myData.modelManagerViewModel, 
+      modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
       activityResultSender = myData.activityResultSender
     )

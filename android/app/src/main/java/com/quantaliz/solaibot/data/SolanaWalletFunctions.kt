@@ -39,9 +39,9 @@ import kotlinx.coroutines.withContext
  * 6. The result is returned to the LLM which then generates a natural language response
  *
  * KEY FUNCTION CALLS:
- * - get_solana_balance() - Gets the wallet balance
- * - connect_solana_wallet() - Initiates wallet connection
+ * - get_solana_balance() - Gets the wallet balance (connects automatically if needed)
  * - send_solana(recipient="address", amount="value") - Sends SOL to an address
+ * - solana_payment(url="resource_url") - Makes x402 micropayments to access paid resources
  *
  * These functions are added to the available functions list in FunctionDeclarations.kt
  * and are made available to the LLM through the system prompt.
@@ -229,70 +229,6 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
 }
 
 /**
- * Connects to a Solana wallet.
- * This function initiates the connection process with a Solana wallet.
- */
-suspend fun connectSolanaWallet(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
-    // Initialize wallet adapter if not already done
-    initializeSolanaWalletAdapter(context)
-
-    val connectionState = WalletConnectionManager.getConnectionState()
-
-    // Check if already connected
-    if (connectionState.isConnected && connectionState.address != null) {
-        return "Already connected to wallet. Address: ${connectionState.address}"
-    }
-
-    val adapter = SharedMobileWalletAdapter.getAdapter()
-
-    // Check if activityResultSender is provided
-    return if (activityResultSender == null) {
-        "Solana wallet connection requires user interaction. Please connect your wallet first."
-    } else {
-        try {
-            val result = adapter.connect(activityResultSender)
-
-            when (result) {
-                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
-                    val authResult = result.authResult
-                    val publicKeyBytes = authResult.accounts.first().publicKey
-                    val publicKey = SolanaPublicKey(publicKeyBytes)
-                    val address = publicKey.base58()
-                    val hexAddress = bytesToHex(publicKeyBytes) // Using hex format for consistency
-
-                    // Update the connection state
-                    WalletConnectionManager.updateConnectionState(
-                        WalletConnectionState(
-                            isConnected = true,
-                            publicKey = hexAddress,
-                            address = address
-                        )
-                    )
-
-                    // Note: WalletViewModel state sync happens via UI layer when needed
-                    "Successfully connected to wallet. Address: $address"
-                }
-                is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
-                    // Clear connection state if no wallet found
-                    WalletConnectionManager.clearConnectionState()
-                    "No Solana wallet found on device. Please install a Solana-compatible wallet like Phantom, Solflare, etc."
-                }
-                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
-                    // Clear connection state if connection failed
-                    WalletConnectionManager.clearConnectionState()
-                    "Wallet connection error: ${result.e.message}"
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error connecting to Solana wallet: ${e.message}", e)
-            // Clear connection state if exception occurred
-            WalletConnectionManager.clearConnectionState()
-            "Error connecting to wallet: ${e.message}"
-        }
-    }
-}
-
-/**
  * Sends Solana to another address.
  * This function will prompt the user to confirm sending SOL to the specified address.
  */
@@ -359,34 +295,40 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
 
 /**
  * Gets the list of available Solana wallet functions for LLM function calling.
- * This extends the available functions to include Solana wallet functions.
  */
 fun getSolanaWalletFunctions(): List<FunctionDefinition> {
     return listOf(
         FunctionDefinition(
             name = "get_solana_balance",
-            description = "Get the current balance of the connected Solana wallet. This connects to a Solana wallet and retrieves the balance.",
-            parameters = listOf()
-        ),
-        FunctionDefinition(
-            name = "connect_solana_wallet",
-            description = "Connect to a Solana wallet. This initiates a connection to a wallet installed on the device.",
+            description = "Get the current balance of the Solana wallet. Automatically connects to the wallet if not already connected.",
             parameters = listOf()
         ),
         FunctionDefinition(
             name = "send_solana",
-            description = "Send Solana (SOL) to another address. This prompts the user to confirm the transaction.",
+            description = "Send Solana (SOL) to another address. This prompts the user to authorize the transaction through their wallet.",
             parameters = listOf(
                 FunctionParameter(
                     name = "recipient",
                     type = "string",
-                    description = "The recipient's Solana address",
+                    description = "The recipient's Solana address (Base58 encoded)",
                     required = true
                 ),
                 FunctionParameter(
                     name = "amount",
                     type = "string",
-                    description = "The amount of SOL to send",
+                    description = "The amount of SOL to send (e.g., '0.1' for 0.1 SOL)",
+                    required = true
+                )
+            )
+        ),
+        FunctionDefinition(
+            name = "solana_payment",
+            description = "Make a payment to access a paid API or resource using the x402 protocol. It handles the full payment flow: requesting the resource, receiving payment requirements, signing the payment transaction through the wallet, and retrieving the paid content. When you receive a response, provide as much information as possible to the user, like: Transaction hashes/signatures Payment amounts and networks, Wallet addresses, Premium content or data received",
+            parameters = listOf(
+                FunctionParameter(
+                    name = "url",
+                    type = "string",
+                    description = "The URL of the paid resource or API endpoint to access",
                     required = true
                 )
             )
@@ -441,23 +383,90 @@ suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
 }
 
 /**
+ * Makes a payment to a x402-enabled resource.
+ * This handles the full x402 payment flow including signing with MWA.
+ */
+suspend fun makeSolanaPayment(
+    context: Context,
+    args: Map<String, String>,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender?
+): String {
+    val url = args["url"] ?: return "Error: Missing URL parameter"
+
+    // Check network connectivity first
+    if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
+        val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
+        return "No internet connection available. Please check your network settings.\n\nNetwork status: $networkStatus"
+    }
+
+    // Check if wallet is connected when using MWA
+    if (activityResultSender != null) {
+        val walletState = com.quantaliz.solaibot.data.WalletConnectionManager.getConnectionState()
+        if (!walletState.isConnected) {
+            return "Error: Wallet not connected. Please connect your wallet first."
+        }
+    }
+
+    return try {
+        val client = com.quantaliz.solaibot.data.x402.X402HttpClient(
+            context = context,
+            facilitatorUrl = "https://x402.payai.network"
+        )
+
+        Log.d(TAG, "Making x402 payment to: $url")
+
+        val response = client.get(url, activityResultSender)
+
+        when {
+            response.success -> {
+                val settlementInfo = response.settlementResponse?.let { settlement ->
+                    if (settlement.success) {
+                        "\n\nPayment settled successfully!\n" +
+                                "Transaction: ${settlement.transaction}\n" +
+                                "Network: ${settlement.network}\n" +
+                                "Payer: ${settlement.payer}"
+                    } else {
+                        "\n\nPayment failed: ${settlement.errorReason}"
+                    }
+                } ?: ""
+
+                "Successfully accessed paid resource at $url$settlementInfo\n\nResponse:\n${response.body}"
+            }
+            response.statusCode == 402 && response.body != null -> {
+                // Parse the error response to provide more context
+                try {
+                    val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    val errorResponse = json.decodeFromString<com.quantaliz.solaibot.data.x402.PaymentRequirementsResponse>(response.body)
+                    "Payment failed: ${errorResponse.error}"
+                } catch (e: Exception) {
+                    "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}"
+                }
+            }
+            else -> {
+                "Failed to access resource: ${response.errorMessage ?: "HTTP ${response.statusCode}"}"
+            }
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error making x402 payment: ${e.message}", e)
+        "Error making payment: ${e.message}"
+    }
+}
+
+/**
  * Executes Solana wallet functions based on the function name and parameters.
  * This is called by the LLM function calling system when a Solana function is called.
  */
-suspend fun executeSolanaWalletFunction(context: Context, functionName: String, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
+suspend fun executeSolanaWalletFunction(
+    context: Context,
+    functionName: String,
+    args: Map<String, String>,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
+): String {
     return when (functionName) {
-        "get_solana_balance" -> {
-            getSolanaBalance(context, activityResultSender)
-        }
-        "connect_solana_wallet" -> {
-            connectSolanaWallet(context, activityResultSender)
-        }
-        "send_solana" -> {
-            sendSolana(context, args, activityResultSender)
-        }
-        else -> {
-            "Error: Unknown Solana wallet function '$functionName'"
-        }
+        "get_solana_balance" -> getSolanaBalance(context, activityResultSender)
+        "send_solana" -> sendSolana(context, args, activityResultSender)
+        "solana_payment" -> makeSolanaPayment(context, args, activityResultSender)
+        else -> "Error: Unknown Solana wallet function '$functionName'"
     }
 }
 
