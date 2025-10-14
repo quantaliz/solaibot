@@ -78,10 +78,12 @@ class X402HttpClient(
      * Makes a GET request to a resource that may require x402 payment.
      *
      * @param url The URL to request
+     * @param activityResultSender ActivityResultSender for MWA signing (null to use self-signed)
      * @return X402Response containing the result and settlement details
      */
     suspend fun get(
-        url: String
+        url: String,
+        activityResultSender: ActivityResultSender? = null
     ): X402Response = withContext(Dispatchers.IO) {
         // Check network connectivity before making any requests
         if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
@@ -146,7 +148,7 @@ class X402HttpClient(
 
             // Step 3: Build and sign payment transaction
             val paymentPayload = try {
-                buildSolanaPaymentPayload(requirement)
+                buildSolanaPaymentPayload(requirement, activityResultSender)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to build payment payload", e)
                 return@withContext X402Response(
@@ -196,17 +198,29 @@ class X402HttpClient(
      *
      * This delegates to the Solana payment builder which:
      * 1. Creates a transfer transaction to the payTo address
-     * 2. Signs it with a hardcoded key for debugging.
+     * 2. Signs it with MWA (if activityResultSender provided) or self-signed key (if null)
      * 3. Encodes it as a partially-signed transaction (facilitator will add fee payer signature)
      */
     private suspend fun buildSolanaPaymentPayload(
-        requirement: PaymentRequirements
+        requirement: PaymentRequirements,
+        activityResultSender: ActivityResultSender?
     ): PaymentPayload {
-        // NOTE: Using self-signed builder for debugging purposes to bypass MWA.
-        val transaction = SolanaPaymentBuilderSelfSigned.buildSolanaPaymentTransaction(
-            context = context,
-            requirement = requirement
-        )
+        val transaction = if (activityResultSender != null) {
+            // Use Mobile Wallet Adapter for signing
+            Log.d(TAG, "Using Mobile Wallet Adapter for transaction signing")
+            SolanaPaymentBuilder.buildSolanaPaymentTransaction(
+                context = context,
+                requirement = requirement,
+                activityResultSender = activityResultSender
+            )
+        } else {
+            // Use self-signed builder for debugging purposes
+            Log.d(TAG, "Using self-signed key for transaction signing (debugging mode)")
+            SolanaPaymentBuilderSelfSigned.buildSolanaPaymentTransaction(
+                context = context,
+                requirement = requirement
+            )
+        }
 
         return PaymentPayload(
             x402Version = 1,

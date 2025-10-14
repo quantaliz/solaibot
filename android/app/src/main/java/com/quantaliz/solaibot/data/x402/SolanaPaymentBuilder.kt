@@ -522,18 +522,16 @@ object SolanaPaymentBuilder {
     /**
      * Sign transaction using Mobile Wallet Adapter.
      *
-     * NEW APPROACH - Using signMessagesDetached():
-     * Problem: signTransactions() is deprecated and wallets modify the transaction
-     * (adding compute budget instructions), which x402 facilitator rejects.
-     *
-     * Solution: Use signMessagesDetached() to sign the message directly without
-     * wallet modification, then manually construct the signed transaction.
+     * UPDATED APPROACH - Using signTransactions() for V0 transactions:
+     * - signMessagesDetached() is for arbitrary message signing, not transactions
+     * - signTransactions() properly handles V0 transaction signing
+     * - We construct a minimal transaction that wallets can sign without modification
      *
      * Flow:
-     * 1. Extract the message from our transaction format
-     * 2. Ask wallet to sign the message (not the full transaction)
-     * 3. Wallet returns just the signature(s)
-     * 4. Manually construct signed transaction: [numSigs][signatures][message]
+     * 1. Create a properly formatted V0 transaction (numSigs + empty sigs + message)
+     * 2. Ask wallet to sign using signTransactions()
+     * 3. Extract the user's signature from the signed transaction
+     * 4. Reconstruct partially-signed transaction for x402 (feePayer sig empty, user sig filled)
      */
     private suspend fun signTransactionViaMwa(
         messageBytes: ByteArray,
@@ -567,20 +565,40 @@ object SolanaPaymentBuilder {
         val adapter = SharedMobileWalletAdapter.getAdapter()
         Log.d(TAG, "Got MWA adapter instance")
 
+        // Ed25519 signature size is always 64 bytes
+        val signatureSize = 64
+
         try {
             Log.d(TAG, "Calling adapter.transact()...")
             // Start MWA session and request message signature
             val result = adapter.transact(activityResultSender) {
                 Log.d(TAG, "Inside transact lambda - MWA session authorized")
-                Log.d(TAG, "Using signMessagesDetached() to sign transaction message...")
-                Log.d(TAG, "This prevents wallet from modifying the transaction")
+                Log.d(TAG, "Using signTransactions() to sign V0 transaction...")
 
-                // Start MWA session and request message signature
-                val signResult = signMessagesDetached(
-                    arrayOf(messageBytes),
-                    arrayOf(userPublicKeyBytes)
-                )
-                Log.d(TAG, "signMessagesDetached() returned successfully")
+                // IMPORTANT: Create a fully formatted transaction for wallet signing
+                // Structure: [numSigs][empty sigs][message with 0x80]
+                val numSigs = messageBytes[1].toInt() and 0xFF
+                val transactionToSign = ByteArray(1 + numSigs * signatureSize + messageBytes.size)
+
+                // Add number of signatures
+                transactionToSign[0] = numSigs.toByte()
+
+                // Leave signature slots empty (wallet will fill them)
+                // Signatures go from byte 1 to byte (1 + numSigs*64)
+
+                // Add the V0 message after the signature slots
+                val messageOffset = 1 + numSigs * signatureSize
+                System.arraycopy(messageBytes, 0, transactionToSign, messageOffset, messageBytes.size)
+
+                Log.d(TAG, "=== TRANSACTION SENT TO MWA FOR SIGNING ===")
+                Log.d(TAG, "Transaction size: ${transactionToSign.size} bytes")
+                Log.d(TAG, "NumSigs: $numSigs")
+                Log.d(TAG, "Message offset: $messageOffset")
+                Log.d(TAG, "Message starts with 0x80: ${messageBytes[0].toInt() and 0x80 != 0}")
+
+                // Use signTransactions() for V0 transaction signing
+                val signResult = signTransactions(arrayOf(transactionToSign))
+                Log.d(TAG, "signTransactions() returned successfully")
                 signResult
             }
 
@@ -591,54 +609,49 @@ object SolanaPaymentBuilder {
                 is TransactionResult.Success -> {
                     Log.d(TAG, "Result type: TransactionResult.Success")
 
-                    // Extract signature from signMessagesDetached response
-                    // According to MWA docs: result.successPayload?.messages?.first()?.signatures?.first()
-                    val userSignature: ByteArray = try {
-                        Log.d(TAG, "Extracting signature from signMessagesDetached result...")
+                    // Extract signed transaction from signTransactions response
+                    val signedTransactionFromWallet: ByteArray = try {
+                        Log.d(TAG, "Extracting signed transaction from signTransactions result...")
 
-                        // Access the MWA response - the payload contains the signed messages
+                        // Access the MWA response - the payload contains the signed transactions
                         val payload = result.payload
                         if (payload == null) {
                             Log.e(TAG, "result.payload is null")
                             throw IOException("No payload in result")
                         }
 
-                        // For signMessagesDetached, the response is in payload.messages
-                        val messages = payload.messages
-                        if (messages == null || messages.size == 0) {
-                            Log.e(TAG, "No messages in payload")
-                            throw IOException("No messages returned from wallet")
+                        // For signTransactions, the response is in payload.signedPayloads
+                        val signedTxs = payload.signedPayloads
+                        if (signedTxs == null || signedTxs.size == 0) {
+                            Log.e(TAG, "No signed transactions in payload")
+                            throw IOException("No signed transactions returned from wallet")
                         }
 
-                        val signedMessage = messages[0]
-                        if (signedMessage == null) {
-                            Log.e(TAG, "First message is null")
-                            throw IOException("First message is null")
+                        val signedTx = signedTxs[0] as? ByteArray
+                        if (signedTx == null || signedTx.isEmpty()) {
+                            Log.e(TAG, "First signed transaction is null or empty")
+                            throw IOException("Signed transaction is empty")
                         }
 
-                        val signatures = signedMessage.signatures
-                        if (signatures == null || signatures.size == 0) {
-                            Log.e(TAG, "No signatures in signed message")
-                            throw IOException("No signature in signed message")
-                        }
-
-                        val signature = signatures[0]
-                        if (signature == null) {
-                            Log.e(TAG, "First signature is null")
-                            throw IOException("Signature is null")
-                        }
-
-                        Log.d(TAG, "Successfully extracted signature (${signature.size} bytes)")
-                        if (signature.size != 64) {
-                            Log.e(TAG, "Invalid signature size: ${signature.size}, expected 64")
-                            throw IOException("Invalid signature size: ${signature.size}, expected 64")
-                        }
-
-                        // Keep the raw bytes for transaction creation (no need for Base58 conversion)
-                        signature
+                        Log.d(TAG, "Successfully extracted signed transaction (${signedTx.size} bytes)")
+                        signedTx
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error extracting signature: ${e.message}", e)
-                        throw IOException("Failed to extract signature: ${e.message}", e)
+                        Log.e(TAG, "Error extracting signed transaction: ${e.message}", e)
+                        throw IOException("Failed to extract signed transaction: ${e.message}", e)
+                    }
+
+                    // Extract the user's signature from the signed transaction
+                    // Transaction structure: [numSigs][sig0][sig1]...[message]
+                    val signedTxNumSigs = signedTransactionFromWallet[0].toInt() and 0xFF
+
+                    // The user signature is at position 1 + 64 (after numSigs byte and first empty sig)
+                    // For x402, user is signer index 1, feePayer is index 0
+                    val userSigStart = 1 + signatureSize  // Skip numSigs byte and first signature slot
+                    val userSignature = signedTransactionFromWallet.copyOfRange(userSigStart, userSigStart + signatureSize)
+
+                    Log.d(TAG, "Extracted user signature from wallet-signed transaction (${userSignature.size} bytes)")
+                    if (userSignature.size != 64) {
+                        throw IOException("Invalid user signature size: ${userSignature.size}, expected 64")
                     }
 
                     // Create a properly formatted partially signed V0 Solana transaction.
@@ -647,7 +660,6 @@ object SolanaPaymentBuilder {
 
                     // The transaction is partially signed. The feePayer (server) will add its signature.
                     // Structure: [numSigs (1 byte)][sig0 (64 bytes)][sig1 (64 bytes)]...[V0 message with 0x80 prefix]
-                    val signatureSize = 64
                     val totalSignatureBytes = numSignatures * signatureSize
 
                     // Create the transaction: [numSigs][signatures][V0 message]

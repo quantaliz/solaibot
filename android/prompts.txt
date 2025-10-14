@@ -129,3 +129,10 @@ how the header is created.
 
 I used another instance to search and try to find another solution, but so far there is no simpler solution to the reordeing problem. @log.txt showed that "sol4k" was the first option of Solana SDKSs.
 To follow the "Manual Transaction Construction", consider that the whole source code of sol4K is in "docs/sol4k/src/main/kotlin/org/sol4k" which can be used to construct the transaction message with exact account order control. Follow that pattern and place all new necessary code inside "app/src/main/java/com/quantaliz/solaibot/data/x402"
+
+Now that it is working as expected, flip the code to use MWA with the "SolanaPaymentBuilder.kt" instead of the self-signed version to test it works with it as well.
+
+Using the MWA signer failed, while self-signed succeded. Identify why MWA fails and resolve it.
+MWA logs: @log.txt
+Self-signed: @logsuccess.txt
+There you can compare what happened between executions

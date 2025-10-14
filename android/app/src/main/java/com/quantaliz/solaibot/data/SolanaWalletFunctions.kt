@@ -456,7 +456,11 @@ suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
  * Makes a payment to a x402-enabled resource.
  * This handles the full x402 payment flow including signing with MWA.
  */
-suspend fun makeSolanaPayment(context: Context, args: Map<String, String>): String {
+suspend fun makeSolanaPayment(
+    context: Context,
+    args: Map<String, String>,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender?
+): String {
     val url = args["url"] ?: return "Error: Missing URL parameter"
 
     // Check network connectivity first
@@ -465,8 +469,13 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>): Stri
         return "No internet connection available. Please check your network settings.\n\nNetwork status: $networkStatus"
     }
 
-    // For self-signing, we don't need to check for a connected wallet via MWA.
-    // The identity is determined by the hardcoded key in the builder.
+    // Check if wallet is connected when using MWA
+    if (activityResultSender != null) {
+        val walletState = com.quantaliz.solaibot.data.WalletConnectionManager.getConnectionState()
+        if (!walletState.isConnected) {
+            return "Error: Wallet not connected. Please connect your wallet first."
+        }
+    }
 
     return try {
         val client = com.quantaliz.solaibot.data.x402.X402HttpClient(
@@ -476,7 +485,7 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>): Stri
 
         Log.d(TAG, "Making x402 payment to: $url")
 
-        val response = client.get(url)
+        val response = client.get(url, activityResultSender)
 
         when {
             response.success -> {
@@ -529,7 +538,7 @@ suspend fun executeSolanaWalletFunction(context: Context, functionName: String, 
             sendSolana(context, args, activityResultSender)
         }
         "solana_payment" -> {
-            makeSolanaPayment(context, args)
+            makeSolanaPayment(context, args, activityResultSender)
         }
         else -> {
             "Error: Unknown Solana wallet function '$functionName'"
