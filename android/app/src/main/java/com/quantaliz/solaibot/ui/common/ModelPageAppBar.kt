@@ -227,6 +227,9 @@ fun ModelPageAppBar(
       configs = model.configs,
       initialValues = model.configValues,
       onDismissed = { showConfigDialog = false },
+      onClearHistory = if (canShowResetSessionButton) {
+        { onResetSessionClicked(model) }
+      } else null,
       onOk = { curConfigValues ->
         // Hide config dialog.
         showConfigDialog = false

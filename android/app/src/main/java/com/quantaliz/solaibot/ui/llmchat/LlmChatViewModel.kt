@@ -420,8 +420,21 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     }
     viewModelScope.launch(Dispatchers.Default) {
       setInProgress(false)
-      val instance = model.instance as LlmModelInstance
-      instance.session.cancelProcess()
+      // Handle both LlmModelInstance and FunctionCallingModelInstance
+      val session = when (val instance = model.instance) {
+        is LlmModelInstance -> instance.session
+        is FunctionCallingModelInstance -> instance.session
+        else -> {
+          Log.e(TAG, "Unknown model instance type")
+          return@launch
+        }
+      }
+      try {
+        session.cancelProcess()
+      } catch (e: IllegalStateException) {
+        // Session may have been closed already during reset
+        Log.d(TAG, "Session already closed or not alive")
+      }
     }
   }
 
@@ -431,6 +444,9 @@ open class LlmChatViewModelBase() : ChatViewModel() {
       clearAllMessages(model = model)
       stopResponse(model = model)
 
+      // Give stopResponse time to complete before closing the session
+      delay(100)
+
       while (true) {
         try {
           val supportImage =
@@ -439,14 +455,24 @@ open class LlmChatViewModelBase() : ChatViewModel() {
           val supportAudio =
             model.llmSupportAudio &&
               task.id == com.quantaliz.solaibot.data.BuiltInTaskId.LLM_ASK_AUDIO
-          LlmChatModelHelper.resetSession(
-            model = model,
-            supportImage = supportImage,
-            supportAudio = supportAudio,
-          )
+
+          // Handle both function calling and non-function calling models
+          if (model.llmSupportFunctionCalling) {
+            LlmFunctionCallingModelHelper.resetSession(
+              model = model,
+              supportImage = supportImage,
+              supportAudio = supportAudio,
+            )
+          } else {
+            LlmChatModelHelper.resetSession(
+              model = model,
+              supportImage = supportImage,
+              supportAudio = supportAudio,
+            )
+          }
           break
         } catch (e: Exception) {
-          Log.d(TAG, "Failed to reset session. Trying again")
+          Log.d(TAG, "Failed to reset session. Trying again", e)
         }
         delay(200)
       }
