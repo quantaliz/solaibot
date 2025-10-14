@@ -93,8 +93,10 @@ Use this example as the base line to identify why the current code at SolAIBot f
 The main file that has changed and is around thes operations is @app/src/main/java/com/quantaliz/solaibot/data/x402/SolanaPaymentBuilder.kt
 If you need documentation/code samples of the MWA/x402/sol4k dependencies, there are clones of those repositories in the "docs/" folder.
 For example, @docs/mobile-wallet-adapter/README.md explains the MWA repository
+There is a facilitator example here: @docs/Coinbasex402/examples/typescript/facilitator/index.ts
 As documentation, @docs/x402-Header.md explains the basic outline of operations performed by the "fetch" code for x402.
-Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests. If you need to verify payloads, there are scripts in the docs/helpers folder
+Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests.
+If you need to verify payloads, there are scripts in the docs/helpers folder. Also, store there any helper scripts you use to run on bash
 Your task: identify why it is failing with Android and try to resolve the issue thinking step-by-step how to resolve it, updating related source code as necessary.
 
 
