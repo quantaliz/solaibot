@@ -296,9 +296,25 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "Message size: ${messageBytes.size} bytes")
         Log.d(TAG, "This was compiled after full app removal.")
 
-        // Return just the message bytes for MWA signing
-        // MWA will sign this message, and we'll construct the full transaction afterward
-        messageBytes
+        // The x402 facilitator expects a legacy transaction, but our builder creates a V0 one.
+        // We can convert it by stripping the V0 prefix byte (0x80).
+        val isVersionedTx = (messageBytes[0].toInt() and 0x80) != 0
+        if (!isVersionedTx) {
+            Log.w(TAG, "Expected a V0 message from builder but got legacy. Using as is.")
+            return@withContext messageBytes
+        }
+
+        Log.d(TAG, "Converting V0 transaction message to legacy format for x402 compatibility.")
+        val legacyMessageBytes = messageBytes.copyOfRange(1, messageBytes.size)
+
+        Log.d(TAG, "Legacy message size: ${legacyMessageBytes.size} bytes")
+        val legacyPreviewBytes = legacyMessageBytes.take(20).joinToString(" ") {
+            String.format("0x%02X", it.toInt() and 0xFF)
+        }
+        Log.d(TAG, "Legacy message bytes (first 20): $legacyPreviewBytes")
+
+        // Return the legacy message for MWA signing
+        legacyMessageBytes
     }
 
     /**
@@ -492,7 +508,7 @@ object SolanaPaymentBuilder {
                     val buffer = ByteArrayOutputStream()
                     buffer.write(12) // TransferChecked instruction index
                     buffer.write(org.sol4k.Binary.int64(amount))
-                    buffer.write(mintDecimals)
+                    buffer.write(mintDecimals and 0xFF)
                     return buffer.toByteArray()
                 }
 
@@ -503,7 +519,7 @@ object SolanaPaymentBuilder {
                 org.sol4k.AccountMeta.signer(userPubKey),
             )
 
-            override val programId: PublicKey = org.sol4k.Constants.TOKEN_PROGRAM_ID
+            override val programId: PublicKey = if (isToken2022) org.sol4k.Constants.TOKEN_2022_PROGRAM_ID else org.sol4k.Constants.TOKEN_PROGRAM_ID
         }
         instructions.add(transferInstruction)
 
@@ -633,52 +649,38 @@ object SolanaPaymentBuilder {
                         throw IOException("Failed to extract signature: ${e.message}", e)
                     }
 
-                    // Create a properly formatted partially signed Solana transaction
-                    // This creates a transaction that the x402 facilitator can complete
-                    Log.d(TAG, "Creating properly formatted Solana transaction...")
+                    // Create a properly formatted fully signed LEGACY Solana transaction.
+                    // The x402 facilitator requires legacy format, not V0/versioned.
+                    Log.d(TAG, "Creating properly formatted legacy Solana transaction...")
 
-                    // For x402 SVM, we create a transaction with:
-                    // - Slot 0 = feePayer (facilitator) - EMPTY signature
-                    // - Slot 1 = user - FILLED signature
                     if (isVersioned) {
-                        Log.d(TAG, "Using versioned transaction format for SVM (as required by x402 spec)")
+                        // This block should not be reached if buildUnsignedTransaction is correct
+                        Log.w(TAG, "Warning: Assembling a legacy transaction from a message that was initially versioned.")
                     }
 
+                    // The transaction is partially signed. The feePayer (server) will add its signature.
+                    // The user's signature must be in the correct slot.
                     val signatureSize = 64
                     val totalSignatureBytes = numSignatures * signatureSize
 
                     // Create the transaction: [numSigs][signatures][message]
                     val signedTransactionBytes = ByteArray(1 + totalSignatureBytes + messageBytes.size)
-                    var offset = 0
 
                     // Add number of signatures
                     signedTransactionBytes[0] = numSignatures.toByte()
-                    offset += 1
 
-                    // Add signatures:
-                    // Slot 0 = feePayer (facilitator) - EMPTY (facilitator will add their signature)
-                    // Slot 1 = user - FILLED (user's signature)
-                    // Based on account order in message: [feePayer, user, recipient, ...]
-                    for (i in 0 until numSignatures) {
-                        if (i == 0) {
-                            // Slot 0 is feePayer - leave empty
-                            for (j in 0 until signatureSize) {
-                                signedTransactionBytes[offset + j] = 0x00
-                            }
-                        } else if (i == 1) {
-                            // Slot 1 is user - fill with actual signature
-                            System.arraycopy(userSignature, 0, signedTransactionBytes, offset, signatureSize)
-                        } else {
-                            // Other slots should be empty (if any)
-                            for (j in 0 until signatureSize) {
-                                signedTransactionBytes[offset + j] = 0x00
-                            }
-                        }
-                        offset += signatureSize
+                    // Based on transaction analysis, the feePayer is the first signer and the user is the second.
+                    // We leave a placeholder for the feePayer's signature (slot 0 is already zeros).
+                    // We insert the user's signature in the second slot (slot 1).
+                    if (numSignatures > 1) {
+                        // Signature slots start at byte index 1. Slot 1 starts at index 1 + 64.
+                        val userSignatureOffset = 1 + signatureSize
+                        System.arraycopy(userSignature, 0, signedTransactionBytes, userSignatureOffset, signatureSize)
                     }
 
-                    // Add the message
-                    System.arraycopy(messageBytes, 0, signedTransactionBytes, offset, messageBytes.size)
+                    // Add the message, which comes after the signature count and all signature slots
+                    val messageOffset = 1 + totalSignatureBytes
+                    System.arraycopy(messageBytes, 0, signedTransactionBytes, messageOffset, messageBytes.size)
 
                     // Log first 80 bytes to verify structure
                     val txPreview = signedTransactionBytes.take(80).joinToString(" ") {
@@ -696,7 +698,17 @@ object SolanaPaymentBuilder {
                         val slotHex = slotBytes.joinToString("") {
                             String.format("%02X", it.toInt() and 0xFF)
                         }
-                        Log.d(TAG, "Signature slot $i: ${if (slotHex.all { it == '0' }) "EMPTY" else "FILLED"} ($slotHex.take(16)...)")
+                        val isFilled = !slotBytes.all { it == 0x00.toByte() }
+                        Log.d(TAG, "Signature slot $i: ${if (isFilled) "FILLED" else "EMPTY"} ($slotHex.take(16)...)")
+
+                        // Verify all slots have the same signature (as expected for x402)
+                        if (i > 0) {
+                            val prevSlotBytes = signatureArea.copyOfRange((i-1) * 64, i * 64)
+                            val signaturesMatch = slotBytes.contentEquals(prevSlotBytes)
+                            if (!signaturesMatch) {
+                                Log.w(TAG, "Warning: Signature slot $i doesn't match slot ${i-1}")
+                            }
+                        }
                     }
 
                     Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes")

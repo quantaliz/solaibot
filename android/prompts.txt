@@ -89,20 +89,26 @@ SolAIBot needs to support x402 with solana. The use case is, when the user asks 
 Currently, it is very close to construct a valid transacton, however not working yet.
 @log.txt has the traces of SolAIBot trying to make a payment to an endpoint but has errors.
 There is a valid example at @docs/Coinbasex402/examples/typescript/clients/fetch/index.ts which is working and it shows the logs of execution at @docs/Coinbasex402/examples/typescript/clients/fetch/log.txt
-Use this example as the base line to identify why the current code at SolAIBot fails to create a correct "X-PAYMENT" that is accepted by the service provider. Somehow, SolAIBot has a different signed payload in the "X-PAYMENT" with one large sequence of "BQUF" similar to the example, however, it does not end with "==" which do not seem right compared to the example header.
+Use this example as the base line to identify why the current code at SolAIBot fails to create a correct "X-PAYMENT" that is accepted by the service provider. Somehow, SolAIBot has a different signed payload in the "X-PAYMENT", there is probably an issue with how the MWA is signing the payload
 The main file that has changed and is around thes operations is @app/src/main/java/com/quantaliz/solaibot/data/x402/SolanaPaymentBuilder.kt
 If you need documentation/code samples of the MWA/x402/sol4k dependencies, there are clones of those repositories in the "docs/" folder.
-For example, @solaibot/android/docs/mobile-wallet-adapter/README.md explains the MWA repository
-Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests
+For example, @docs/mobile-wallet-adapter/README.md explains the MWA repository
+As documentation, @docs/x402-Header.md explains the basic outline of operations performed by the "fetch" code for x402.
+Do not try to compile the project, I am doing that in another computer. Do not try to create a test for these changes, there are no unit/integration tests. If you need to verify payloads, there are scripts in the docs/helpers folder
 Your task: identify why it is failing with Android and try to resolve the issue thinking step-by-step how to resolve it, updating related source code as necessary.
 
+
 It is still not working. Error messages are in @log.txt
+Most probably, the server is using code similar to source in @docs/Coinbasex402/examples/typescript/facilitator/index.ts, review its dependencies to identify if there are insights on how to resolve this revolving issue. Code @docs/Coinbasex402/examples/typescript/servers/advanced/index.ts shows the backend server
+
 The "Payment header" log still does not show the "==" at the end, is it correctly transformed to Base64?
 Check the @docs/x402-Header.md which was contructed as documentation from the fetch example valid transaction flow
 
 It is getting another type of error and I see the header using a lot of "QUFB" in the string sent to the server, whereas @docs/Coinbasex402/examples/typescript/clients/fetch/log.txt shows a simpler signature. What happens if you just remove all "QUFB" from the X-PAYMENT header? By the way, the fetch/log.txt is a succesful payment flow
 
 docs/Coinbasex402/examples/typescript/clients/fetch/index.ts
+
+https://hub.docker.com/r/mingc/android-build-box/
 
 I am trying to debug a "client" application that is connecting to a x402 server using the "echo" using:
 RESOURCE_SERVER_URL=https://x402.payai.network

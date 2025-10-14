@@ -19,8 +19,11 @@ package com.quantaliz.solaibot.data.x402
 import android.util.Base64
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import android.util.Log
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+
+private val compactJson = Json { encodeDefaults = false }
 
 /**
  * x402 Protocol data models for Solana payments.
@@ -74,8 +77,19 @@ data class PaymentPayload(
      * Encodes this payload as a base64 string for the X-PAYMENT header.
      */
     fun toHeader(): String {
-        val json = Json.encodeToString(this)
-        return Base64.encodeToString(json.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        val json = compactJson.encodeToString(this)
+        Log.d("X402Models", "JSON before base64: '$json'")
+        Log.d("X402Models", "JSON length: ${json.length}")
+        Log.d("X402Models", "JSON contains newlines: ${json.contains('\n')}")
+        Log.d("X402Models", "JSON contains carriage returns: ${json.contains('\r')}")
+
+        // Sanitize JSON to remove any control characters that might cause issues
+        val sanitizedJson = json.replace(Regex("[\\x00-\\x1f\\x7f-\\x9f]"), "")
+        val base64Result = Base64.encodeToString(sanitizedJson.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        Log.d("X402Models", "Base64 result: '$base64Result'")
+        Log.d("X402Models", "Base64 contains newlines: ${base64Result.contains('\n')}")
+        Log.d("X402Models", "Base64 contains carriage returns: ${base64Result.contains('\r')}")
+        return base64Result
     }
 
     companion object {
@@ -85,7 +99,7 @@ data class PaymentPayload(
         fun fromHeader(header: String): PaymentPayload {
             val decoded = Base64.decode(header, Base64.DEFAULT)
             val json = String(decoded, Charsets.UTF_8)
-            return Json.decodeFromString(json)
+            return compactJson.decodeFromString(json)
         }
     }
 }
@@ -106,8 +120,10 @@ data class SettlementResponse(
      * Encodes this response as a base64 string for the X-PAYMENT-RESPONSE header.
      */
     fun toHeader(): String {
-        val json = Json.encodeToString(this)
-        return Base64.encodeToString(json.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        val json = compactJson.encodeToString(this)
+        // Sanitize JSON to remove any control characters that might cause issues
+        val sanitizedJson = json.replace(Regex("[\\x00-\\x1f\\x7f-\\x9f]"), "")
+        return Base64.encodeToString(sanitizedJson.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
     }
 
     companion object {
@@ -117,7 +133,7 @@ data class SettlementResponse(
         fun fromHeader(header: String): SettlementResponse {
             val decoded = Base64.decode(header, Base64.DEFAULT)
             val json = String(decoded, Charsets.UTF_8)
-            return Json.decodeFromString(json)
+            return compactJson.decodeFromString(json)
         }
     }
 }
