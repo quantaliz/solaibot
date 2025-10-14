@@ -248,20 +248,35 @@ object LlmFunctionCallingModelHelper {
 
             val responseBuilder = StringBuilder()
             var isFunctionCall = false
+            var bufferUntilSafe = true  // Buffer initial text to check for FUNCTION_CALL
+            val safeBuffer = StringBuilder()
 
             session.generateContentStream(
                 inputDataList,
                 object : ResponseObserver {
                     override fun onNext(response: String) {
-                        // Check if this chunk or accumulated text contains FUNCTION_CALL
-                        if (response.contains("FUNCTION_CALL") || responseBuilder.toString().contains("FUNCTION_CALL")) {
+                        responseBuilder.append(response)
+                        val accumulated = responseBuilder.toString()
+
+                        // Check if accumulated text contains FUNCTION_CALL
+                        if (accumulated.contains("FUNCTION_CALL")) {
                             isFunctionCall = true
+                            bufferUntilSafe = false
+                            // Don't stream anything to UI once we detect function call
+                            return
                         }
 
-                        responseBuilder.append(response)
-
-                        // Only stream to UI if it's not a function call
-                        if (!isFunctionCall) {
+                        // Buffer first few tokens to detect FUNCTION_CALL pattern early
+                        if (bufferUntilSafe) {
+                            safeBuffer.append(response)
+                            // Once we have enough text and no FUNCTION_CALL, flush buffer
+                            if (safeBuffer.length > 20 && !accumulated.startsWith("FUNCTION")) {
+                                bufferUntilSafe = false
+                                resultListener(safeBuffer.toString(), false)
+                                safeBuffer.clear()
+                            }
+                        } else {
+                            // Normal streaming after buffer is flushed
                             resultListener(response, false)
                         }
                     }
@@ -278,6 +293,17 @@ object LlmFunctionCallingModelHelper {
 
                             // Add assistant's function call to history (keep the original for context)
                             instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
+
+                            // Display user-friendly function call message
+                            val functionDisplayName = when {
+                                functionCall.first.startsWith("get_solana_balance") -> "get_solana_balance"
+                                functionCall.first.startsWith("connect_solana") -> "connect_solana_wallet"
+                                functionCall.first.startsWith("send_solana") -> "send_solana_transaction"
+                                functionCall.first.startsWith("solana_payment") -> "make_solana_payment"
+                                else -> functionCall.first
+                            }
+                            val callingMessage = "Calling... $functionDisplayName"
+                            resultListener(callingMessage, false)
 
                             // Execute the function asynchronously
                             // Since wallet functions might involve user interaction, we need to handle this appropriately
@@ -333,10 +359,10 @@ object LlmFunctionCallingModelHelper {
                             } else {
                                 // For wallet functions, we need special handling since they might involve user interaction
                                 // Add the wallet processing message directly to conversation history so it shows up
-                                instance.conversationHistory.add(ConversationTurn("assistant", "Processing wallet request...\n"))
+                                instance.conversationHistory.add(ConversationTurn("assistant", "Processing wallet request..."))
 
                                 // Signal completion of function call message (filtered out), then send processing message
-                                resultListener("Processing wallet request...\n", true)
+                                resultListener("Processing wallet request...", false)
 
                                 // Execute the actual wallet function async (in the background)
                                 // This would trigger the wallet interaction

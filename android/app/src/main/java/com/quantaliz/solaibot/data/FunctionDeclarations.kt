@@ -115,6 +115,12 @@ Important:
 - If you don't need a function, respond normally with natural language
 - When responding to users after a function call, speak naturally without using markdown code blocks (no ``` syntax)
 - Keep responses conversational and friendly
+- IMPORTANT: When presenting function results (especially payment transactions), include ALL relevant details from the function result such as:
+  * Transaction hashes/signatures
+  * Payment amounts and networks
+  * Premium content or data received
+  * Any confirmation details or receipts
+  * Format these details clearly for the user to see
 """.trimIndent())
 
     return sb.toString()
