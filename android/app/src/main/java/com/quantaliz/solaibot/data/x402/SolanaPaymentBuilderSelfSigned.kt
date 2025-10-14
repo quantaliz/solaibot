@@ -71,7 +71,7 @@ object SolanaPaymentBuilderSelfSigned {
     ////////////////////////////////////////////////////////////
     // DO NOT COMMIT
     ////////////////////////////////////////////////////////////
-    private const val DEV_PRIVATE_KEY_BASE58 = "4YF4JiWAiXdHj91ehvU96b8zko29y9BQkeQJHmifDwoT8DiYsNwK6vwrLmaQRUJFgLM9nssMs91FoXThFfJUVdBB"
+    private const val DEV_PRIVATE_KEY_BASE58 = "7dRXJd2pmzpPzXx7Dxo1oapVGRF4jXsWeKRnRegKSfM77dRXJd2pmzpPzXx7Dxo1oapVGRF4jXsWeKRnRegKSfM7"
     ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////
 
