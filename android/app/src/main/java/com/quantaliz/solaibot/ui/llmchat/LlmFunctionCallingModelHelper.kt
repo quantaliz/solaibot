@@ -297,7 +297,6 @@ object LlmFunctionCallingModelHelper {
                             // Display user-friendly function call message
                             val functionDisplayName = when {
                                 functionCall.first.startsWith("get_solana_balance") -> "get_solana_balance"
-                                functionCall.first.startsWith("connect_solana") -> "connect_solana_wallet"
                                 functionCall.first.startsWith("send_solana") -> "send_solana_transaction"
                                 functionCall.first.startsWith("solana_payment") -> "make_solana_payment"
                                 else -> functionCall.first
@@ -305,14 +304,8 @@ object LlmFunctionCallingModelHelper {
                             val callingMessage = "Calling... $functionDisplayName"
                             resultListener(callingMessage, false)
 
-                            // Execute the function asynchronously
-                            // Since wallet functions might involve user interaction, we need to handle this appropriately
-                            // For now, we'll run the function in a coroutine and return a placeholder immediately
-                            // The actual response will be handled differently
-
-                            // For non-wallet functions, we can run synchronously
+                            // All functions are Solana wallet functions that may require user interaction
                             val isWalletFunction = functionCall.first.startsWith("get_solana_balance") ||
-                                                   functionCall.first.startsWith("connect_solana") ||
                                                    functionCall.first.startsWith("send_solana") ||
                                                    functionCall.first.startsWith("solana_payment")
 
