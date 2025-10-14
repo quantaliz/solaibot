@@ -35,6 +35,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.quantaliz.solaibot.data.generateFunctionCallingSystemPrompt
 import com.quantaliz.solaibot.data.parseFunctionCall
+import com.quantaliz.solaibot.data.x402.SettlementResponse
+import kotlinx.serialization.json.Json
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
@@ -366,6 +368,11 @@ object LlmFunctionCallingModelHelper {
                                     // Add function result to history
                                     instance.conversationHistory.add(ConversationTurn("function", actualResult))
 
+                                    // Check if this is a solana_payment function and extract x402 details
+                                    val x402Details = if (functionCall.first.startsWith("solana_payment")) {
+                                        extractX402SettlementInfo(actualResult)
+                                    } else null
+
                                     // Create a new prompt with the updated conversation history to have the LLM process the actual result
                                     val updatedPrompt = buildPrompt(instance)
                                     val updatedResponseBuilder = StringBuilder()
@@ -384,6 +391,13 @@ object LlmFunctionCallingModelHelper {
 
                                                 // Add final response to history
                                                 instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
+
+                                                // If we have x402 details, send them as a separate message bubble
+                                                if (x402Details != null) {
+                                                    Log.d(TAG, "Sending x402 settlement details as separate message")
+                                                    resultListener(x402Details, false)
+                                                }
+
                                                 resultListener("", true)
                                             }
 
@@ -439,5 +453,52 @@ object LlmFunctionCallingModelHelper {
         val stream = java.io.ByteArrayOutputStream()
         this.compress(Bitmap.CompressFormat.PNG, 100, stream)
         return stream.toByteArray()
+    }
+
+    /**
+     * Extracts x402 settlement information from the function result string.
+     * Returns a formatted message if settlement info is found, null otherwise.
+     */
+    private fun extractX402SettlementInfo(functionResult: String): String? {
+        try {
+            // Look for settlement information in the function result
+            // The pattern matches the output from makeSolanaPayment in SolanaWalletFunctions.kt
+            val settlementPattern = """Payment settled successfully!\s*Transaction:\s*([^\s]+)\s*Network:\s*([^\s]+)\s*Payer:\s*([^\s]+)""".toRegex()
+            val match = settlementPattern.find(functionResult)
+
+            if (match != null) {
+                val transaction = match.groupValues[1]
+                val network = match.groupValues[2]
+                val payer = match.groupValues[3]
+
+                // Also try to extract the premium content/response body
+                val responsePattern = """Response:\s*(.+)""".toRegex(RegexOption.DOT_MATCHES_ALL)
+                val responseMatch = responsePattern.find(functionResult)
+                val premiumContent = responseMatch?.groupValues?.get(1)?.trim() ?: ""
+
+                return buildString {
+                    append("━━━━━━━━━━━━━━━━━━━━━━\n")
+                    append("💳 x402 Payment Details\n")
+                    append("━━━━━━━━━━━━━━━━━━━━━━\n\n")
+                    append("✅ Payment Status: Success\n\n")
+                    append("🔗 Transaction Hash:\n")
+                    append("`$transaction`\n\n")
+                    append("🌐 Network: $network\n\n")
+                    append("👤 Payer Address:\n")
+                    append("`$payer`\n\n")
+                    if (premiumContent.isNotEmpty()) {
+                        append("━━━━━━━━━━━━━━━━━━━━━━\n")
+                        append("📦 Premium Content\n")
+                        append("━━━━━━━━━━━━━━━━━━━━━━\n\n")
+                        append(premiumContent)
+                    }
+                }
+            }
+
+            return null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error extracting x402 settlement info: ${e.message}", e)
+            return null
+        }
     }
 }

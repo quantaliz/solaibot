@@ -136,3 +136,17 @@ Using the MWA signer failed, while self-signed succeded. Identify why MWA fails 
 MWA logs: @log.txt
 Self-signed: @logsuccess.txt
 There you can compare what happened between executions
+
+Now, it is using solflare instead of phantom to sign with MWA, it gives me this error: @log.txt
+
+Now, when the user receives the response, they can't see the details of the transaction, like the premium content or confirmation hash. Also, the @screen.png shows the "FUNCTION_CALL" which should be "Calling... XXX" where XXX is the function to call, then a line break. When the wallet is called, "Processing wallet request..." needs a line break as well. Update the view to be more user friendly.
+
+The @screen.png shows the "FUNCTION_CALL" still in the interface along now with "Calling..."
+It might be that the LLM is adding the "FUNCTION_CALL" string before function call is being captured. Also, other strings do not have a line break despite putting it on the string (like "request...\n").
+Find another location to update the code
+
+File @app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt has the declaration of functions the LLM can call, I have commented unused function, this app will only support solana functions, other are not necessary. Update the system prompt with the solana functions as well as examples.
+
+Identify if there are other places where functions like "get weather" and similar are called, then remove the code (and even commented one). Also remove the code related to "connect_solana", the app connects to the MWA when the user authorizes it
+
+Add an extra "message bubble" for the "solana_payment" function with the response from the x402 service with its response details when the operation is successful. The user needs to see the hash of the transaction and the "premium" content
