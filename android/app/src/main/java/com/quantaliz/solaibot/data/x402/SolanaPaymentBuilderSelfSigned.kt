@@ -35,12 +35,6 @@ import java.io.IOException
 
 private const val TAG = "SolanaPaymentSelfSign"
 
-
-/**
- * Helper function for creating compute unit price instruction.
- */
-private fun createComputeUnitPriceInstruction(microLamports: Long) = SetComputeUnitPriceInstruction(microLamports)
-
 /**
  * Helper function for creating compute unit limit instruction.
  */
@@ -59,6 +53,11 @@ private fun createComputeUnitLimitInstruction(units: Long): org.sol4k.instructio
 }
 
 /**
+ * Helper function for creating compute unit price instruction.
+ */
+private fun createComputeUnitPriceInstruction(microLamports: Long) = SetComputeUnitPriceInstruction(microLamports)
+
+/**
  * Builds and self-signs Solana payment transactions using a hardcoded private key.
  *
  * This implementation is for debugging purposes to bypass the Mobile Wallet Adapter.
@@ -69,8 +68,12 @@ object SolanaPaymentBuilderSelfSigned {
     // IMPORTANT: This is a placeholder private key for testing.
     // REPLACE with the valid devnet private key (Base58 encoded, 88 characters) that corresponds
     // to the public key: 7dRXJd2pmzpPzXx7Dxo1oapVGRF4jXsWeKRnRegKSfM7
-
-    private const val DEV_PRIVATE_KEY_BASE58 = ""
+    ////////////////////////////////////////////////////////////
+    // DO NOT COMMIT
+    ////////////////////////////////////////////////////////////
+    private const val DEV_PRIVATE_KEY_BASE58 = "4YF4JiWAiXdHj91ehvU96b8zko29y9BQkeQJHmifDwoT8DiYsNwK6vwrLmaQRUJFgLM9nssMs91FoXThFfJUVdBB"
+    ////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////
 
     private fun getRpcEndpoint(network: String): String = when (network) {
         "solana" -> "https://api.mainnet-beta.solana.com"
@@ -87,7 +90,6 @@ object SolanaPaymentBuilderSelfSigned {
             throw IOException("No internet connection. Cannot connect to Solana RPC.")
         }
 
-        // Create keypair from hardcoded private key
         val userKeypair = Keypair.fromSecretKey(Base58.decode(DEV_PRIVATE_KEY_BASE58))
         val userPublicKey = userKeypair.publicKey.toBase58()
 
@@ -164,17 +166,20 @@ object SolanaPaymentBuilderSelfSigned {
 
         val messageBytes = customBuilder.buildMessage()
 
+        // IMPORTANT: The x402 facilitator expects V0 transactions, NOT legacy format!
+        // The TypeScript reference implementation keeps the 0x80 prefix and signs the V0 message.
+        // We must do the same - do NOT strip the 0x80 byte.
         val isVersionedTx = (messageBytes[0].toInt() and 0x80) != 0
         if (!isVersionedTx) {
-            Log.w(TAG, "Expected a V0 message from builder but got legacy. Using as is.")
+            Log.w(TAG, "Expected a V0 message from builder but got legacy.")
             return@withContext messageBytes
         }
 
-        Log.d(TAG, "Converting V0 transaction message to legacy format for x402 compatibility.")
-        val legacyMessageBytes = messageBytes.copyOfRange(1, messageBytes.size)
+        Log.d(TAG, "Keeping V0 transaction format (with 0x80 prefix) for x402 compatibility.")
+        Log.d(TAG, "V0 message size: ${messageBytes.size} bytes")
 
-        Log.d(TAG, "Legacy message size: ${legacyMessageBytes.size} bytes")
-        legacyMessageBytes
+        // Return the V0 message for signing (with 0x80 prefix intact)
+        messageBytes
     }
 
     private fun signTransactionSelf(
@@ -184,29 +189,53 @@ object SolanaPaymentBuilderSelfSigned {
         Log.d(TAG, "=== Starting Self-Signing Process ===")
         Log.d(TAG, "Input message size: ${messageBytes.size} bytes")
 
-        val numSignatures = messageBytes[0].toInt() and 0xFF
-        Log.d(TAG, "Transaction requires $numSignatures signatures")
+        // Verify we have a V0 transaction
+        val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
+        if (!isVersioned) {
+            throw IllegalStateException("Expected V0 transaction message for signing")
+        }
+        val numSignatures = messageBytes[1].toInt() and 0xFF
+        Log.d(TAG, "V0 transaction requires $numSignatures signatures")
 
+        // Sign the V0 message (with 0x80 prefix)
         val userSignature = userKeypair.sign(messageBytes)
         Log.d(TAG, "Successfully created signature (${userSignature.size} bytes)")
 
+        // Create a properly formatted partially signed V0 Solana transaction.
+        // Structure: [numSigs (1 byte)][sig0 (64 bytes)][sig1 (64 bytes)]...[V0 message with 0x80 prefix]
         val signatureSize = 64
         val totalSignatureBytes = numSignatures * signatureSize
         val signedTransactionBytes = ByteArray(1 + totalSignatureBytes + messageBytes.size)
 
+        // Add number of signatures
         signedTransactionBytes[0] = numSignatures.toByte()
 
+        // Place user signature in slot 1 (feePayer signature in slot 0 will be added by facilitator)
         if (numSignatures > 1) {
             val userSignatureOffset = 1 + signatureSize
             System.arraycopy(userSignature, 0, signedTransactionBytes, userSignatureOffset, signatureSize)
         }
 
+        // Add the V0 message (with 0x80 prefix intact)
         val messageOffset = 1 + totalSignatureBytes
         System.arraycopy(messageBytes, 0, signedTransactionBytes, messageOffset, messageBytes.size)
+
+        // Verify V0 transaction structure
+        Log.d(TAG, "=== V0 TRANSACTION STRUCTURE VERIFICATION ===")
+        Log.d(TAG, "Byte 0 (numSigs): ${signedTransactionBytes[0]}")
+        Log.d(TAG, "Byte $messageOffset (should be 0x80 for V0): 0x${String.format("%02X", signedTransactionBytes[messageOffset].toInt() and 0xFF)}")
+        if (signedTransactionBytes[messageOffset].toInt() and 0x80 == 0) {
+            Log.e(TAG, "ERROR: V0 marker (0x80) not found at expected position!")
+        } else {
+            Log.d(TAG, "✓ V0 marker (0x80) confirmed at byte $messageOffset")
+        }
+
+        Log.d(TAG, "Signed V0 transaction total size: ${signedTransactionBytes.size} bytes")
 
         val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
         Log.d(TAG, "Encoded to base64 (${base64Result.length} chars)")
         Log.d(TAG, "=== Self-Signing Process Complete ===")
+        Log.d(TAG, "Successfully created partially signed V0 transaction for x402")
         return base64Result
     }
 

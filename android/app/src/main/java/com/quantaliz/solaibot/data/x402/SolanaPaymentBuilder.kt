@@ -256,14 +256,11 @@ object SolanaPaymentBuilder {
         // - byte 1: numRequiredSignatures
         // - byte 2: numReadonlySignedAccounts
         // - byte 3: numReadonlyUnsignedAccounts
-        // For legacy transactions:
-        // - byte 0: numRequiredSignatures
         val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
-        val numSignatures = if (isVersioned) {
-            messageBytes[1].toInt() and 0xFF
-        } else {
-            messageBytes[0].toInt() and 0xFF
+        if (!isVersioned) {
+            throw IllegalStateException("Expected V0 transaction format, but got legacy format")
         }
+        val numSignatures = messageBytes[1].toInt() and 0xFF
 
         Log.d(TAG, "Message format: ${if (isVersioned) "V0 (versioned)" else "Legacy"}")
         Log.d(TAG, "Transaction requires $numSignatures signatures (raw value from message)")
@@ -294,27 +291,22 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "Full message bytes: $fullMessageHex")
         Log.d(TAG, "Transaction requires $numSignatures signatures")
         Log.d(TAG, "Message size: ${messageBytes.size} bytes")
-        Log.d(TAG, "This was compiled after full app removal.")
 
-        // The x402 facilitator expects a legacy transaction, but our builder creates a V0 one.
-        // We can convert it by stripping the V0 prefix byte (0x80).
+        // IMPORTANT: The x402 facilitator expects V0 transactions, NOT legacy format!
+        // The TypeScript reference implementation keeps the 0x80 prefix and signs the V0 message.
+        // We must do the same - do NOT strip the 0x80 byte.
         val isVersionedTx = (messageBytes[0].toInt() and 0x80) != 0
         if (!isVersionedTx) {
-            Log.w(TAG, "Expected a V0 message from builder but got legacy. Using as is.")
+            Log.w(TAG, "Expected a V0 message from builder but got legacy.")
+            // This shouldn't happen with our X402TransactionBuilder, but if it does, use as-is
             return@withContext messageBytes
         }
 
-        Log.d(TAG, "Converting V0 transaction message to legacy format for x402 compatibility.")
-        val legacyMessageBytes = messageBytes.copyOfRange(1, messageBytes.size)
+        Log.d(TAG, "Keeping V0 transaction format (with 0x80 prefix) for x402 compatibility.")
+        Log.d(TAG, "V0 message size: ${messageBytes.size} bytes")
 
-        Log.d(TAG, "Legacy message size: ${legacyMessageBytes.size} bytes")
-        val legacyPreviewBytes = legacyMessageBytes.take(20).joinToString(" ") {
-            String.format("0x%02X", it.toInt() and 0xFF)
-        }
-        Log.d(TAG, "Legacy message bytes (first 20): $legacyPreviewBytes")
-
-        // Return the legacy message for MWA signing
-        legacyMessageBytes
+        // Return the V0 message for MWA signing (with 0x80 prefix intact)
+        messageBytes
     }
 
     /**
@@ -550,14 +542,14 @@ object SolanaPaymentBuilder {
         Log.d(TAG, "=== Starting MWA Signing Process ===")
         Log.d(TAG, "Input message size: ${messageBytes.size} bytes")
 
+        // Verify we have a V0 transaction
         val isVersioned = (messageBytes[0].toInt() and 0x80) != 0
-        val numSignatures = if (isVersioned) {
-            messageBytes[1].toInt() and 0xFF
-        } else {
-            messageBytes[0].toInt() and 0xFF
+        if (!isVersioned) {
+            throw IllegalStateException("Expected V0 transaction message for signing")
         }
+        val numSignatures = messageBytes[1].toInt() and 0xFF
 
-        Log.d(TAG, "Transaction requires $numSignatures signatures")
+        Log.d(TAG, "V0 transaction requires $numSignatures signatures")
 
         // Get user's public key from wallet connection state
         val connectionState = WalletConnectionManager.getConnectionState()
@@ -649,21 +641,16 @@ object SolanaPaymentBuilder {
                         throw IOException("Failed to extract signature: ${e.message}", e)
                     }
 
-                    // Create a properly formatted fully signed LEGACY Solana transaction.
-                    // The x402 facilitator requires legacy format, not V0/versioned.
-                    Log.d(TAG, "Creating properly formatted legacy Solana transaction...")
-
-                    if (isVersioned) {
-                        // This block should not be reached if buildUnsignedTransaction is correct
-                        Log.w(TAG, "Warning: Assembling a legacy transaction from a message that was initially versioned.")
-                    }
+                    // Create a properly formatted partially signed V0 Solana transaction.
+                    // The x402 facilitator expects V0 format transactions.
+                    Log.d(TAG, "Creating properly formatted V0 Solana transaction...")
 
                     // The transaction is partially signed. The feePayer (server) will add its signature.
-                    // The user's signature must be in the correct slot.
+                    // Structure: [numSigs (1 byte)][sig0 (64 bytes)][sig1 (64 bytes)]...[V0 message with 0x80 prefix]
                     val signatureSize = 64
                     val totalSignatureBytes = numSignatures * signatureSize
 
-                    // Create the transaction: [numSigs][signatures][message]
+                    // Create the transaction: [numSigs][signatures][V0 message]
                     val signedTransactionBytes = ByteArray(1 + totalSignatureBytes + messageBytes.size)
 
                     // Add number of signatures
@@ -678,15 +665,25 @@ object SolanaPaymentBuilder {
                         System.arraycopy(userSignature, 0, signedTransactionBytes, userSignatureOffset, signatureSize)
                     }
 
-                    // Add the message, which comes after the signature count and all signature slots
+                    // Add the V0 message (with 0x80 prefix intact), which comes after signature count and all signature slots
                     val messageOffset = 1 + totalSignatureBytes
                     System.arraycopy(messageBytes, 0, signedTransactionBytes, messageOffset, messageBytes.size)
 
-                    // Log first 80 bytes to verify structure
-                    val txPreview = signedTransactionBytes.take(80).joinToString(" ") {
+                    // Log first 135 bytes to verify structure (including V0 marker)
+                    val txPreview = signedTransactionBytes.take(135).joinToString(" ") {
                         String.format("0x%02X", it.toInt() and 0xFF)
                     }
-                    Log.d(TAG, "Signed transaction (first 80 bytes): $txPreview")
+                    Log.d(TAG, "Signed transaction (first 135 bytes): $txPreview")
+
+                    // Verify V0 transaction structure
+                    Log.d(TAG, "=== V0 TRANSACTION STRUCTURE VERIFICATION ===")
+                    Log.d(TAG, "Byte 0 (numSigs): ${signedTransactionBytes[0]}")
+                    Log.d(TAG, "Byte ${messageOffset} (should be 0x80 for V0): 0x${String.format("%02X", signedTransactionBytes[messageOffset].toInt() and 0xFF)}")
+                    if (signedTransactionBytes[messageOffset].toInt() and 0x80 == 0) {
+                        Log.e(TAG, "ERROR: V0 marker (0x80) not found at expected position!")
+                    } else {
+                        Log.d(TAG, "✓ V0 marker (0x80) confirmed at byte $messageOffset")
+                    }
 
                     // Log signature slots
                     Log.d(TAG, "Signature slots: $numSignatures total")
@@ -695,29 +692,21 @@ object SolanaPaymentBuilder {
                         val slotStart = i * 64
                         val slotEnd = slotStart + 64
                         val slotBytes = signatureArea.copyOfRange(slotStart, slotEnd)
-                        val slotHex = slotBytes.joinToString("") {
+                        val slotHex = slotBytes.take(16).joinToString("") {
                             String.format("%02X", it.toInt() and 0xFF)
                         }
                         val isFilled = !slotBytes.all { it == 0x00.toByte() }
-                        Log.d(TAG, "Signature slot $i: ${if (isFilled) "FILLED" else "EMPTY"} ($slotHex.take(16)...)")
-
-                        // Verify all slots have the same signature (as expected for x402)
-                        if (i > 0) {
-                            val prevSlotBytes = signatureArea.copyOfRange((i-1) * 64, i * 64)
-                            val signaturesMatch = slotBytes.contentEquals(prevSlotBytes)
-                            if (!signaturesMatch) {
-                                Log.w(TAG, "Warning: Signature slot $i doesn't match slot ${i-1}")
-                            }
-                        }
+                        Log.d(TAG, "Signature slot $i: ${if (isFilled) "FILLED" else "EMPTY"} (first 16 bytes: $slotHex...)")
                     }
 
-                    Log.d(TAG, "Signed transaction size: ${signedTransactionBytes.size} bytes")
+                    Log.d(TAG, "Signed V0 transaction total size: ${signedTransactionBytes.size} bytes")
 
                     // Encode to base64 for x402 protocol
                     val base64Result = Base64.encodeToString(signedTransactionBytes, Base64.NO_WRAP)
                     Log.d(TAG, "Encoded to base64 (${base64Result.length} chars)")
-                    Log.d(TAG, "Base64 transaction (full): $base64Result")
+                    Log.d(TAG, "Base64 V0 transaction (first 100 chars): ${base64Result.take(100)}...")
                     Log.d(TAG, "=== MWA Signing Process Complete ===")
+                    Log.d(TAG, "Successfully created partially signed V0 transaction for x402")
                     base64Result
                 }
 
