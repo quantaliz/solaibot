@@ -26,4 +26,4 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - name: Build
-        run: ./gradlew assembleRelease
+        run: ./android/gradlew assembleRelease
