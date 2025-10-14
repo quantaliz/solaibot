@@ -78,12 +78,10 @@ class X402HttpClient(
      * Makes a GET request to a resource that may require x402 payment.
      *
      * @param url The URL to request
-     * @param activityResultSender Required for wallet interaction (signing transactions)
      * @return X402Response containing the result and settlement details
      */
     suspend fun get(
-        url: String,
-        activityResultSender: ActivityResultSender?
+        url: String
     ): X402Response = withContext(Dispatchers.IO) {
         // Check network connectivity before making any requests
         if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
@@ -94,15 +92,6 @@ class X402HttpClient(
                 statusCode = 0,
                 body = null,
                 errorMessage = "No internet connection. $networkStatus"
-            )
-        }
-
-        if (activityResultSender == null) {
-            return@withContext X402Response(
-                success = false,
-                statusCode = 0,
-                body = null,
-                errorMessage = "ActivityResultSender required for x402 payments"
             )
         }
 
@@ -157,7 +146,7 @@ class X402HttpClient(
 
             // Step 3: Build and sign payment transaction
             val paymentPayload = try {
-                buildSolanaPaymentPayload(requirement, activityResultSender)
+                buildSolanaPaymentPayload(requirement)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to build payment payload", e)
                 return@withContext X402Response(
@@ -207,17 +196,16 @@ class X402HttpClient(
      *
      * This delegates to the Solana payment builder which:
      * 1. Creates a transfer transaction to the payTo address
-     * 2. Signs it with the user's wallet via MWA
+     * 2. Signs it with a hardcoded key for debugging.
      * 3. Encodes it as a partially-signed transaction (facilitator will add fee payer signature)
      */
     private suspend fun buildSolanaPaymentPayload(
-        requirement: PaymentRequirements,
-        activityResultSender: ActivityResultSender
+        requirement: PaymentRequirements
     ): PaymentPayload {
-        val transaction = SolanaPaymentBuilder.buildSolanaPaymentTransaction(
+        // NOTE: Using self-signed builder for debugging purposes to bypass MWA.
+        val transaction = SolanaPaymentBuilderSelfSigned.buildSolanaPaymentTransaction(
             context = context,
-            requirement = requirement,
-            activityResultSender = activityResultSender
+            requirement = requirement
         )
 
         return PaymentPayload(

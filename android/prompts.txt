@@ -99,6 +99,8 @@ Your task: identify why it is failing with Android and try to resolve the issue 
 
 
 It is still not working. Error messages are in @log.txt
+Let's try a new approach, create a new file named "SolanaPaymentBuilderSelfSigned.kt" which, instead of relying on the MWA to sign the X-payment, it uses a private key (hardcoded at the top) to sign the payload as it is done in the fetch/index.ts
+Then, reference this new self signed code instead of the current implementation. Do not remove files, just skip using them to test if self-signing works.
 Most probably, the server is using code similar to source in @docs/Coinbasex402/examples/typescript/facilitator/index.ts, review its dependencies to identify if there are insights on how to resolve this revolving issue. Code @docs/Coinbasex402/examples/typescript/servers/advanced/index.ts shows the backend server
 
 The "Payment header" log still does not show the "==" at the end, is it correctly transformed to Base64?

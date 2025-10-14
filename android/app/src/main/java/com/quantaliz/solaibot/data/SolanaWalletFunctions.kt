@@ -456,7 +456,7 @@ suspend fun getSolanaBalanceViaRpc(context: Context, address: String): String {
  * Makes a payment to a x402-enabled resource.
  * This handles the full x402 payment flow including signing with MWA.
  */
-suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
+suspend fun makeSolanaPayment(context: Context, args: Map<String, String>): String {
     val url = args["url"] ?: return "Error: Missing URL parameter"
 
     // Check network connectivity first
@@ -465,16 +465,8 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activ
         return "No internet connection available. Please check your network settings.\n\nNetwork status: $networkStatus"
     }
 
-    // Check if wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        return "Wallet not connected. Please connect your wallet first before making payments."
-    }
-
-    // Check if activityResultSender is provided
-    if (activityResultSender == null) {
-        return "Payment requires user interaction. Please connect your wallet first."
-    }
+    // For self-signing, we don't need to check for a connected wallet via MWA.
+    // The identity is determined by the hardcoded key in the builder.
 
     return try {
         val client = com.quantaliz.solaibot.data.x402.X402HttpClient(
@@ -484,7 +476,7 @@ suspend fun makeSolanaPayment(context: Context, args: Map<String, String>, activ
 
         Log.d(TAG, "Making x402 payment to: $url")
 
-        val response = client.get(url, activityResultSender)
+        val response = client.get(url)
 
         when {
             response.success -> {
@@ -537,7 +529,7 @@ suspend fun executeSolanaWalletFunction(context: Context, functionName: String, 
             sendSolana(context, args, activityResultSender)
         }
         "solana_payment" -> {
-            makeSolanaPayment(context, args, activityResultSender)
+            makeSolanaPayment(context, args)
         }
         else -> {
             "Error: Unknown Solana wallet function '$functionName'"
