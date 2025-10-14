@@ -225,9 +225,7 @@ fun GalleryNavHost(
           onModelClicked = { model ->
             navController.navigate("$ROUTE_MODEL/${curPickedTask.id}/${model.name}")
           },
-          navigateUp = { 
-            shouldShowLlmModelManager = false
-          },
+          navigateUp = null,
         )
       }
     }

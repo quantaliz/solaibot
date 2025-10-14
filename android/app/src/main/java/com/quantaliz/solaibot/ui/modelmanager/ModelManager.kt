@@ -43,7 +43,7 @@ import com.quantaliz.solaibot.data.Task
 fun ModelManager(
   task: Task,
   viewModel: ModelManagerViewModel,
-  navigateUp: () -> Unit,
+  navigateUp: (() -> Unit)?,
   onModelClicked: (Model) -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -64,19 +64,21 @@ fun ModelManager(
   // Navigate up when there are no models left.
   LaunchedEffect(modelCount) {
     if (modelCount == 0) {
-      navigateUp()
+      navigateUp?.invoke()
     }
   }
 
   // Handle system's edge swipe.
-  BackHandler { navigateUp() }
+  if (navigateUp != null) {
+    BackHandler { navigateUp() }
+  }
 
   Scaffold(
     modifier = modifier,
     topBar = {
       SolAIBotTopAppBar(
         title = title,
-        leftAction = AppBarAction(actionType = AppBarActionType.NAVIGATE_UP, actionFn = navigateUp),
+        leftAction = navigateUp?.let { AppBarAction(actionType = AppBarActionType.NAVIGATE_UP, actionFn = it) },
       )
     },
   ) { innerPadding ->

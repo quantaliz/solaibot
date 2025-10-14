@@ -692,67 +692,12 @@ constructor(
 
     viewModelScope.launch(Dispatchers.IO) {
       try {
-        // Load model allowlist json.
-        var modelAllowlist: ModelAllowlist? = null
+        // Disabled: External model allowlist loading to prevent unwanted models (e.g., Gemma3)
+        // Only use models explicitly defined in custom tasks
+        Log.d(TAG, "Skipping external model allowlist loading - using only predefined models")
 
-        // Try to read the test allowlist first.
-        Log.d(TAG, "Loading test model allowlist.")
-        modelAllowlist = readModelAllowlistFromDisk(fileName = MODEL_ALLOWLIST_TEST_FILENAME)
-        if (modelAllowlist == null) {
-          // Load from github.
-          val url =
-            "https://raw.githubusercontent.com/google-ai-edge/gallery/refs/heads/main/model_allowlists/${BuildConfig.VERSION_NAME.replace(".", "_")}.json"
-          Log.d(TAG, "Loading model allowlist from internet. Url: $url")
-          val data = getJsonResponse<ModelAllowlist>(url = url)
-          modelAllowlist = data?.jsonObj
-
-          if (modelAllowlist == null) {
-            Log.w(TAG, "Failed to load model allowlist from internet. Trying to load it from disk")
-            modelAllowlist = readModelAllowlistFromDisk()
-          } else {
-            Log.d(TAG, "Done: loading model allowlist from internet")
-            saveModelAllowlistToDisk(modelAllowlistContent = data?.textContent ?: "{}")
-          }
-        }
-
-        if (modelAllowlist == null) {
-          _uiState.update {
-            uiState.value.copy(loadingModelAllowlistError = "Failed to load model list")
-          }
-          return@launch
-        }
-
-        Log.d(TAG, "Allowlist: $modelAllowlist")
-
-        // Convert models in the allowlist.
+        // Get tasks with their predefined models only
         val curTasks = customTasks.map { it.task }
-        val nameToModel = mutableMapOf<String, Model>()
-        for (allowedModel in modelAllowlist.models) {
-          if (allowedModel.disabled == true) {
-            continue
-          }
-
-          val model = allowedModel.toModel()
-          nameToModel.put(model.name, model)
-          for (taskType in allowedModel.taskTypes) {
-            val task = curTasks.find { it.id == taskType }
-            task?.models?.add(model)
-          }
-        }
-
-        // Find models from allowlist if a task's `modelNames` field is not empty.
-        for (task in curTasks) {
-          if (task.modelNames.isNotEmpty()) {
-            for (modelName in task.modelNames) {
-              val model = nameToModel[modelName]
-              if (model == null) {
-                Log.w(TAG, "Model '${modelName}' in task '${task.label}' not found in allowlist.")
-                continue
-              }
-              task.models.add(model)
-            }
-          }
-        }
 
         // Process all tasks.
         processTasks()
