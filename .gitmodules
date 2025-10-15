@@ -1,0 +1,3 @@
+[submodule "solana-agent-kit"]
+	path = solana-agent-kit
+	url = https://github.com/quantaliz/solana-agent-kit
