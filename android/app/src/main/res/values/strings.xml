@@ -19,7 +19,7 @@
   <string name="app_name" translatable="false">SolAIBot</string>
   <string name="app_name_first_part" translatable="false">SolAIBot</string>
   <string name="app_name_second_part" translatable="false">AIBot</string>
-  <string name="app_intro" translatable="false">Explore a world of amazing on-device models from</string>
+  <string name="app_intro" translatable="false">Quantaliz brings you on-device AI with Solana extensions</string>
   <string name="best_overall" translatable="false">Best overall</string>
   <plurals name="model_list_number_of_models_available" translatable="false">
     <item quantity="one">%d model available</item>
