@@ -51,10 +51,10 @@
                     android:endY="0"
                     android:tileMode="clamp">
                   <item
-                      android:color="#41A15F"
+                      android:color="#14F195"
                       android:offset="0"/>
                   <item
-                      android:color="#128937"
+                      android:color="#19FB9B"
                       android:offset="1"/>
                 </gradient>
               </aapt:attr>
@@ -89,10 +89,10 @@
                     android:endY="0"
                     android:tileMode="clamp">
                   <item
-                      android:color="#FDD45D"
+                      android:color="#00D4FF"
                       android:offset="0"/>
                   <item
-                      android:color="#CAA12A"
+                      android:color="#00B8E6"
                       android:offset="1"/>
                 </gradient>
               </aapt:attr>
@@ -128,10 +128,10 @@
                     android:endY="0"
                     android:tileMode="clamp">
                   <item
-                      android:color="#E25F57"
+                      android:color="#9945FF"
                       android:offset="0"/>
                   <item
-                      android:color="#DB372D"
+                      android:color="#8A3FE8"
                       android:offset="1"/>
                 </gradient>
               </aapt:attr>
@@ -166,10 +166,10 @@
                     android:endY="0"
                     android:tileMode="clamp">
                   <item
-                      android:color="#669DF6"
+                      android:color="#00D4FF"
                       android:offset="0"/>
                   <item
-                      android:color="#3174F1"
+                      android:color="#0099CC"
                       android:offset="1"/>
                 </gradient>
               </aapt:attr>
