@@ -2,7 +2,7 @@
 ## On-device LLM + x402 Payments
 
 <div align="center">
-<img src="images/SolAIBot1-Result.png" width="250" alt="App Interface" /><img src="images/SolAIBot2-Sign.png" width="250" alt="Payment Feature" />
+<img src="../images/SolAIBot1-Result.png" width="250" alt="App Interface" /><img src="../images/SolAIBot2-Sign.png" width="250" alt="Payment Feature" />
 </div>
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -83,8 +83,9 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 Built with ❤️ for **Cypherpunk** & **Hackaroo 2025**
 
 ## 👤 Developer
-![Quantaliz](images/Quantaliz.png)
-*Developed by Quantaliz - Bringing AI and Web3 together*
+![Quantaliz](../images/Quantaliz.png)
+
+*Developed by [Quantaliz](https://www.quantaliz.com) - Bringing AI and Web3 together*
 
 ## Default LLM
 By default, this app uses [Hammer2.1-1.5b](https://huggingface.co/MadeAgents/Hammer2.1-1.5b)

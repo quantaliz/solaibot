@@ -150,3 +150,9 @@ File @app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt has 
 Identify if there are other places where functions like "get weather" and similar are called, then remove the code (and even commented one). Also remove the code related to "connect_solana", the app connects to the MWA when the user authorizes it
 
 Add an extra "message bubble" for the "solana_payment" function with the response from the x402 service with its response details when the operation is successful. The user needs to see the hash of the transaction and the "premium" content
+
+This repository is the full submission to two hackathons. The first project, SolAIBot has @android/README.md & @android/AGENTS.md files as reference. The second project, solana-agent-kit, has @solana-agent-kit/README.md & @solana-agent-kit/AGENTS.md files explaining what has been done in these projects by Quantaliz. With that in mind, update @README.md to reflect the hard work made from both projects into a full hackathon submission.
+
+Using the context from @README.md & @android/AGENTS.md for SolAIBot along @README-SolAgent.md & @AGENTS-SolAgent.md from the solana-agent-kit project (https://github.com/quantaliz/solana-agent-kit) create a Webpage for the Hackathon (webpage in https://Hackaroo.xyz) and Cyphepunk (webpage in https://www.colosseum.com/cypherpunk).
+This page should follow the easthetic from www.quantaliz.com
+In this page, reflect all the hard work made for the hackathon: fork of the solana-agent-kit or
