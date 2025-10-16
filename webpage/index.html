@@ -11,7 +11,6 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Financially Autonomous AI Agents | Quantaliz">
     <meta property="og:description" content="Privacy-first AI agents that make autonomous blockchain payments using Solana">
-    <meta property="og:image" content="https://quantaliz.github.io/hackathon-2025/og-image.png">
 
     <title>Financially Autonomous AI Agents | Quantaliz Hackathon 2025</title>
 
@@ -23,39 +22,26 @@
         }
 
         :root {
-            --primary-purple: #8B5CF6;
-            --primary-orange: #F97316;
-            --dark-bg: #0f172a;
-            --darker-bg: #020617;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --accent-cyan: #06b6d4;
-            --accent-green: #10b981;
-            --gradient-start: #8B5CF6;
-            --gradient-end: #F97316;
+            /* Color Palette */
+            --primary-purple: #7c3aed;
+            --primary-orange: #f97316;
+            --dark-bg: #0f0f0f;
+            --darker-bg: #1a1a1a;
+            --light-text: #f8f8f8;
+            --gray-text: #888;
+            --border-color: #333;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: var(--darker-bg);
-            color: var(--text-primary);
+            font-family: 'Hind', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark-bg);
+            color: var(--light-text);
             line-height: 1.6;
             overflow-x: hidden;
-        }
-
-        /* Animated gradient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
         }
 
         /* Navigation */
@@ -63,10 +49,10 @@
             position: fixed;
             top: 0;
             width: 100%;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(10px);
             z-index: 1000;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            border-bottom: 2px solid var(--primary-purple);
         }
 
         nav .container {
@@ -81,7 +67,7 @@
         nav .logo {
             font-size: 1.5rem;
             font-weight: bold;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -94,13 +80,44 @@
         }
 
         nav a {
-            color: var(--text-secondary);
+            color: var(--light-text);
             text-decoration: none;
             transition: color 0.3s;
         }
 
         nav a:hover {
-            color: var(--primary-purple);
+            color: var(--primary-orange);
+        }
+
+        /* Navigation indicator */
+        .nav-indicator {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(124, 58, 237, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot.active {
+            background: var(--primary-purple);
+            width: 16px;
+            height: 16px;
+        }
+
+        .nav-dot:hover {
+            background: var(--primary-orange);
         }
 
         /* Container */
@@ -110,22 +127,34 @@
             padding: 0 2rem;
         }
 
-        /* Hero Section */
-        .hero {
+        /* Sections - Full viewport height for presentation mode */
+        section {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 6rem 0;
+            position: relative;
+            scroll-snap-align: start;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+        }
+
+        /* Enable scroll snapping */
+        html {
+            scroll-snap-type: y mandatory;
+        }
+
+        /* Hero Section */
+        .hero {
             text-align: center;
             padding-top: 80px;
-            position: relative;
         }
 
         .hero h1 {
             font-size: clamp(2.5rem, 6vw, 4.5rem);
             font-weight: 800;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -134,7 +163,7 @@
 
         .hero .subtitle {
             font-size: clamp(1.2rem, 3vw, 1.8rem);
-            color: var(--text-secondary);
+            color: var(--light-text);
             margin-bottom: 2rem;
             max-width: 800px;
             margin-left: auto;
@@ -143,7 +172,7 @@
 
         .hero .tagline {
             font-size: 1.1rem;
-            color: var(--accent-cyan);
+            color: var(--gray-text);
             margin-bottom: 3rem;
             font-weight: 500;
         }
@@ -161,19 +190,9 @@
             border-radius: 50px;
             font-size: 0.9rem;
             font-weight: 600;
-            border: 2px solid;
-        }
-
-        .badge-purple {
-            border-color: var(--primary-purple);
+            border: 2px solid var(--primary-purple);
             color: var(--primary-purple);
-            background: rgba(139, 92, 246, 0.1);
-        }
-
-        .badge-orange {
-            border-color: var(--primary-orange);
-            color: var(--primary-orange);
-            background: rgba(249, 115, 22, 0.1);
+            background: rgba(124, 58, 237, 0.1);
         }
 
         /* CTA Buttons */
@@ -186,7 +205,7 @@
 
         .btn {
             padding: 1rem 2rem;
-            border-radius: 12px;
+            border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s;
@@ -196,18 +215,18 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
         }
 
         .btn-secondary {
-            background: var(--card-bg);
-            color: var(--text-primary);
+            background: transparent;
+            color: var(--light-text);
             border: 2px solid var(--primary-purple);
         }
 
@@ -227,27 +246,23 @@
 
         .screenshot {
             max-width: 280px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--primary-purple);
             transition: transform 0.3s;
         }
 
         .screenshot:hover {
             transform: scale(1.05);
+            box-shadow: 0 15px 50px rgba(124, 58, 237, 0.4);
         }
 
-        /* Section */
-        section {
-            padding: 6rem 0;
-            position: relative;
-        }
-
+        /* Section Headings */
         section h2 {
             font-size: clamp(2rem, 4vw, 3rem);
             text-align: center;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -255,7 +270,7 @@
 
         section .section-subtitle {
             text-align: center;
-            color: var(--text-secondary);
+            color: var(--gray-text);
             font-size: 1.2rem;
             margin-bottom: 4rem;
             max-width: 700px;
@@ -263,44 +278,51 @@
             margin-right: auto;
         }
 
-        /* Problem Section */
-        .problem-grid {
+        /* Problem/Features Grid */
+        .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2rem;
             margin-top: 3rem;
         }
 
-        .problem-card {
-            background: var(--card-bg);
+        .card {
+            background: var(--darker-bg);
             padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            transition: transform 0.3s, box-shadow 0.3s;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
         }
 
-        .problem-card:hover {
+        .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
+            border-color: var(--primary-purple);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
         }
 
-        .problem-card .icon {
+        .card .icon {
             font-size: 2.5rem;
             margin-bottom: 1rem;
         }
 
-        .problem-card h3 {
-            color: var(--primary-orange);
+        .card h3 {
+            color: var(--light-text);
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }
 
-        .problem-card p {
-            color: var(--text-secondary);
+        .card h4 {
+            color: var(--light-text);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .card p {
+            color: var(--gray-text);
             line-height: 1.8;
         }
 
-        /* Solution Section */
+        /* Solution Cards */
         .solution-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -309,38 +331,31 @@
         }
 
         .solution-card {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(249, 115, 22, 0.1));
+            background: var(--darker-bg);
             padding: 3rem;
-            border-radius: 20px;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-            position: relative;
-            overflow: hidden;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
         }
 
-        .solution-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
-            pointer-events: none;
+        .solution-card:hover {
+            border-color: var(--primary-purple);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
         }
 
         .solution-card h3 {
             font-size: 2rem;
             margin-bottom: 1rem;
-            color: var(--primary-purple);
+            color: var(--light-text);
         }
 
         .solution-card .tech-badge {
             display: inline-block;
             padding: 0.3rem 0.8rem;
-            background: rgba(139, 92, 246, 0.2);
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             border-radius: 20px;
             font-size: 0.9rem;
-            color: var(--primary-purple);
+            color: white;
             margin-bottom: 1.5rem;
         }
 
@@ -351,57 +366,41 @@
 
         .solution-card li {
             padding: 0.8rem 0;
-            color: var(--text-secondary);
-            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+            color: var(--gray-text);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .solution-card li::before {
             content: '✓';
-            color: var(--accent-green);
+            color: var(--primary-purple);
             font-weight: bold;
             margin-right: 0.5rem;
         }
 
-        /* Features Grid */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+        .solution-card p {
+            color: var(--gray-text);
+        }
+
+        /* Architecture */
+        .architecture {
+            background: var(--darker-bg);
+            padding: 3rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
             margin-top: 3rem;
         }
 
-        .feature-card {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 16px;
-            text-align: center;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            transition: all 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary-purple);
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
-        }
-
-        .feature-card .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .feature-card h4 {
+        .architecture pre {
             color: var(--primary-purple);
-            margin-bottom: 0.5rem;
-            font-size: 1.2rem;
+            overflow-x: auto;
+            padding: 2rem;
+            background: var(--dark-bg);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.8;
         }
 
-        .feature-card p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        /* Traction Section */
+        /* Traction Grid */
         .traction-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -412,15 +411,21 @@
         .traction-item {
             text-align: center;
             padding: 2rem;
-            background: var(--card-bg);
-            border-radius: 16px;
-            border: 1px solid rgba(139, 92, 246, 0.2);
+            background: var(--darker-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .traction-item:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-5px);
         }
 
         .traction-item .number {
             font-size: 3rem;
             font-weight: bold;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -428,7 +433,7 @@
         }
 
         .traction-item .label {
-            color: var(--text-secondary);
+            color: var(--gray-text);
             font-size: 0.9rem;
         }
 
@@ -443,89 +448,76 @@
 
         .tech-tag {
             padding: 0.8rem 1.5rem;
-            background: var(--card-bg);
+            background: var(--darker-bg);
             border-radius: 30px;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            color: var(--light-text);
             font-size: 0.95rem;
             transition: all 0.3s;
         }
 
         .tech-tag:hover {
-            background: rgba(139, 92, 246, 0.2);
             border-color: var(--primary-purple);
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            color: white;
             transform: translateY(-2px);
         }
 
-        /* Architecture Diagram */
-        .architecture {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: 20px;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-            margin-top: 3rem;
+        /* Checkmark list */
+        .checkmark-list {
+            list-style: none;
+            margin: 2rem 0;
         }
 
-        .architecture pre {
-            color: var(--accent-cyan);
-            overflow-x: auto;
-            padding: 2rem;
-            background: var(--darker-bg);
-            border-radius: 12px;
-            font-size: 0.9rem;
-            line-height: 1.8;
+        .checkmark-list li {
+            padding: 0.8rem 0;
+            padding-left: 2rem;
+            position: relative;
+            color: var(--light-text);
         }
 
-        /* CTA Section */
-        .cta-section {
-            text-align: center;
-            padding: 6rem 2rem;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(249, 115, 22, 0.1));
-            border-radius: 30px;
-            margin: 4rem 0;
+        .checkmark-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
         }
 
-        .cta-section h2 {
-            margin-bottom: 2rem;
-        }
-
-        .cta-section p {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 3rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 3rem 2rem;
-            border-top: 1px solid rgba(139, 92, 246, 0.2);
-            color: var(--text-secondary);
-        }
-
-        footer .social-links {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-
-        footer a {
-            color: var(--text-secondary);
+        /* Social links styling */
+        .social-links a {
+            color: var(--light-text);
             text-decoration: none;
             transition: color 0.3s;
         }
 
-        footer a:hover {
-            color: var(--primary-purple);
+        .social-links a:hover {
+            color: var(--primary-orange);
         }
 
         .logo-footer {
             max-width: 150px;
             margin: 2rem auto;
+        }
+
+        /* Keyboard navigation hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--light-text);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid var(--primary-purple);
+            font-size: 0.9rem;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        .keyboard-hint.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         /* Responsive */
@@ -538,19 +530,14 @@
                 grid-template-columns: 1fr;
             }
 
-            .hero h1 {
-                font-size: 2.5rem;
+            .nav-indicator {
+                display: none;
             }
 
             .screenshots {
                 flex-direction: column;
                 align-items: center;
             }
-        }
-
-        /* Smooth scroll */
-        html {
-            scroll-behavior: smooth;
         }
 
         /* Animations */
@@ -568,25 +555,6 @@
         .fade-in {
             animation: fadeInUp 0.8s ease-out;
         }
-
-        /* Checkmark list */
-        .checkmark-list {
-            list-style: none;
-            margin: 2rem 0;
-        }
-
-        .checkmark-list li {
-            padding: 0.8rem 0;
-            padding-left: 2rem;
-            position: relative;
-            color: var(--text-secondary);
-        }
-
-        .checkmark-list li::before {
-            content: '✅';
-            position: absolute;
-            left: 0;
-        }
     </style>
 </head>
 <body>
@@ -595,17 +563,35 @@
         <div class="container">
             <div class="logo">Quantaliz</div>
             <ul class="nav-links">
+                <li><a href="#hero">Home</a></li>
                 <li><a href="#problem">Problem</a></li>
                 <li><a href="#solution">Solution</a></li>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#traction">Traction</a></li>
-                <li><a href="#demo">Demo</a></li>
             </ul>
         </div>
     </nav>
 
+    <!-- Navigation Indicator -->
+    <div class="nav-indicator">
+        <div class="nav-dot active" data-section="0"></div>
+        <div class="nav-dot" data-section="1"></div>
+        <div class="nav-dot" data-section="2"></div>
+        <div class="nav-dot" data-section="3"></div>
+        <div class="nav-dot" data-section="4"></div>
+        <div class="nav-dot" data-section="5"></div>
+        <div class="nav-dot" data-section="6"></div>
+        <div class="nav-dot" data-section="7"></div>
+        <div class="nav-dot" data-section="8"></div>
+    </div>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint" id="keyboardHint">
+        ← → Navigate with arrow keys
+    </div>
+
     <!-- Hero Section -->
-    <section class="hero">
+    <section id="hero" class="hero" data-section="0">
         <div class="container">
             <div class="fade-in">
                 <h1>Financially Autonomous<br>AI Agents</h1>
@@ -613,8 +599,8 @@
                 <p class="tagline">AI agents can't pay for anything. They're brilliant, but broke. We fixed that.</p>
 
                 <div class="badges">
-                    <span class="badge badge-purple">🏆 Cypherpunk 2025</span>
-                    <span class="badge badge-orange">🏆 Hackaroo 2025</span>
+                    <span class="badge">🏆 Cypherpunk 2025</span>
+                    <span class="badge">🏆 Hackaroo 2025</span>
                 </div>
 
                 <div class="cta-buttons">
@@ -631,25 +617,25 @@
     </section>
 
     <!-- Problem Section -->
-    <section id="problem">
+    <section id="problem" data-section="1">
         <div class="container">
             <h2>The Problem</h2>
             <p class="section-subtitle">Traditional AI assistants face critical limitations that prevent true autonomy</p>
 
-            <div class="problem-grid">
-                <div class="problem-card">
+            <div class="grid">
+                <div class="card">
                     <div class="icon">☁️</div>
                     <h3>Cloud Dependency</h3>
                     <p>Require constant internet connectivity and expose user data to third parties. Your conversations, prompts, and personal information leave your device.</p>
                 </div>
 
-                <div class="problem-card">
+                <div class="card">
                     <div class="icon">💸</div>
                     <h3>Payment Barriers</h3>
                     <p>Can't autonomously access paid APIs without breaking agent autonomy. Every transaction requires manual human intervention.</p>
                 </div>
 
-                <div class="problem-card">
+                <div class="card">
                     <div class="icon">🔐</div>
                     <h3>User Control</h3>
                     <p>Either too restrictive (no autonomy) or too permissive (security risks). There's no middle ground for safe, autonomous operations.</p>
@@ -659,7 +645,7 @@
     </section>
 
     <!-- Solution Section -->
-    <section id="solution">
+    <section id="solution" data-section="2">
         <div class="container">
             <h2>Our Solution</h2>
             <p class="section-subtitle">Complete ecosystem for AI agents to be completely private AND financially autonomous—no compromises</p>
@@ -669,7 +655,7 @@
                 <div class="solution-card">
                     <h3>📱 SolAIBot</h3>
                     <span class="tech-badge">Android • Kotlin • On-Device AI</span>
-                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    <p style="margin-bottom: 1.5rem;">
                         Production Android app with 1.5B parameter LLM running entirely on-device, making autonomous Solana payments via Mobile Wallet Adapter.
                     </p>
 
@@ -689,7 +675,7 @@
                 <div class="solution-card">
                     <h3>⚡ x402 Payments Plugin</h3>
                     <span class="tech-badge">Node.js • TypeScript • AI Frameworks</span>
-                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    <p style="margin-bottom: 1.5rem;">
                         Production-ready toolkit extending Solana Agent Kit with autonomous x402 payment capabilities for any AI framework.
                     </p>
 
@@ -709,43 +695,43 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features">
+    <section id="features" data-section="3">
         <div class="container">
             <h2>Why This Matters</h2>
             <p class="section-subtitle">Complete technical innovation across the stack</p>
 
-            <div class="features-grid">
-                <div class="feature-card">
+            <div class="grid">
+                <div class="card">
                     <div class="icon">🔒</div>
                     <h4>Privacy-First</h4>
                     <p>On-device AI means conversations never leave your phone. Zero data exposure to third parties.</p>
                 </div>
 
-                <div class="feature-card">
+                <div class="card">
                     <div class="icon">⚡</div>
                     <h4>Instant Finality</h4>
                     <p>Solana's 400ms blocks make per-request micropayments viable for the first time.</p>
                 </div>
 
-                <div class="feature-card">
+                <div class="card">
                     <div class="icon">🎯</div>
                     <h4>Full Control</h4>
                     <p>Every payment requires explicit user approval via trusted wallet apps. No surprises.</p>
                 </div>
 
-                <div class="feature-card">
+                <div class="card">
                     <div class="icon">🔗</div>
                     <h4>Cross-Platform</h4>
                     <p>Same x402 protocol works on mobile (Android) and desktop (Node.js/MCP).</p>
                 </div>
 
-                <div class="feature-card">
+                <div class="card">
                     <div class="icon">🧪</div>
                     <h4>Production Ready</h4>
                     <p>Comprehensive testing, error handling, and working demos on live endpoints.</p>
                 </div>
 
-                <div class="feature-card">
+                <div class="card">
                     <div class="icon">🚀</div>
                     <h4>Agent Economy</h4>
                     <p>Enable agent-to-agent commerce and API monetization at scale.</p>
@@ -755,7 +741,7 @@
     </section>
 
     <!-- Architecture Section -->
-    <section>
+    <section data-section="4">
         <div class="container">
             <h2>Complete Ecosystem Architecture</h2>
             <p class="section-subtitle">Mobile to desktop, unified by x402 + Solana</p>
@@ -795,7 +781,7 @@
     </section>
 
     <!-- Traction Section -->
-    <section id="traction">
+    <section id="traction" data-section="5">
         <div class="container">
             <h2>Proven Traction</h2>
             <p class="section-subtitle">Production-ready implementations with working demos</p>
@@ -833,7 +819,7 @@
             </div>
 
             <div style="margin-top: 4rem;">
-                <h3 style="text-align: center; color: var(--primary-purple); margin-bottom: 2rem;">✅ What We've Built</h3>
+                <h3 style="text-align: center; margin-bottom: 2rem; background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">✅ What We've Built</h3>
                 <ul class="checkmark-list" style="max-width: 700px; margin: 0 auto;">
                     <li>Working Android app (v1.0.7) with production APK releases</li>
                     <li>Production Node.js toolkit with comprehensive test suite</li>
@@ -848,7 +834,7 @@
     </section>
 
     <!-- Tech Stack Section -->
-    <section>
+    <section data-section="6">
         <div class="container">
             <h2>Technology Stack</h2>
             <p class="section-subtitle">Production-grade technologies across the entire ecosystem</p>
@@ -873,11 +859,11 @@
         </div>
     </section>
 
-    <!-- Demo Section -->
-    <section id="demo" class="cta-section">
-        <div class="container">
+    <!-- Demo/CTA Section -->
+    <section data-section="7">
+        <div class="container" style="text-align: center;">
             <h2>Try It Yourself</h2>
-            <p>Experience the future of AI agent payments today</p>
+            <p class="section-subtitle">Experience the future of AI agent payments today</p>
 
             <div class="cta-buttons">
                 <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">
@@ -889,19 +875,19 @@
             </div>
 
             <div style="margin-top: 3rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-                <h3 style="color: var(--primary-purple); margin-bottom: 1rem;">Quick Start:</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><strong>SolAIBot (Android):</strong></p>
-                <ol style="color: var(--text-secondary); padding-left: 2rem; margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Quick Start:</h3>
+                <p style="margin-bottom: 0.5rem; color: var(--light-text);"><strong>SolAIBot (Android):</strong></p>
+                <ol style="padding-left: 2rem; margin-bottom: 1.5rem; color: var(--gray-text);">
                     <li>Download APK and install on Android 12+</li>
                     <li>Install Solflare or MWA-compatible wallet</li>
                     <li>Let the app download Hammer 2.1 model (~1.3GB)</li>
                     <li>Ask AI to access paid content and approve payments</li>
                 </ol>
 
-                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><strong>Agent Kit (Node.js):</strong></p>
-                <ol style="color: var(--text-secondary); padding-left: 2rem;">
-                    <li>Clone repository and run <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">pnpm install</code></li>
-                    <li>Build with <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">pnpm build</code></li>
+                <p style="margin-bottom: 0.5rem; color: var(--light-text);"><strong>Agent Kit (Node.js):</strong></p>
+                <ol style="padding-left: 2rem; color: var(--gray-text);">
+                    <li>Clone repository and run <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--primary-purple);">pnpm install</code></li>
+                    <li>Build with <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--primary-purple);">pnpm build</code></li>
                     <li>Configure wallet in examples/.env</li>
                     <li>Run CLI demo or MCP server</li>
                 </ol>
@@ -909,70 +895,121 @@
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
+    <!-- Footer Section -->
+    <section id="contact" data-section="8">
+        <div class="container" style="text-align: center;">
             <img src="../images/Quantaliz.png" alt="Quantaliz Logo" class="logo-footer">
 
-            <div class="social-links">
+            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
                 <a href="https://www.quantaliz.com" target="_blank">Website</a>
                 <a href="https://github.com/quantaliz" target="_blank">GitHub</a>
                 <a href="https://github.com/quantaliz/solaibot" target="_blank">SolAIBot</a>
                 <a href="https://github.com/quantaliz/solana-agent-kit" target="_blank">Agent Kit</a>
             </div>
 
-            <p style="margin-bottom: 1rem;">
+            <p style="margin-bottom: 1rem; color: var(--light-text);">
                 <strong>Quantaliz PTY LTD</strong><br>
                 Pioneering the intersection of privacy-preserving AI and decentralized technologies
             </p>
 
-            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+            <p style="font-size: 0.9rem; color: var(--gray-text);">
                 Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>
                 & <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
             </p>
 
-            <p style="font-size: 0.85rem; margin-top: 2rem;">
+            <p style="font-size: 0.85rem; margin-top: 2rem; color: var(--gray-text);">
                 Licensed under Apache License 2.0 • Built on permissive open-source foundations
             </p>
         </div>
-    </footer>
+    </section>
 
     <script>
-        // Smooth scroll with offset for fixed nav
+        // Section navigation state
+        let currentSection = 0;
+        const sections = document.querySelectorAll('section[data-section]');
+        const totalSections = sections.length;
+        const navDots = document.querySelectorAll('.nav-dot');
+        const keyboardHint = document.getElementById('keyboardHint');
+
+        // Hide keyboard hint after 5 seconds
+        setTimeout(() => {
+            keyboardHint.classList.add('hidden');
+        }, 5000);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateToSection(currentSection + 1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateToSection(currentSection - 1);
+            }
+        });
+
+        // Navigate to specific section
+        function navigateToSection(index) {
+            if (index < 0 || index >= totalSections) return;
+
+            currentSection = index;
+            sections[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            updateNavIndicator();
+        }
+
+        // Update navigation indicator
+        function updateNavIndicator() {
+            navDots.forEach((dot, index) => {
+                if (index === currentSection) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        // Click navigation dots
+        navDots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                navigateToSection(index);
+            });
+        });
+
+        // Update current section on scroll
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                let scrollPosition = window.scrollY + window.innerHeight / 2;
+
+                sections.forEach((section, index) => {
+                    const sectionTop = section.offsetTop;
+                    const sectionBottom = sectionTop + section.offsetHeight;
+
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                        currentSection = index;
+                        updateNavIndicator();
+                    }
+                });
+            }, 100);
+        });
+
+        // Smooth scroll with offset for anchors
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    const offsetTop = target.offsetTop - 80;
-                    window.scrollTo({
-                        top: offsetTop,
-                        behavior: 'smooth'
-                    });
+                    const sectionIndex = parseInt(target.getAttribute('data-section'));
+                    if (!isNaN(sectionIndex)) {
+                        navigateToSection(sectionIndex);
+                    }
                 }
             });
         });
 
-        // Add fade-in animation on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -100px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('section > .container').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(30px)';
-            el.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
-            observer.observe(el);
+        // Fade-in animation on load
+        window.addEventListener('load', () => {
+            document.querySelector('.hero .fade-in').style.opacity = '1';
         });
     </script>
 </body>
