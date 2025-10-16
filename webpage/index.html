@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Agents with Autonomous x402 Payments - Privacy-First AI meets Solana Micropayments. Cypherpunk & Hackaroo 2025 Hackathon Submission by Quantaliz.">
+    <meta name="keywords" content="AI, Solana, blockchain, x402, payments, privacy, on-device AI, mobile wallet adapter, MWA, LLM">
+    <meta name="author" content="Quantaliz PTY LTD">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Financially Autonomous AI Agents | Quantaliz">
+    <meta property="og:description" content="Privacy-first AI agents that make autonomous blockchain payments using Solana">
+    <meta property="og:image" content="https://quantaliz.github.io/hackathon-2025/og-image.png">
+
+    <title>Financially Autonomous AI Agents | Quantaliz Hackathon 2025</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-purple: #8B5CF6;
+            --primary-orange: #F97316;
+            --dark-bg: #0f172a;
+            --darker-bg: #020617;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --gradient-start: #8B5CF6;
+            --gradient-end: #F97316;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        nav .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--primary-purple);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 80px;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .hero .subtitle {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero .tagline {
+            font-size: 1.1rem;
+            color: var(--accent-cyan);
+            margin-bottom: 3rem;
+            font-weight: 500;
+        }
+
+        .badges {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .badge {
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 2px solid;
+        }
+
+        .badge-purple {
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .badge-orange {
+            border-color: var(--primary-orange);
+            color: var(--primary-orange);
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        /* CTA Buttons */
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--primary-purple);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Screenshots */
+        .screenshots {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-top: 4rem;
+            flex-wrap: wrap;
+        }
+
+        .screenshot {
+            max-width: 280px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .screenshot:hover {
+            transform: scale(1.05);
+        }
+
+        /* Section */
+        section {
+            padding: 6rem 0;
+            position: relative;
+        }
+
+        section h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        section .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            margin-bottom: 4rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Problem Section */
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .problem-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .problem-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .problem-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .problem-card h3 {
+            color: var(--primary-orange);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .problem-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* Solution Section */
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .solution-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(249, 115, 22, 0.1));
+            padding: 3rem;
+            border-radius: 20px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .solution-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .solution-card h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-purple);
+        }
+
+        .solution-card .tech-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--primary-purple);
+            margin-bottom: 1.5rem;
+        }
+
+        .solution-card ul {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .solution-card li {
+            padding: 0.8rem 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .solution-card li::before {
+            content: '✓';
+            color: var(--accent-green);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-purple);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .feature-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h4 {
+            color: var(--primary-purple);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Traction Section */
+        .traction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .traction-item {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .traction-item .number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .traction-item .label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+
+        .tech-tag {
+            padding: 0.8rem 1.5rem;
+            background: var(--card-bg);
+            border-radius: 30px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .tech-tag:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            margin-top: 3rem;
+        }
+
+        .architecture pre {
+            color: var(--accent-cyan);
+            overflow-x: auto;
+            padding: 2rem;
+            background: var(--darker-bg);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(249, 115, 22, 0.1));
+            border-radius: 30px;
+            margin: 4rem 0;
+        }
+
+        .cta-section h2 {
+            margin-bottom: 2rem;
+        }
+
+        .cta-section p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            border-top: 1px solid rgba(139, 92, 246, 0.2);
+            color: var(--text-secondary);
+        }
+
+        footer .social-links {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        footer a:hover {
+            color: var(--primary-purple);
+        }
+
+        .logo-footer {
+            max-width: 150px;
+            margin: 2rem auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav .nav-links {
+                display: none;
+            }
+
+            .solution-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .screenshots {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Checkmark list */
+        .checkmark-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .checkmark-list li {
+            padding: 0.8rem 0;
+            padding-left: 2rem;
+            position: relative;
+            color: var(--text-secondary);
+        }
+
+        .checkmark-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <div class="logo">Quantaliz</div>
+            <ul class="nav-links">
+                <li><a href="#problem">Problem</a></li>
+                <li><a href="#solution">Solution</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#traction">Traction</a></li>
+                <li><a href="#demo">Demo</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="fade-in">
+                <h1>Financially Autonomous<br>AI Agents</h1>
+                <p class="subtitle">Privacy-First AI Meets Solana Micropayments</p>
+                <p class="tagline">AI agents can't pay for anything. They're brilliant, but broke. We fixed that.</p>
+
+                <div class="badges">
+                    <span class="badge badge-purple">🏆 Cypherpunk 2025</span>
+                    <span class="badge badge-orange">🏆 Hackaroo 2025</span>
+                </div>
+
+                <div class="cta-buttons">
+                    <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">📱 Download SolAIBot</a>
+                    <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">💻 View Code</a>
+                </div>
+
+                <div class="screenshots">
+                    <img src="../images/SolAIBot1-Result.png" alt="SolAIBot Interface" class="screenshot">
+                    <img src="../images/SolAIBot2-Sign.png" alt="Payment Signing" class="screenshot">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section id="problem">
+        <div class="container">
+            <h2>The Problem</h2>
+            <p class="section-subtitle">Traditional AI assistants face critical limitations that prevent true autonomy</p>
+
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="icon">☁️</div>
+                    <h3>Cloud Dependency</h3>
+                    <p>Require constant internet connectivity and expose user data to third parties. Your conversations, prompts, and personal information leave your device.</p>
+                </div>
+
+                <div class="problem-card">
+                    <div class="icon">💸</div>
+                    <h3>Payment Barriers</h3>
+                    <p>Can't autonomously access paid APIs without breaking agent autonomy. Every transaction requires manual human intervention.</p>
+                </div>
+
+                <div class="problem-card">
+                    <div class="icon">🔐</div>
+                    <h3>User Control</h3>
+                    <p>Either too restrictive (no autonomy) or too permissive (security risks). There's no middle ground for safe, autonomous operations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section id="solution">
+        <div class="container">
+            <h2>Our Solution</h2>
+            <p class="section-subtitle">Complete ecosystem for AI agents to be completely private AND financially autonomous—no compromises</p>
+
+            <div class="solution-grid">
+                <!-- SolAIBot -->
+                <div class="solution-card">
+                    <h3>📱 SolAIBot</h3>
+                    <span class="tech-badge">Android • Kotlin • On-Device AI</span>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Production Android app with 1.5B parameter LLM running entirely on-device, making autonomous Solana payments via Mobile Wallet Adapter.
+                    </p>
+
+                    <ul>
+                        <li>100% offline AI inference using Google AI Edge (LiteRT)</li>
+                        <li>First Android implementation of x402 payment protocol</li>
+                        <li>Mobile Wallet Adapter integration (Solflare compatible)</li>
+                        <li>Zero trust architecture - app never sees private keys</li>
+                        <li>Function calling for autonomous payments</li>
+                        <li>Working APK v1.0.7 in releases</li>
+                    </ul>
+
+                    <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">Download APK</a>
+                </div>
+
+                <!-- Solana Agent Kit -->
+                <div class="solution-card">
+                    <h3>⚡ x402 Payments Plugin</h3>
+                    <span class="tech-badge">Node.js • TypeScript • AI Frameworks</span>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Production-ready toolkit extending Solana Agent Kit with autonomous x402 payment capabilities for any AI framework.
+                    </p>
+
+                    <ul>
+                        <li>Fully autonomous payment flow - zero human intervention</li>
+                        <li>Smart signer caching for high-performance operations</li>
+                        <li>Works with LangChain, Vercel AI SDK, OpenAI, MCP</li>
+                        <li>Comprehensive end-to-end test suite</li>
+                        <li>CLI demo + MCP server for Claude Desktop</li>
+                        <li>1,000+ lines of production code</li>
+                    </ul>
+
+                    <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">View Repository</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="container">
+            <h2>Why This Matters</h2>
+            <p class="section-subtitle">Complete technical innovation across the stack</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">🔒</div>
+                    <h4>Privacy-First</h4>
+                    <p>On-device AI means conversations never leave your phone. Zero data exposure to third parties.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">⚡</div>
+                    <h4>Instant Finality</h4>
+                    <p>Solana's 400ms blocks make per-request micropayments viable for the first time.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🎯</div>
+                    <h4>Full Control</h4>
+                    <p>Every payment requires explicit user approval via trusted wallet apps. No surprises.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🔗</div>
+                    <h4>Cross-Platform</h4>
+                    <p>Same x402 protocol works on mobile (Android) and desktop (Node.js/MCP).</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🧪</div>
+                    <h4>Production Ready</h4>
+                    <p>Comprehensive testing, error handling, and working demos on live endpoints.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🚀</div>
+                    <h4>Agent Economy</h4>
+                    <p>Enable agent-to-agent commerce and API monetization at scale.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section>
+        <div class="container">
+            <h2>Complete Ecosystem Architecture</h2>
+            <p class="section-subtitle">Mobile to desktop, unified by x402 + Solana</p>
+
+            <div class="architecture">
+                <pre>┌─────────────────────────────────────────────────────────────┐
+│                    AI Agents Ecosystem                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  📱 MOBILE                          💻 DESKTOP/SERVER        │
+│  ┌─────────────────┐                ┌─────────────────┐     │
+│  │   SolAIBot      │                │  Solana Agent   │     │
+│  │                 │                │      Kit        │     │
+│  │ • On-device LLM │                │ • Node.js       │     │
+│  │ • Kotlin        │                │ • TypeScript    │     │
+│  │ • MWA payments  │                │ • Any LLM       │     │
+│  │ • Android 12+   │                │ • Multi-chain   │     │
+│  └────────┬────────┘                └────────┬────────┘     │
+│           │                                  │              │
+│           └────────┬─────────────────────────┘              │
+│                    │                                        │
+│         ┌──────────▼──────────┐                            │
+│         │  x402 Protocol      │                            │
+│         │  HTTP 402 Payments  │                            │
+│         └──────────┬──────────┘                            │
+│                    │                                        │
+│         ┌──────────▼──────────┐                            │
+│         │  Solana Blockchain  │                            │
+│         │  • 400ms finality   │                            │
+│         │  • Low fees         │                            │
+│         │  • MWA security     │                            │
+│         └─────────────────────┘                            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘</pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Traction Section -->
+    <section id="traction">
+        <div class="container">
+            <h2>Proven Traction</h2>
+            <p class="section-subtitle">Production-ready implementations with working demos</p>
+
+            <div class="traction-grid">
+                <div class="traction-item">
+                    <div class="number">2</div>
+                    <div class="label">Complete Projects</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">1,000+</div>
+                    <div class="label">Lines of Code</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">121</div>
+                    <div class="label">Kotlin Files</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">v1.0.7</div>
+                    <div class="label">Production APK</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">2</div>
+                    <div class="label">Working Demos</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">100%</div>
+                    <div class="label">Devnet Tested</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 4rem;">
+                <h3 style="text-align: center; color: var(--primary-purple); margin-bottom: 2rem;">✅ What We've Built</h3>
+                <ul class="checkmark-list" style="max-width: 700px; margin: 0 auto;">
+                    <li>Working Android app (v1.0.7) with production APK releases</li>
+                    <li>Production Node.js toolkit with comprehensive test suite</li>
+                    <li>Successfully tested end-to-end on Solana devnet with Solflare</li>
+                    <li>CLI demo with step-by-step payment flows</li>
+                    <li>MCP server for Claude Desktop integration</li>
+                    <li>Complete documentation for both projects</li>
+                    <li>Cross-platform x402 payment protocol implementation</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section>
+        <div class="container">
+            <h2>Technology Stack</h2>
+            <p class="section-subtitle">Production-grade technologies across the entire ecosystem</p>
+
+            <div class="tech-stack">
+                <span class="tech-tag">Kotlin</span>
+                <span class="tech-tag">TypeScript</span>
+                <span class="tech-tag">Jetpack Compose</span>
+                <span class="tech-tag">Google AI Edge (LiteRT)</span>
+                <span class="tech-tag">Solana Web3.js</span>
+                <span class="tech-tag">Mobile Wallet Adapter</span>
+                <span class="tech-tag">sol4k</span>
+                <span class="tech-tag">x402 Protocol</span>
+                <span class="tech-tag">Hilt (Dagger)</span>
+                <span class="tech-tag">MVVM Architecture</span>
+                <span class="tech-tag">LangChain</span>
+                <span class="tech-tag">Vercel AI SDK</span>
+                <span class="tech-tag">Model Context Protocol</span>
+                <span class="tech-tag">Node.js 22+</span>
+                <span class="tech-tag">pnpm</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="cta-section">
+        <div class="container">
+            <h2>Try It Yourself</h2>
+            <p>Experience the future of AI agent payments today</p>
+
+            <div class="cta-buttons">
+                <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">
+                    📱 Download SolAIBot APK
+                </a>
+                <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">
+                    💻 Clone Agent Kit
+                </a>
+            </div>
+
+            <div style="margin-top: 3rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="color: var(--primary-purple); margin-bottom: 1rem;">Quick Start:</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><strong>SolAIBot (Android):</strong></p>
+                <ol style="color: var(--text-secondary); padding-left: 2rem; margin-bottom: 1.5rem;">
+                    <li>Download APK and install on Android 12+</li>
+                    <li>Install Solflare or MWA-compatible wallet</li>
+                    <li>Let the app download Hammer 2.1 model (~1.3GB)</li>
+                    <li>Ask AI to access paid content and approve payments</li>
+                </ol>
+
+                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><strong>Agent Kit (Node.js):</strong></p>
+                <ol style="color: var(--text-secondary); padding-left: 2rem;">
+                    <li>Clone repository and run <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">pnpm install</code></li>
+                    <li>Build with <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">pnpm build</code></li>
+                    <li>Configure wallet in examples/.env</li>
+                    <li>Run CLI demo or MCP server</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <img src="../images/Quantaliz.png" alt="Quantaliz Logo" class="logo-footer">
+
+            <div class="social-links">
+                <a href="https://www.quantaliz.com" target="_blank">Website</a>
+                <a href="https://github.com/quantaliz" target="_blank">GitHub</a>
+                <a href="https://github.com/quantaliz/solaibot" target="_blank">SolAIBot</a>
+                <a href="https://github.com/quantaliz/solana-agent-kit" target="_blank">Agent Kit</a>
+            </div>
+
+            <p style="margin-bottom: 1rem;">
+                <strong>Quantaliz PTY LTD</strong><br>
+                Pioneering the intersection of privacy-preserving AI and decentralized technologies
+            </p>
+
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>
+                & <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+            </p>
+
+            <p style="font-size: 0.85rem; margin-top: 2rem;">
+                Licensed under Apache License 2.0 • Built on permissive open-source foundations
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll with offset for fixed nav
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offsetTop = target.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Add fade-in animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section > .container').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

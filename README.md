@@ -28,7 +28,7 @@ Traditional AI assistants face three critical limitations:
 
 Two complementary implementations that work together to enable truly autonomous, privacy-preserving AI agents:
 
-1. **🤖 SolAIBot** - Android app with on-device AI and Mobile Wallet Adapter payments
+1. **🤖 SolAIBot** - Android app with on-device AI with Mobile Wallet Adapter to make x402 payments
 2. **⚡ x402 Payments Plugin** - Node.js toolkit extending Solana Agent Kit with autonomous payments
 
 Together, they demonstrate that AI agents can be **completely private AND financially autonomous**—no compromises.

@@ -158,6 +158,11 @@ I made changes to the @android/README.md file. Now, adapt similar changes to the
 This repository is the full submission for two hackathons (Cypherpunk & Hackaroo). Inside there two projects. The first project, SolAIBot has @android/README.md file as reference. The second project, solana-agent-kit, has @solana-agent-kit/README.md file explaining what has been done in these projects by Quantaliz. With that in mind, update @README.md to reflect the hard work made from both projects into a full hackathon submission.
 Webpage for the Hackathon (webpage in https://Hackaroo.xyz) and Cyphepunk (webpage in https://www.colosseum.com/cypherpunk).
 
-Using the context from @README.md & @android/AGENTS.md for SolAIBot along @README-SolAgent.md & @AGENTS-SolAgent.md from the solana-agent-kit project (https://github.com/quantaliz/solana-agent-kit) create a
-This page should follow the easthetic from www.quantaliz.com
-In this page, reflect all the hard work made for the hackathon: fork of the solana-agent-kit or
+Using the context from
+- @README.md
+- @android/README.md
+- @solana-agent-kit/README.md
+Create a webpage that must follow the easthetic from @quantaliz.github.io
+This page will be an static page be placed under github.io pages type.
+This page, following the ideas from @context/PitchReference.md, should reflect all the hard work made for the hackathon.
+Place this page inside the webpage folder.
