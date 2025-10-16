@@ -153,7 +153,9 @@ Add an extra "message bubble" for the "solana_payment" function with the respons
 
 Project SolAIBot has @android/README.md & @android/AGENTS.md files as reference. Improve the README.md to be more enticing for Judges in a hackathon evaluating what has been done for the project so far, its characteristics and the fact that will be submitted for two hackathons (Cypherpunk & Hackaroo).
 
-This repository is the full submission for two hackathons (Cypherpunk & Hackaroo). Inside there two projects. The first project, SolAIBot has @android/README.md & @android/AGENTS.md files as reference. The second project, solana-agent-kit, has @solana-agent-kit/README.md & @solana-agent-kit/AGENTS.md files explaining what has been done in these projects by Quantaliz. With that in mind, update @README.md to reflect the hard work made from both projects into a full hackathon submission.
+I made changes to the @android/README.md file. Now, adapt similar changes to the @solana-agent-kit/README.md although, yesterday we were doing most of it, just confirm the language remains similar between documents
+
+This repository is the full submission for two hackathons (Cypherpunk & Hackaroo). Inside there two projects. The first project, SolAIBot has @android/README.md file as reference. The second project, solana-agent-kit, has @solana-agent-kit/README.md file explaining what has been done in these projects by Quantaliz. With that in mind, update @README.md to reflect the hard work made from both projects into a full hackathon submission.
 Webpage for the Hackathon (webpage in https://Hackaroo.xyz) and Cyphepunk (webpage in https://www.colosseum.com/cypherpunk).
 
 Using the context from @README.md & @android/AGENTS.md for SolAIBot along @README-SolAgent.md & @AGENTS-SolAgent.md from the solana-agent-kit project (https://github.com/quantaliz/solana-agent-kit) create a

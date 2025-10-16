@@ -58,7 +58,7 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 - ✅ Privacy-preserving payment protocol implementation
 - ✅ Cypherpunk ethos: "Privacy is necessary for an open society in the electronic age"
 
-**[Hackaroo 2025](https://www.hackaroo.xyz)** - Edge Payments Innovation
+**[Hackaroo 2025](https://www.hackaroo.xyz)** - Solana Micropayments
 - ✅ Novel x402 payment protocol integration on Android
 - ✅ AI agent autonomy with blockchain interaction
 - ✅ Solana ecosystem advancement (MWA, RPC, transaction building)
