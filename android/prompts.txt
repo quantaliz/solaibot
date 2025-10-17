@@ -166,3 +166,25 @@ Create a webpage that must follow the easthetic from @quantaliz.github.io
 This page will be an static page be placed under github.io pages type.
 This page, following the ideas from @context/PitchReference.md, should reflect all the hard work made for the hackathon.
 Place this page inside the webpage folder.
+
+We are working on improving the webpage inside @webpage/index.html which is an static page that promotes this repository.
+Check @README.md for a refresher on the objectives to reach and why it matters.
+Also, the @context/PitchReference.md has tips on how to make a good pitch for the hackathon.
+There are some updates needed to the webpage:
+- Make it more responsive, in particular if the user is watching it from a mobile phone. For example, when the browser is smaller, the images showing the app do not resize appropriately.
+- Instead of having the screenshots at the top, move them into its own "Features/UX" section
+- Sections like "Our Solution" or "What We've Built" have too many words, make setences more "engaging" and leave the details behind an "expandable" view if the user decides to get more details about it.
+- The "Technology Stack" section is not necessary, remove it.
+- Remove the "static" header on top and replace it a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
+- The "Complete Ecosystem Architecture" has a "AI Agents Ecosystem" map in markdown, but does not align with the webpage design, use something like "mermaid" or another text-based tool to improve the visuals of this graph.
+- This presentation needs a market model: search the internet for the expected economic market of agents and payments
+- This presentation needs a business model: SolAIBot as app will be free, but wallet transactions can be charged a fee as a x402 facilitator.
+- This presentation needs a roadmap model: Define what can be done next for SolAIBot
+Consider that any image referenced within this page should point to the "https://github.com/quantaliz/solaibot" repository instead of considering it is local.
+
+Break down the "Features & User Experience" in two, first the "Features" with the squares like "privacy first, instant finality". Then another section named "User Experience" with the screenshots.
+
+Break down the "Business Model" in two sections: One for the app, another for the fees
+Place the "Roadmap" squares from "left -> right" instead top -> bottom
+
+Remove the "static" header on top and replace it with a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
