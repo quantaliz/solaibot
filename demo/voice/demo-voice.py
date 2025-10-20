@@ -107,28 +107,56 @@ def main():
     # Display all lines
     display_lines(lines_data)
 
-    # Get user confirmation
-    print(f"\nGenerate audio for all {len(lines_data)} lines? (y/n):")
-    user_input = input("> ").strip().lower()
+    # Get user selection
+    print("\nEnter line numbers to generate (comma-separated, or '0' for all lines):")
+    print("Example: 3,5,7 will generate only lines 3, 5, and 7")
+    user_input = input("> ").strip()
 
-    if user_input != 'y':
-        print("Cancelled.")
-        return
+    # Parse user input
+    if user_input == '0':
+        # Generate all lines
+        lines_to_process = lines_data
+    else:
+        try:
+            # Parse comma-separated line numbers
+            selected_lines = [int(num.strip()) for num in user_input.split(',')]
 
-    # Generate speech for all lines
+            # Filter lines_data to only include selected lines
+            lines_to_process = [(line_num, text) for line_num, text in lines_data
+                               if line_num in selected_lines]
+
+            if not lines_to_process:
+                print("Error: No valid line numbers selected")
+                return
+
+            # Verify all requested lines exist
+            missing_lines = set(selected_lines) - {line_num for line_num, _ in lines_to_process}
+            if missing_lines:
+                print(f"Warning: Lines {sorted(missing_lines)} not found in script")
+
+            print(f"\nSelected {len(lines_to_process)} line(s) to generate:")
+            for line_num, text in lines_to_process:
+                preview = text[:60] + "..." if len(text) > 60 else text
+                print(f"  Line {line_num}: {preview}")
+
+        except ValueError:
+            print("Error: Invalid input format. Use comma-separated numbers or '0' for all.")
+            return
+
+    # Generate speech for selected lines
     print(f"\nUsing voice: {VOICE}")
     print(f"Output directory: {OUTPUT_DIR}")
     print("\n" + "-"*70)
 
     success_count = 0
-    for line_num, text in lines_data:
+    for line_num, text in lines_to_process:
         if generate_speech(text, line_num, OUTPUT_DIR):
             success_count += 1
         print()  # Add spacing between lines
 
     # Summary
     print("="*70)
-    print(f"COMPLETE: {success_count}/{len(lines_data)} lines generated successfully")
+    print(f"COMPLETE: {success_count}/{len(lines_to_process)} lines generated successfully")
     print(f"Output directory: {OUTPUT_DIR}")
     print("="*70)
 

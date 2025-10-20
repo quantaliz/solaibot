@@ -12,6 +12,12 @@ We approve the operation in SolFlare
 
 Sol-AI-Bot receives the signature and sends it to the service provider
 
-When the payment is confirmed, we receive the confirmation
+When the payment is done, we receive the hash of the operation finalized in Solana-devnet
 
-To confirm it is on chain, we flip to SolFlare, then confirm the transaction happened in devnet
+To confirm it is on chain, switching to the SolFlare, we can see transaction in devnet.
+
+If you are interested in the project, check the link below or follow the QR code
+
+Thanks for your attention.
+
+Quantaliz.com/hackathon.html
