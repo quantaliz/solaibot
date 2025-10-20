@@ -54,7 +54,7 @@ It runs a full AI model right on your phone. Nothing leaves your device. Complet
 
 And here's the magic: it can autonomously pay for content using Solana blockchain.
 
-When your AI needs paid data, it detects it, requests your approval through your wallet, and completes the payment—all in under a second."
+When your AI needs paid data, it detects it, requests your approval through your wallet, and completes the payment — all in under a second."
 
 ---
 
@@ -94,15 +94,15 @@ No manual intervention. No breaking your workflow. Just seamless AI autonomy."
 
 "The tech behind this is impressive:
 
-On-device AI inference using a 1.5 billion parameter model. That's powerful enough to understand context and make decisions.
+On-device AI inference using an open model. That's powerful enough to understand context and make decisions.
 
 Mobile Wallet Adapter keeps your private keys secure. The app never sees them.
 
-And Solana's blazing-fast blockchain makes micropayments actually viable for the first time.
+And Solana's blazing-fast blockchain makes micropayments actually viable for the first time in human history.
 
 **[Visual: x402 protocol icon]**
 
-We implemented the x402 payment protocol—the first time it's been done on Android for AI."
+We implemented the x402 payment protocol — elevate Android with local AI."
 
 ---
 
