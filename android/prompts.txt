@@ -209,3 +209,7 @@ Now, update the @webpage/voice/main.py file as:
 - The user can select the "SEGMENT" to create the speech
 - Places the audio file in the /webpage/voice/output folder with the name "Segment X"
 - Make sure to log to the stdout the "generation_id" to allow "continuity" of the speech, which can be passed as command line input if there exists one
+
+I am trying to create the voice for the "video script" @webpage/hume-video-script.md
+The documentation for the service is @webpage/humedocs/hume.md
+Currently, running the script at @webpage/voice/main.py fails to execute correctly with errors at @webpage/voice/log.txt
