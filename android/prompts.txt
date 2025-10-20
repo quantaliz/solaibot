@@ -208,4 +208,4 @@ Now, update the @webpage/voice/main.py file as:
 - It reads the @webpage/hume-video-script.md
 - The user can select the "SEGMENT" to create the speech
 - Places the audio file in the /webpage/voice/output folder with the name "Segment X"
-- Make sure to keep track of the "generation_id" to allow "continuity" of the speech
+- Make sure to log to the stdout the "generation_id" to allow "continuity" of the speech, which can be passed as command line input if there exists one
