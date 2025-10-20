@@ -191,25 +191,31 @@ Remove the "static" header on top and replace it with a "sandwitch" button at th
 
 Create a "video script" based on the contents of @webpage/hackathon.html and the @README.md file that is engaging, with simple words and would make the SolAIBot project shine, while the solana-agent-kit extensions a tool to extend the capacities of autonomous AI agents. Place the script in file "webpage/video-script.md" file.
 
-It seems that the playground does not give enough control over the how the voice is generated, in particular with the "description" which can shape the voice.
-Read the documentation again within these URLS:
-https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions
-https://dev.hume.ai/docs/text-to-speech-tts/continuation
-https://dev.hume.ai/docs/text-to-speech-tts/timestamps
-And store that documentation inside a single "documentation" file in "webpage/humedocs/hume.md". Restore code samples as the documentation will focus on scripting. The main focus should be on how to "annotate" a python script to make emphasis on sections of the text to then translate to a voice.
+Read the documentation within this URLs:
+https://platform.openai.com/docs/guides/text-to-speech
+And store that documentation inside a single reference file in "webpage/voice/closedAI.md".
 
+I am trying to create the voice for the "video script" @webpage/hume-video-script.md
+Read the documentation @webpage/voice/closedAITTS.md
+Explain there code samples as the documentation will focus on scripting.
+The main focus should be on how to execute python script to make sections of text to a voice.
 
 Now that you know how the hume service works and how to annotate an script, make a new document in the file "webpage/hume-video-script.md" file that uses those annotations for the video script @webpage/video-script.md
 This new document should apply spaces, inflexions or emphasis on the key ideas to share with the SolAIBot video.
 
 The file in "webpage/hume-video-script.md" should be a plug&play blob of text that will be fed into the playground of "hume.ai". It does not need to have the script structure. Consider what you wrote @webpage/humedocs/hume.md to annotate sentences instead of using the what every screen section does.
 
-Now, update the @webpage/voice/main.py file as:
-- It reads the @webpage/hume-video-script.md
-- The user can select the "SEGMENT" to create the speech
-- Places the audio file in the /webpage/voice/output folder with the name "Segment X"
-- Make sure to log to the stdout the "generation_id" to allow "continuity" of the speech, which can be passed as command line input if there exists one
-
 I am trying to create the voice for the "video script" @webpage/hume-video-script.md
 The documentation for the service is @webpage/humedocs/hume.md
 Currently, running the script at @webpage/voice/main.py fails to execute correctly with errors at @webpage/voice/log.txt
+Make sure the script generates a "wav" or "mp3" in the "webpage/voice/output" folder. As is right now, it is not generating that file, it is just wasting tokens
+
+
+
+I am trying to generate voice for the "video script" @webpage/hume-video-script.md
+Read the documentation @webpage/voice/closedAITTS.md which has details that explains how the TTS service works
+Therefore, create a file named @webpage/voice/main.py that:
+- It reads the @webpage/hume-video-script.md
+- The user can select the "SEGMENT" to create the speech
+- Places the audio file in the /webpage/voice/output folder with the name "Segment_X" in "mp3" format
+- Use "ballad" as the voice option
