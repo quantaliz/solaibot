@@ -5,7 +5,128 @@
 
 ## Overview
 
-This documentation covers how to use Hume AI's Octave 2 text-to-speech API with Python to control voice delivery, emphasis, pacing, and synchronization. The focus is on programmatic control through API calls with emphasis on script annotation techniques.
+This documentation covers how to use Hume AI's **Octave 2** text-to-speech API with Python to control voice delivery, emphasis, pacing, and synchronization. The focus is on programmatic control through API calls with emphasis on script annotation techniques.
+
+### What is Octave?
+
+**Octave** is the first text-to-speech system built on LLM intelligence. Unlike traditional TTS systems, Octave *understands* the text it speaks, both emotionally and semantically. This enables it to:
+
+- Adapt pronunciation, pitch, and tempo based on emotional intent
+- Create voices for specific personas (e.g., "patient counselor," "medieval knight")
+- Generate high-quality, expressive speech in real-time (~100ms latency)
+- Support voice cloning with just 15 seconds of audio
+- Handle multiple languages (English, Japanese, Korean, Spanish, French, Portuguese, Italian, German, Russian, Hindi, Arabic)
+
+**Key Capabilities:**
+- Real-time audio generation with streaming
+- Acting instructions for emotional control
+- Continuation for coherent multi-utterance speech
+- Word and phoneme-level timestamps for synchronization
+- Maximum 5,000 characters per utterance, 5 generations per request
+- Supports MP3, WAV, and PCM audio formats
+
+**Official Documentation:**
+- [TTS Overview](https://dev.hume.ai/docs/text-to-speech-tts/overview)
+- [Python Quickstart Guide](https://dev.hume.ai/docs/text-to-speech-tts/quickstart/python)
+- [Acting Instructions](https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions)
+- [Continuation Features](https://dev.hume.ai/docs/text-to-speech-tts/continuation)
+- [Timestamps](https://dev.hume.ai/docs/text-to-speech-tts/timestamps)
+
+---
+
+## 0. Setup and Installation
+
+### Installation
+
+Install the Hume Python SDK using your preferred package manager:
+
+**Using uv:**
+```bash
+uv init
+uv add hume[microphone] python-dotenv
+```
+
+**Using Poetry:**
+```bash
+poetry init
+poetry add hume[microphone] python-dotenv
+```
+
+**Using venv/pip:**
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install hume[microphone] python-dotenv
+```
+
+### Requirements
+
+- Python 3.8 or higher
+- PortAudio library (for audio playback)
+- Speakers or audio output device
+- Hume API key
+
+### Authentication
+
+1. Get your API key from the [Hume AI platform](https://platform.hume.ai/)
+2. Create a `.env` file in your project directory:
+
+```bash
+HUME_API_KEY=your_api_key_here
+```
+
+3. Load the API key in your Python code:
+
+```python
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# API key will be available via os.getenv("HUME_API_KEY")
+```
+
+### Basic Usage Example
+
+```python
+import os
+import asyncio
+from hume import AsyncHumeClient
+from hume.models.tts import PostedUtterance, PostedUtteranceVoiceWithName
+
+async def basic_tts_example():
+    # Initialize client with API key from environment
+    hume = AsyncHumeClient(api_key=os.getenv("HUME_API_KEY"))
+
+    # Define voice
+    voice = PostedUtteranceVoiceWithName(
+        name="Ava Song",
+        provider="HUME_AI"
+    )
+
+    # Generate speech
+    stream = await hume.tts.synthesize_json_streaming(
+        version="2",
+        utterances=[
+            PostedUtterance(
+                text="Hello! This is a test of the Hume text-to-speech system.",
+                voice=voice
+            )
+        ]
+    )
+
+    # Process audio chunks
+    async for chunk in stream:
+        if chunk.get("type") == "audio":
+            # Process audio data
+            pass
+
+if __name__ == "__main__":
+    asyncio.run(basic_tts_example())
+```
+
+For complete setup instructions and streaming examples, see the [Python Quickstart Guide](https://dev.hume.ai/docs/text-to-speech-tts/quickstart/python).
 
 ---
 
