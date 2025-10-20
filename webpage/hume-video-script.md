@@ -1,4 +1,4 @@
-# Hume AI Annotated Video Script: Financially Autonomous AI Agents
+#  Financially Autonomous AI Agents
 
 **Duration:** 2-3 minutes
 **Voice:** Engaging, clear, tech-forward narrator

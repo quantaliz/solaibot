@@ -200,3 +200,5 @@ And store that documentation inside a single "documentation" file in "webpage/hu
 
 Now that you know how the hume service works and how to annotate an script, make a new document in the file "webpage/hume-video-script.md" file that uses those annotations for the video script @webpage/video-script.md
 This new document should apply spaces, inflexions or emphasis on the key ideas to share with the SolAIBot video.
+
+The file in "webpage/hume-video-script.md" should be a plug&play blob of text that will be fed into the playground of "hume.ai". It does not need to have the script structure. Consider what you wrote @webpage/humedocs/hume.md to annotate sentences instead of using the what every screen section does.
