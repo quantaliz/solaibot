@@ -188,3 +188,5 @@ Break down the "Business Model" in two sections: One for the app, another for th
 Place the "Roadmap" squares from "left -> right" instead top -> bottom
 
 Remove the "static" header on top and replace it with a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
+
+Create a "video script" based on the contents of @webpage/hackathon.html and the @README.md file that is engaging, with simple words and would make the SolAIBot project shine, while the solana-agent-kit extensions a tool to extend the capacities of autonomous AI agents. Place the script in file "webpage/video-script.md" file.
