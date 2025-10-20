@@ -190,3 +190,13 @@ Place the "Roadmap" squares from "left -> right" instead top -> bottom
 Remove the "static" header on top and replace it with a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
 
 Create a "video script" based on the contents of @webpage/hackathon.html and the @README.md file that is engaging, with simple words and would make the SolAIBot project shine, while the solana-agent-kit extensions a tool to extend the capacities of autonomous AI agents. Place the script in file "webpage/video-script.md" file.
+
+Read the documentation within these URLS:
+https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions
+https://dev.hume.ai/docs/text-to-speech-tts/continuation
+https://dev.hume.ai/docs/text-to-speech-tts/timestamps
+And store that documentation inside a single "documentation" file in "webpage/humedocs/hume.md". Remove code samples as the documentation will focus on the webpage. The main focus should be on how to "annotate" the script to make emphasis on sections of the text to then translate to a voice
+
+
+Now that you know how the hume service works and how to annotate an script, make a new document in the file "webpage/hume-video-script.md" file that uses those annotations for the video script @webpage/video-script.md
+This new document should apply spaces, inflexions or emphasis on the key ideas to share with the SolAIBot video.
