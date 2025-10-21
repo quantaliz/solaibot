@@ -210,8 +210,6 @@ The documentation for the service is @webpage/humedocs/hume.md
 Currently, running the script at @webpage/voice/main.py fails to execute correctly with errors at @webpage/voice/log.txt
 Make sure the script generates a "wav" or "mp3" in the "webpage/voice/output" folder. As is right now, it is not generating that file, it is just wasting tokens
 
-
-
 I am trying to generate voice for the "video script" @webpage/hume-video-script.md
 Read the documentation @webpage/voice/closedAITTS.md which has details that explains how the TTS service works
 Therefore, create a file named @webpage/voice/main.py that:
@@ -219,3 +217,6 @@ Therefore, create a file named @webpage/voice/main.py that:
 - The user can select the "SEGMENT" to create the speech
 - Places the audio file in the /webpage/voice/output folder with the name "Segment_X" in "mp3" format
 - Use "ballad" as the voice option
+
+Make a new script similar to @demo/voice/main.py that, instead of reading the file @demo/hume-video-script.md it reads "@demo/solaibotDemo.md" and creates voice files according to each section.
+This new script should be named "demo/voice/video-voice.py
