@@ -34,7 +34,9 @@ async def introduce_agent(ctx: Context):
 
 @agent.on_interval(period=10.0)
 async def periodic_task(ctx: Context):
-    counter = ctx.storage.get('counter', 0)
+    counter = ctx.storage.get('counter')
+    if counter is None:
+        counter = 0
     ctx.logger.info(f"Agent {agent.name} is running... Counter: {counter}")
     ctx.storage.set('counter', counter + 1)
 

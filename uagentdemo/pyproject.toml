@@ -7,4 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "dotenv>=0.9.9",
     "uagents>=0.22.10",
+    "uagents-adapter[mcp]>=0.6.2",
+    "x402>=0.2.1",
 ]
