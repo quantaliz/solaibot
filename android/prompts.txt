@@ -220,3 +220,5 @@ Therefore, create a file named @webpage/voice/main.py that:
 
 Make a new script similar to @demo/voice/main.py that, instead of reading the file @demo/hume-video-script.md it reads "@demo/solaibotDemo.md" and creates voice files according to each section.
 This new script should be named "demo/voice/video-voice.py
+
+My bad, it was @demo/video-script.md instead of solaibotDemo.md. Update the file to match "video-script.md". Also, allow the user to select which sections to recreate in case necessary, like the @demo/voice/demo-voice.py do
