@@ -1,118 +1,255 @@
 import os
-import json
-import base64
-import hmac
-import hashlib
+import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
-import requests
+from typing import Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from uagents import Agent, Context
 
+# Import x402 facilitator components
+try:
+    from x402.facilitator import verify_payment, settle_payment, FacilitatorConfig
+    from x402.types import TokenAmount, TokenAsset, EIP712Domain
+    X402_AVAILABLE = True
+except ImportError:
+    X402_AVAILABLE = False
+    print("⚠️ x402 package not installed. Install with: pip install x402")
+
 load_dotenv()
 
-# x402 Service Integration
-class X402Service:
-    """Service class for interacting with Coinbase x402 API on Solana"""
+# ============================================================================
+# Message Models for Resource Access with Payment
+# ============================================================================
+
+class ResourceRequest(BaseModel):
+    """Request model for accessing a resource"""
+    resource_id: str = Field(..., description="ID of the resource being requested")
+    requester_address: Optional[str] = Field(None, description="Blockchain address of requester")
+
+class PaymentRequired(BaseModel):
+    """Response when payment is required to access a resource"""
+    resource_id: str
+    price: str = Field(..., description="Price in USD format like '$0.001' or token amount")
+    pay_to_address: str = Field(..., description="Merchant's blockchain address")
+    network: str = Field(default="base-sepolia", description="Blockchain network")
+    token_address: Optional[str] = Field(None, description="Token contract address for ERC20")
+    token_decimals: Optional[int] = Field(None, description="Token decimals")
+    token_name: Optional[str] = Field(None, description="Token name for EIP712")
+    payment_id: str = Field(..., description="Unique payment ID for tracking")
+    message: str = Field(default="Payment required to access this resource")
+
+class PaymentProof(BaseModel):
+    """Payment proof submitted by the requester"""
+    payment_id: str = Field(..., description="Payment ID from PaymentRequired message")
+    resource_id: str = Field(..., description="Resource being purchased")
+    transaction_hash: str = Field(..., description="Blockchain transaction hash")
+    from_address: str = Field(..., description="Sender's blockchain address")
+    to_address: str = Field(..., description="Recipient's blockchain address")
+    amount: str = Field(..., description="Amount paid")
+    network: str = Field(..., description="Network where payment was made")
+
+class ResourceAccess(BaseModel):
+    """Response granting access to a resource"""
+    success: bool
+    payment_id: str
+    resource_id: str
+    resource_data: Optional[dict] = Field(None, description="The actual resource data")
+    message: str
+    verified_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+class ResourceError(BaseModel):
+    """Error response for resource access"""
+    success: bool = False
+    payment_id: Optional[str] = None
+    resource_id: str
+    error: str
+    message: str
+
+# ============================================================================
+# PayAI Facilitator Service
+# ============================================================================
+
+class PayAIFacilitatorService:
+    """Service for verifying and settling payments via PayAI facilitator"""
 
     def __init__(self):
-        self.api_key = os.getenv("X402_API_KEY")
-        self.api_secret = os.getenv("X402_API_SECRET")
-        self.network = os.getenv("X402_NETWORK", "devnet")
-        self.base_url = "https://api.coinbase.com/x402/v1"
+        self.facilitator_url = os.getenv("FACILITATOR_URL", "https://facilitator.payai.network")
+        self.merchant_address = os.getenv("MERCHANT_ADDRESS")
+        self.network = os.getenv("PAYMENT_NETWORK", "base-sepolia")
+        self.facilitator_config = FacilitatorConfig(url=self.facilitator_url)
 
-    def _create_signature(self, timestamp: str, method: str, path: str, body: str = "") -> str:
-        """Create HMAC signature for API requests"""
-        if not self.api_secret:
-            raise ValueError("X402_API_SECRET not configured")
-        message = f"{timestamp}{method.upper()}{path}{body}"
-        secret_bytes = base64.b64decode(self.api_secret)
-        signature = hmac.new(secret_bytes, message.encode(), hashlib.sha256).digest()
-        return base64.b64encode(signature).decode()
+        if not self.merchant_address:
+            raise ValueError("MERCHANT_ADDRESS not configured in .env")
 
-    def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict:
-        """Make authenticated request to x402 API"""
-        if not self.api_key:
-            raise ValueError("X402_API_KEY not configured")
-
-        timestamp = str(int(datetime.now().timestamp()))
-        path = f"/x402/v1/{endpoint}"
-
-        headers = {
-            "CB-ACCESS-KEY": self.api_key,
-            "CB-ACCESS-TIMESTAMP": timestamp,
-            "Content-Type": "application/json"
+    def get_price_for_resource(self, resource_id: str) -> dict:
+        """Get pricing configuration for a resource"""
+        # This could be loaded from a database or config file
+        # For now, we have some example resources
+        resources = {
+            "premium_weather": {
+                "price": "$0.001",  # USD format
+                "description": "Real-time premium weather data"
+            },
+            "premium_data": {
+                "price": TokenAmount(
+                    amount="10000",  # 0.01 USDC (6 decimals)
+                    asset=TokenAsset(
+                        address="0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                        decimals=6,
+                        eip712=EIP712Domain(name="USDC", version="2"),
+                    ),
+                ),
+                "token_address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                "token_decimals": 6,
+                "token_name": "USDC",
+                "description": "Premium analytics data"
+            },
+            "premium_api": {
+                "price": "$0.005",
+                "description": "Premium API access"
+            }
         }
 
-        if data:
-            body = json.dumps(data)
-            headers["CB-ACCESS-SIGNATURE"] = self._create_signature(timestamp, method, path, body)
-            response = requests.request(method, f"{self.base_url}/{endpoint}",
-                                    headers=headers, data=body)
-        else:
-            headers["CB-ACCESS-SIGNATURE"] = self._create_signature(timestamp, method, path)
-            response = requests.request(method, f"{self.base_url}/{endpoint}", headers=headers)
+        if resource_id not in resources:
+            raise ValueError(f"Unknown resource: {resource_id}")
 
-        response.raise_for_status()
-        return response.json()
+        return resources[resource_id]
 
-    async def get_balance(self, wallet_address: str = None) -> Dict[str, Any]:
-        """Get wallet balance from x402 API"""
-        if wallet_address:
-            return self._make_request("GET", f"balance/{wallet_address}")
-        else:
-            return self._make_request("GET", "balance")
+    async def verify_and_settle_payment(
+        self,
+        payment_proof: PaymentProof,
+        expected_price: str,
+        token_info: Optional[dict] = None
+    ) -> dict:
+        """Verify payment with facilitator and settle it"""
+        try:
+            # Build token amount if token info provided
+            if token_info:
+                token_amount = TokenAmount(
+                    amount=token_info["amount"],
+                    asset=TokenAsset(
+                        address=token_info["address"],
+                        decimals=token_info["decimals"],
+                        eip712=EIP712Domain(name=token_info["name"], version="2"),
+                    ),
+                )
+                price = token_amount
+            else:
+                price = expected_price
 
-    async def create_payment(self, payment_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new payment transaction via x402"""
-        return self._make_request("POST", "payments", payment_data)
+            # Verify payment with facilitator
+            verification_result = await verify_payment(
+                transaction_hash=payment_proof.transaction_hash,
+                price=price,
+                pay_to_address=self.merchant_address,
+                network=payment_proof.network,
+                facilitator_config=self.facilitator_config
+            )
 
-    async def get_transaction_status(self, transaction_id: str) -> Dict[str, Any]:
-        """Get status of a specific transaction"""
-        return self._make_request("GET", f"transactions/{transaction_id}")
+            if not verification_result.get("verified", False):
+                return {
+                    "success": False,
+                    "error": "Payment verification failed",
+                    "details": verification_result
+                }
 
-    async def get_supported_tokens(self) -> Dict[str, Any]:
-        """Get list of supported tokens"""
-        return self._make_request("GET", "tokens")
+            # Settle payment with facilitator
+            settlement_result = await settle_payment(
+                transaction_hash=payment_proof.transaction_hash,
+                price=price,
+                pay_to_address=self.merchant_address,
+                network=payment_proof.network,
+                facilitator_config=self.facilitator_config
+            )
 
-# Message Models for x402 Integration
-class PaymentRequest(BaseModel):
-    """Request model for sending payments via x402"""
-    recipient_address: str = Field(..., description="Solana recipient address")
-    amount: float = Field(..., gt=0, description="Amount to send")
-    token: str = Field(default="SOL", description="Token type (SOL, USDC, etc.)")
-    reference_id: Optional[str] = Field(None, description="Transaction reference")
-    memo: Optional[str] = Field(None, description="Payment memo")
+            return {
+                "success": True,
+                "verified": True,
+                "settled": settlement_result.get("settled", False),
+                "verification": verification_result,
+                "settlement": settlement_result
+            }
 
-class PaymentResponse(BaseModel):
-    """Response model for payment results"""
-    success: bool
-    transaction_id: Optional[str] = None
-    blockhash: Optional[str] = None
-    message: str
-    fee: Optional[float] = None
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "verified": False
+            }
 
-class BalanceRequest(BaseModel):
-    """Request model for checking balance"""
-    wallet_address: Optional[str] = None
+# ============================================================================
+# Premium Resources (Example Data)
+# ============================================================================
 
-class BalanceResponse(BaseModel):
-    """Response model for balance information"""
-    wallet_address: str
-    balances: Dict[str, float]
-    last_updated: str
+def get_premium_resource(resource_id: str) -> dict:
+    """Get the actual premium resource data after payment is verified"""
+    resources = {
+        "premium_weather": {
+            "resource_id": "premium_weather",
+            "data": {
+                "location": "San Francisco",
+                "temperature": 72,
+                "conditions": "Sunny",
+                "humidity": 65,
+                "wind_speed": 12,
+                "forecast": [
+                    {"day": "Tomorrow", "high": 75, "low": 58, "conditions": "Partly Cloudy"},
+                    {"day": "Day 2", "high": 73, "low": 56, "conditions": "Sunny"},
+                    {"day": "Day 3", "high": 70, "low": 55, "conditions": "Overcast"}
+                ],
+                "air_quality_index": 45,
+                "uv_index": 6
+            },
+            "timestamp": datetime.now().isoformat(),
+            "premium": True
+        },
+        "premium_data": {
+            "resource_id": "premium_data",
+            "data": {
+                "analytics": {
+                    "daily_users": 15420,
+                    "conversion_rate": 3.7,
+                    "revenue": 52340.50,
+                    "growth_rate": 12.5
+                },
+                "insights": [
+                    "User engagement up 15% this week",
+                    "Mobile traffic now represents 68% of total",
+                    "Peak usage hours: 2-4 PM EST"
+                ],
+                "timestamp": datetime.now().isoformat()
+            },
+            "premium": True
+        },
+        "premium_api": {
+            "resource_id": "premium_api",
+            "data": {
+                "api_key": f"pk_premium_{uuid.uuid4().hex[:16]}",
+                "rate_limit": "1000 requests/hour",
+                "endpoints": [
+                    "/api/v1/advanced-search",
+                    "/api/v1/bulk-operations",
+                    "/api/v1/real-time-data"
+                ],
+                "valid_until": "2025-11-24T00:00:00Z"
+            },
+            "premium": True
+        }
+    }
 
+    return resources.get(resource_id, {
+        "resource_id": resource_id,
+        "data": {"message": "Resource not found"},
+        "error": True
+    })
+
+# ============================================================================
 # Agent Configuration
-aName = os.getenv("AGENT_NAME", "demo_agent")
-aSeed = os.getenv("AGENT_SEED", "demo_agent_seed_phrase_12345")
-aNet = "devnet"
+# ============================================================================
 
-# x402 Configuration
-USE_X402 = os.getenv("USE_X402", "false").lower() == "true"
-USE_MCP = os.getenv("USE_MCP", "false").lower() == "true"
-ASI1_API_KEY = os.getenv("ASI1_API_KEY", "")
-MCP_MODEL = os.getenv("MCP_MODEL", "asi1-mini")
+aName = os.getenv("AGENT_NAME", "payment_merchant_agent")
+aSeed = os.getenv("AGENT_SEED", "merchant_agent_secure_seed_phrase_12345")
+aNet = os.getenv("AGENT_NETWORK", "testnet")
 
 # Initialize agent
 agent = Agent(
@@ -123,191 +260,268 @@ agent = Agent(
     network=aNet
 )
 
-# Initialize x402 service (if enabled)
-x402_service = X402Service() if USE_X402 else None
+# Initialize PayAI facilitator service (if x402 is available)
+facilitator_service = None
+if X402_AVAILABLE:
+    try:
+        facilitator_service = PayAIFacilitatorService()
+    except ValueError as e:
+        print(f"⚠️ Could not initialize facilitator service: {e}")
+
+# ============================================================================
+# Agent Event Handlers
+# ============================================================================
 
 @agent.on_event("startup")
 async def introduce_agent(ctx: Context):
-    """Initialize the agent with x402 capabilities"""
-    ctx.logger.info(
-        f"Hello, I'm agent {agent.name} and my address is {agent.address}."
-    )
-    ctx.logger.info(f"Running on {aNet}")
-    ctx.logger.info(f"Wallet address: {agent.wallet.address()}")
+    """Initialize the merchant agent"""
+    ctx.logger.info(f"🏪 Merchant Agent Started: {agent.name}")
+    ctx.logger.info(f"Agent address: {agent.address}")
+    ctx.logger.info(f"Running on network: {aNet}")
 
-    if USE_X402:
-        ctx.logger.info("🚀 x402 Payment Integration ENABLED")
-        ctx.logger.info(f"Network: {os.getenv('X402_NETWORK', 'devnet')}")
-        try:
-            supported_tokens = await x402_service.get_supported_tokens()
-            ctx.logger.info(f"Supported tokens: {supported_tokens.get('tokens', [])}")
-        except Exception as e:
-            ctx.logger.warning(f"⚠️ Could not fetch supported tokens: {e}")
+    if facilitator_service:
+        ctx.logger.info("✅ PayAI Facilitator Integration ENABLED")
+        ctx.logger.info(f"Facilitator URL: {facilitator_service.facilitator_url}")
+        ctx.logger.info(f"Merchant Address: {facilitator_service.merchant_address}")
+        ctx.logger.info(f"Payment Network: {facilitator_service.network}")
+        ctx.logger.info("")
+        ctx.logger.info("📦 Available Premium Resources:")
+        resources = ["premium_weather", "premium_data", "premium_api"]
+        for res_id in resources:
+            try:
+                res_info = facilitator_service.get_price_for_resource(res_id)
+                price_str = res_info["price"] if isinstance(res_info["price"], str) else "USDC"
+                ctx.logger.info(f"  - {res_id}: {price_str} - {res_info['description']}")
+            except:
+                pass
     else:
-        ctx.logger.info("ℹ️ x402 integration DISABLED")
+        ctx.logger.warning("⚠️ PayAI Facilitator integration DISABLED")
+        ctx.logger.warning("Install x402: pip install x402")
 
-    if USE_MCP:
-        ctx.logger.info(f"MCP integration enabled with model: {MCP_MODEL}")
-    else:
-        ctx.logger.info("Running without MCP integration")
+@agent.on_interval(period=30.0)
+async def periodic_status(ctx: Context):
+    """Periodic status update"""
+    payment_count = ctx.storage.get('total_payments') or 0
+    access_count = ctx.storage.get('total_accesses') or 0
+    ctx.logger.info(f"📊 Status - Payments: {payment_count}, Resource Accesses: {access_count}")
 
-@agent.on_interval(period=10.0)
-async def periodic_task(ctx: Context):
-    """Periodic task with x402 balance checking capability"""
-    counter = ctx.storage.get('counter')
-    if counter is None:
-        counter = 0
-    ctx.logger.info(f"Agent {agent.name} is running... Counter: {counter}")
-    ctx.storage.set('counter', counter + 1)
+# ============================================================================
+# Message Handlers
+# ============================================================================
 
-    # If x402 is enabled, optionally check balance
-    if USE_X402 and counter % 6 == 0:  # Check balance every 60 seconds
-        try:
-            default_wallet = os.getenv("SOLANA_WALLET_ADDRESS")
-            if default_wallet:
-                balance_data = await x402_service.get_balance(default_wallet)
-                balances = balance_data.get('balances', {})
-                if balances:
-                    ctx.logger.info(f"💰 Wallet {default_wallet}: {balances}")
-        except Exception as e:
-            ctx.logger.debug(f"Balance check skipped: {e}")
+@agent.on_message(model=ResourceRequest)
+async def handle_resource_request(ctx: Context, sender: str, request: ResourceRequest):
+    """Handle incoming resource access requests"""
+    ctx.logger.info(f"📥 Resource request from {sender[:16]}... for: {request.resource_id}")
 
-# x402 Payment Handler
-@agent.on_message(model=PaymentRequest)
-async def handle_payment_request(ctx: Context, sender: str, request: PaymentRequest):
-    """Handle incoming payment requests via x402"""
-    if not USE_X402:
-        ctx.logger.warning(f"Payment request ignored - x402 disabled")
-        response = PaymentResponse(
-            success=False,
-            message="x402 payments are disabled for this agent"
+    if not facilitator_service:
+        error = ResourceError(
+            resource_id=request.resource_id,
+            error="Facilitator not configured",
+            message="Payment system is not available"
         )
-        await ctx.send(sender, response)
+        await ctx.send(sender, error)
         return
 
-    ctx.logger.info(f"💸 Received payment request from {sender}")
-    ctx.logger.info(f"Amount: {request.amount} {request.token} to {request.recipient_address}")
-
     try:
-        # Validate recipient address format
-        if not request.recipient_address or len(request.recipient_address) < 32:
-            raise ValueError("Invalid recipient address format")
+        # Get pricing for the requested resource
+        resource_info = facilitator_service.get_price_for_resource(request.resource_id)
 
-        # Prepare payment data for x402
-        payment_data = {
-            "recipient": request.recipient_address,
-            "amount": request.amount,
-            "token": request.token,
-            "reference_id": request.reference_id or f"uagent-{datetime.now().timestamp()}",
-            "memo": request.memo
-        }
+        # Generate unique payment ID
+        payment_id = f"pay_{uuid.uuid4().hex[:16]}"
 
-        # Execute payment via x402
-        result = await x402_service.create_payment(payment_data)
+        # Store payment expectation
+        ctx.storage.set(f"payment_{payment_id}", {
+            "resource_id": request.resource_id,
+            "requester": sender,
+            "created_at": datetime.now().isoformat(),
+            "price": str(resource_info["price"]),
+            "status": "pending"
+        })
 
-        # Update transaction counter
-        tx_count = int(ctx.storage.get('transaction_count') or 0) + 1
-        ctx.storage.set('transaction_count', tx_count)
-
-        # Create success response
-        response = PaymentResponse(
-            success=True,
-            transaction_id=result.get('transaction_id'),
-            blockhash=result.get('blockhash'),
-            message=f"Payment of {request.amount} {request.token} sent successfully",
-            fee=result.get('fee')
+        # Build payment required response
+        payment_required = PaymentRequired(
+            resource_id=request.resource_id,
+            price=str(resource_info["price"]) if isinstance(resource_info["price"], str) else "0.01 USDC",
+            pay_to_address=facilitator_service.merchant_address,
+            network=facilitator_service.network,
+            payment_id=payment_id,
+            message=f"Payment required for {resource_info['description']}"
         )
 
-        ctx.logger.info(f"✅ Payment successful! TX: {result.get('transaction_id')}")
-        ctx.logger.info(f"Total transactions processed: {tx_count}")
+        # Add token info if applicable
+        if "token_address" in resource_info:
+            payment_required.token_address = resource_info["token_address"]
+            payment_required.token_decimals = resource_info["token_decimals"]
+            payment_required.token_name = resource_info["token_name"]
 
-    except Exception as e:
-        ctx.logger.error(f"❌ Payment failed: {str(e)}")
-        response = PaymentResponse(
-            success=False,
-            message=f"Payment failed: {str(e)}"
+        ctx.logger.info(f"💳 Requesting payment: {payment_id}")
+        await ctx.send(sender, payment_required)
+
+    except ValueError as e:
+        ctx.logger.error(f"❌ Resource not found: {request.resource_id}")
+        error = ResourceError(
+            resource_id=request.resource_id,
+            error="Resource not found",
+            message=str(e)
         )
+        await ctx.send(sender, error)
 
-    await ctx.send(sender, response)
+@agent.on_message(model=PaymentProof)
+async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
+    """Handle payment proof and verify with facilitator"""
+    ctx.logger.info(f"💰 Payment proof received from {sender[:16]}...")
+    ctx.logger.info(f"Payment ID: {proof.payment_id}")
+    ctx.logger.info(f"Transaction: {proof.transaction_hash[:16]}...")
 
-# x402 Balance Handler
-@agent.on_message(model=BalanceRequest)
-async def handle_balance_request(ctx: Context, sender: str, request: BalanceRequest):
-    """Handle balance inquiry requests via x402"""
-    if not USE_X402:
-        ctx.logger.warning(f"Balance request ignored - x402 disabled")
-        response = BalanceResponse(
-            wallet_address=request.wallet_address or "unknown",
-            balances={},
-            last_updated=datetime.now().isoformat(),
-            message="x402 integration is disabled"
+    if not facilitator_service:
+        error = ResourceError(
+            resource_id=proof.resource_id,
+            payment_id=proof.payment_id,
+            error="Facilitator not configured",
+            message="Cannot verify payment"
         )
-        await ctx.send(sender, response)
+        await ctx.send(sender, error)
         return
 
-    ctx.logger.info(f"💰 Balance request from {sender}")
+    # Retrieve payment expectation
+    payment_data = ctx.storage.get(f"payment_{proof.payment_id}")
+    if not payment_data:
+        ctx.logger.error(f"❌ Unknown payment ID: {proof.payment_id}")
+        error = ResourceError(
+            resource_id=proof.resource_id,
+            payment_id=proof.payment_id,
+            error="Invalid payment ID",
+            message="Payment ID not found or expired"
+        )
+        await ctx.send(sender, error)
+        return
+
+    # Validate payment proof matches expectation
+    if payment_data["resource_id"] != proof.resource_id:
+        ctx.logger.error(f"❌ Resource mismatch: expected {payment_data['resource_id']}, got {proof.resource_id}")
+        error = ResourceError(
+            resource_id=proof.resource_id,
+            payment_id=proof.payment_id,
+            error="Resource mismatch",
+            message="Payment does not match requested resource"
+        )
+        await ctx.send(sender, error)
+        return
+
+    if payment_data["requester"] != sender:
+        ctx.logger.error(f"❌ Requester mismatch")
+        error = ResourceError(
+            resource_id=proof.resource_id,
+            payment_id=proof.payment_id,
+            error="Requester mismatch",
+            message="Payment proof must come from original requester"
+        )
+        await ctx.send(sender, error)
+        return
 
     try:
-        wallet_address = request.wallet_address or os.getenv("SOLANA_WALLET_ADDRESS")
-        if not wallet_address:
-            raise ValueError("No wallet address provided")
+        # Get resource info for verification
+        resource_info = facilitator_service.get_price_for_resource(proof.resource_id)
 
-        balance_data = await x402_service.get_balance(wallet_address)
+        # Prepare token info if needed
+        token_info = None
+        if "token_address" in resource_info:
+            token_info = {
+                "amount": resource_info["price"].amount,
+                "address": resource_info["token_address"],
+                "decimals": resource_info["token_decimals"],
+                "name": resource_info["token_name"]
+            }
 
-        response = BalanceResponse(
-            wallet_address=wallet_address,
-            balances=balance_data.get('balances', {}),
-            last_updated=datetime.now().isoformat()
+        # Verify and settle payment with facilitator
+        ctx.logger.info(f"🔍 Verifying payment with PayAI facilitator...")
+        result = await facilitator_service.verify_and_settle_payment(
+            proof,
+            payment_data["price"],
+            token_info
         )
 
-        ctx.logger.info(f"✅ Balance retrieved for {wallet_address}")
+        if result["success"] and result.get("verified"):
+            # Payment verified! Grant access to resource
+            ctx.logger.info(f"✅ Payment verified and settled!")
 
-    except Exception as e:
-        ctx.logger.error(f"❌ Balance check failed: {str(e)}")
-        response = BalanceResponse(
-            wallet_address=request.wallet_address or "unknown",
-            balances={},
-            last_updated=datetime.now().isoformat(),
-            message=f"Failed to get balance: {str(e)}"
-        )
+            # Get the premium resource
+            resource_data = get_premium_resource(proof.resource_id)
 
-    await ctx.send(sender, response)
+            # Update storage
+            payment_data["status"] = "completed"
+            payment_data["verified_at"] = datetime.now().isoformat()
+            payment_data["transaction_hash"] = proof.transaction_hash
+            ctx.storage.set(f"payment_{proof.payment_id}", payment_data)
 
-if __name__ == "__main__":
-    # Check if MCP integration should be used
-    if USE_MCP:
-        try:
-            from uagents_adapter import MCPServerAdapter
-            from mcp_server import mcp
+            # Update counters
+            total_payments = int(ctx.storage.get('total_payments') or 0) + 1
+            total_accesses = int(ctx.storage.get('total_accesses') or 0) + 1
+            ctx.storage.set('total_payments', total_payments)
+            ctx.storage.set('total_accesses', total_accesses)
 
-            if not ASI1_API_KEY or ASI1_API_KEY == "your-asi1-api-key-here":
-                print("ERROR: ASI1_API_KEY not configured. Please set it in .env file")
-                print("Get your API key from https://asi1.ai/")
-                exit(1)
-
-            # Initialize MCP adapter
-            mcp_adapter = MCPServerAdapter(
-                mcp_server=mcp,
-                asi1_api_key=ASI1_API_KEY,
-                model=MCP_MODEL
+            # Grant access
+            access_response = ResourceAccess(
+                success=True,
+                payment_id=proof.payment_id,
+                resource_id=proof.resource_id,
+                resource_data=resource_data,
+                message=f"Access granted to {proof.resource_id}"
             )
 
-            # Include MCP protocols
-            for protocol in mcp_adapter.protocols:
-                agent.include(protocol, publish_manifest=True)
+            ctx.logger.info(f"🎉 Granting access to {proof.resource_id}")
+            await ctx.send(sender, access_response)
 
-            print(f"Starting agent with MCP integration (model: {MCP_MODEL})")
-            mcp_adapter.run(agent)
-
-        except ImportError as e:
-            print(f"ERROR: MCP dependencies not installed. Install with: pip install 'uagents-adapter[mcp]'")
-            print(f"Details: {e}")
-            exit(1)
-    else:
-        # Run agent without MCP
-        if USE_X402:
-            print("🚀 Starting agent with x402 Payment Integration")
-            print(f"Network: {os.getenv('X402_NETWORK', 'devnet')}")
         else:
-            print("Starting agent without x402 integration")
-        agent.run()
+            # Payment verification failed
+            ctx.logger.error(f"❌ Payment verification failed: {result.get('error', 'Unknown error')}")
+            payment_data["status"] = "failed"
+            payment_data["error"] = result.get("error")
+            ctx.storage.set(f"payment_{proof.payment_id}", payment_data)
+
+            error = ResourceError(
+                resource_id=proof.resource_id,
+                payment_id=proof.payment_id,
+                error="Payment verification failed",
+                message=result.get("error", "Could not verify payment with facilitator")
+            )
+            await ctx.send(sender, error)
+
+    except Exception as e:
+        ctx.logger.error(f"❌ Error processing payment: {str(e)}")
+        error = ResourceError(
+            resource_id=proof.resource_id,
+            payment_id=proof.payment_id,
+            error="Processing error",
+            message=f"Error verifying payment: {str(e)}"
+        )
+        await ctx.send(sender, error)
+
+# ============================================================================
+# Main
+# ============================================================================
+
+if __name__ == "__main__":
+    if not X402_AVAILABLE:
+        print("ERROR: x402 package not installed")
+        print("Install with: pip install x402")
+        print("Then configure MERCHANT_ADDRESS in .env")
+        exit(1)
+
+    if not facilitator_service:
+        print("ERROR: Facilitator service not configured")
+        print("Make sure MERCHANT_ADDRESS is set in .env")
+        exit(1)
+
+    print("=" * 60)
+    print("🏪 PayAI Merchant Agent with x402 Payment Verification")
+    print("=" * 60)
+    print(f"Agent: {aName}")
+    print(f"Network: {aNet}")
+    print(f"Facilitator: {facilitator_service.facilitator_url}")
+    print(f"Merchant Address: {facilitator_service.merchant_address}")
+    print("=" * 60)
+    print("")
+
+    agent.run()
