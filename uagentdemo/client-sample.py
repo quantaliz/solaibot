@@ -5,14 +5,20 @@ Sample Client Agent for PayAI x402 Merchant Demo
 This client agent demonstrates how to:
 1. Request premium resources from the merchant
 2. Handle payment requirements
-3. Create mock payments (development mode)
+3. Execute real Solana blockchain payments on devnet
 4. Receive and process premium content
+
+Prerequisites:
+    - Funded Solana devnet wallet (get SOL from https://faucet.solana.com/)
+    - Wallet private key configured in .env
+    - Merchant agent running
 
 Usage:
     1. Start the merchant agent first: uv run main.py
     2. Copy the merchant agent address from the logs
-    3. Set MERCHANT_AGENT_ADDRESS in .env
-    4. Run this client: uv run client-sample.py
+    3. Set MERCHANT_UAGENT_ADDRESS in .env
+    4. Fund your wallet with devnet SOL
+    5. Run this client: uv run client-sample.py
 """
 
 import os
@@ -26,15 +32,19 @@ from uagents import Agent, Context
 # Load environment variables
 load_dotenv()
 
-# Solana imports (optional - for real payments)
+# Solana imports (required for payments)
 try:
     from solana.rpc.api import Client
     from solders.pubkey import Pubkey
     SOLANA_AVAILABLE = True
 except ImportError:
     SOLANA_AVAILABLE = False
-    print("⚠️  solana package not installed. Real Solana payments will not work.")
+    print("=" * 60)
+    print("❌ ERROR: solana package not installed")
+    print("=" * 60)
+    print("   This client requires the Solana library to make payments.")
     print("   Install with: uv add solana")
+    print("=" * 60)
     print("")
 
 # Import shared message models
@@ -173,21 +183,101 @@ async def check_solana_balance(wallet_address: str, network: str = "solana-devne
     except Exception as e:
         return (False, 0.0, f"Error checking balance: {str(e)}")
 
-def generate_mock_transaction_hash() -> str:
-    """Generate a valid mock transaction hash for development mode
+async def execute_solana_payment(
+    from_address: str,
+    to_address: str,
+    amount_sol: float,
+    network: str = "solana-devnet"
+) -> tuple[bool, str, str]:
+    """Execute a real Solana payment transaction
 
-    Development mode requires:
-    - Hash starts with '0x'
-    - Total length: 66 characters (0x + 64 hex chars)
+    Args:
+        from_address: Sender's Solana wallet address
+        to_address: Recipient's Solana wallet address
+        amount_sol: Amount to send in SOL
+        network: Network to use (solana-devnet or solana-mainnet)
+
+    Returns:
+        tuple: (success: bool, tx_hash: str, message: str)
     """
-    import hashlib
-    import time
+    if not SOLANA_AVAILABLE:
+        return (False, "", "Solana library not installed")
 
-    # Create a unique hash based on timestamp
-    data = f"{time.time()}{CLIENT_NAME}{TARGET_RESOURCE}".encode()
-    hash_hex = hashlib.sha256(data).hexdigest()
+    if not CLIENT_WALLET_PRIVATE_KEY or CLIENT_WALLET_PRIVATE_KEY == "":
+        return (False, "", "CLIENT_WALLET_PRIVATE_KEY not set in .env")
 
-    return f"0x{hash_hex}"
+    try:
+        from solana.rpc.api import Client as SolanaClient
+        from solana.transaction import Transaction
+        from solders.keypair import Keypair
+        from solders.pubkey import Pubkey
+        from solders.system_program import TransferParams, transfer
+        from solders.hash import Hash
+
+        # Determine RPC endpoint
+        if network == "solana-devnet":
+            rpc_url = "https://api.devnet.solana.com"
+        elif network == "solana-mainnet":
+            rpc_url = "https://api.mainnet-beta.solana.com"
+        else:
+            return (False, "", f"Unknown network: {network}")
+
+        # Connect to Solana
+        client = SolanaClient(rpc_url)
+
+        # Create keypair from private key (base58 encoded)
+        try:
+            import base58
+            private_key_bytes = base58.b58decode(CLIENT_WALLET_PRIVATE_KEY)
+            sender_keypair = Keypair.from_bytes(private_key_bytes)
+        except Exception as e:
+            return (False, "", f"Invalid private key format: {str(e)}")
+
+        # Verify sender address matches
+        if str(sender_keypair.pubkey()) != from_address:
+            return (False, "", f"Private key doesn't match wallet address")
+
+        # Get recipient pubkey
+        recipient_pubkey = Pubkey.from_string(to_address)
+
+        # Convert SOL to lamports (1 SOL = 1,000,000,000 lamports)
+        amount_lamports = int(amount_sol * 1_000_000_000)
+
+        # Get recent blockhash
+        recent_blockhash_resp = client.get_latest_blockhash()
+        recent_blockhash = recent_blockhash_resp.value.blockhash
+
+        # Create transfer instruction
+        transfer_instruction = transfer(
+            TransferParams(
+                from_pubkey=sender_keypair.pubkey(),
+                to_pubkey=recipient_pubkey,
+                lamports=amount_lamports
+            )
+        )
+
+        # Create transaction
+        transaction = Transaction.new_with_payer(
+            instructions=[transfer_instruction],
+            payer=sender_keypair.pubkey()
+        )
+
+        # Set recent blockhash
+        transaction.recent_blockhash = recent_blockhash
+
+        # Sign transaction
+        transaction.sign([sender_keypair], recent_blockhash)
+
+        # Send transaction
+        response = client.send_transaction(transaction, sender_keypair)
+
+        # Get transaction signature
+        tx_signature = str(response.value)
+
+        return (True, tx_signature, f"Transaction sent successfully")
+
+    except Exception as e:
+        return (False, "", f"Error executing payment: {str(e)}")
 
 def format_price(price_str: str) -> str:
     """Format price string for display"""
@@ -223,12 +313,17 @@ async def startup(ctx: Context):
         ctx.logger.info(f"✅ {message}")
         ctx.storage.set("wallet_funded", True)
     else:
-        ctx.logger.warning(f"⚠️  {message}")
-        ctx.logger.warning("   Client will use MOCK payments (development mode)")
-        ctx.logger.warning("   To use real payments:")
-        ctx.logger.warning(f"   1. Get devnet SOL from: https://faucet.solana.com/")
-        ctx.logger.warning(f"   2. Set CLIENT_WALLET_ADDRESS and CLIENT_WALLET_PRIVATE_KEY in .env")
-        ctx.logger.warning(f"   3. Restart client")
+        ctx.logger.error("")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error(f"❌ {message}")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("   Client requires a funded wallet to make payments.")
+        ctx.logger.error("")
+        ctx.logger.error("   To fund your wallet:")
+        ctx.logger.error(f"   1. Visit: https://faucet.solana.com/")
+        ctx.logger.error(f"   2. Request devnet SOL for: {CLIENT_WALLET_ADDRESS}")
+        ctx.logger.error(f"   3. Restart the client")
+        ctx.logger.error("=" * 60)
         ctx.storage.set("wallet_funded", False)
 
     ctx.logger.info("")
@@ -310,42 +405,91 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
     }
     ctx.storage.set("pending_payment", payment_info)
 
-    # Check if wallet is funded
+    # Check prerequisites
     wallet_funded = ctx.storage.get("wallet_funded")
 
+    if not SOLANA_AVAILABLE:
+        ctx.logger.error("")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("❌ SOLANA LIBRARY NOT INSTALLED")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("   Install with: uv add solana")
+        ctx.logger.error("=" * 60)
+        return
+
+    if not CLIENT_WALLET_PRIVATE_KEY or CLIENT_WALLET_PRIVATE_KEY == "":
+        ctx.logger.error("")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("❌ WALLET PRIVATE KEY NOT CONFIGURED")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("   Set CLIENT_WALLET_PRIVATE_KEY in .env")
+        ctx.logger.error("=" * 60)
+        return
+
     if not wallet_funded:
-        ctx.logger.warning("")
-        ctx.logger.warning("⚠️  WALLET NOT FUNDED - Using Mock Payment")
-        ctx.logger.warning("=" * 60)
-        ctx.logger.warning("   Your Solana wallet does not have sufficient funds")
-        ctx.logger.warning("   Client will create a MOCK transaction for demonstration")
-        ctx.logger.warning("")
-        ctx.logger.warning("   For REAL payments:")
-        ctx.logger.warning(f"   1. Get devnet SOL: https://faucet.solana.com/")
-        ctx.logger.warning(f"   2. Set CLIENT_WALLET_ADDRESS in .env")
-        ctx.logger.warning(f"   3. Set CLIENT_WALLET_PRIVATE_KEY in .env")
-        ctx.logger.warning("   4. Restart the client")
-        ctx.logger.warning("=" * 60)
-        ctx.logger.info("")
+        ctx.logger.error("")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("❌ WALLET NOT FUNDED")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("   Your Solana wallet does not have sufficient funds")
+        ctx.logger.error("")
+        ctx.logger.error("   To fund your wallet:")
+        ctx.logger.error(f"   1. Visit: https://faucet.solana.com/")
+        ctx.logger.error(f"   2. Request devnet SOL for: {CLIENT_WALLET_ADDRESS}")
+        ctx.logger.error(f"   3. Restart the client")
+        ctx.logger.error("=" * 60)
+        return
 
-    # In development mode or if unfunded, create a mock transaction
+    # Execute Solana payment
     ctx.logger.info("")
-    ctx.logger.info("🔄 Creating mock payment transaction...")
-    ctx.logger.info("   (In production with funded wallet, this would be a real blockchain transaction)")
+    ctx.logger.info("💳 Executing Solana payment on devnet...")
+    ctx.logger.info("=" * 60)
 
-    # Generate mock transaction hash
-    tx_hash = generate_mock_transaction_hash()
+    # Parse price to SOL amount (simple conversion for demo: $0.001 = 0.001 SOL)
+    # In production, you'd query exchange rates
+    try:
+        if msg.price.startswith("$"):
+            price_usd = float(msg.price.replace("$", ""))
+            amount_sol = price_usd  # Simplified: 1 USD = 1 SOL for demo
+            ctx.logger.info(f"   Converting {msg.price} → {amount_sol} SOL")
+        else:
+            amount_sol = 0.001  # Default fallback
+            ctx.logger.info(f"   Using default amount: {amount_sol} SOL")
+    except:
+        amount_sol = 0.001
+        ctx.logger.info(f"   Using default amount: {amount_sol} SOL")
 
-    ctx.logger.info("")
-    ctx.logger.info("✅ Mock transaction created:")
-    ctx.logger.info(f"   TX Hash: {tx_hash}")
     ctx.logger.info(f"   From: {CLIENT_WALLET_ADDRESS}")
     ctx.logger.info(f"   To: {msg.pay_to_address}")
-    ctx.logger.info(f"   Amount: {msg.price}")
+    ctx.logger.info(f"   Amount: {amount_sol} SOL")
     ctx.logger.info(f"   Network: {msg.network}")
+    ctx.logger.info("")
+    ctx.logger.info("   Sending transaction to Solana devnet...")
 
-    # Small delay to simulate transaction processing
-    await asyncio.sleep(1)
+    # Execute the payment
+    success, tx_hash, message = await execute_solana_payment(
+        from_address=CLIENT_WALLET_ADDRESS,
+        to_address=msg.pay_to_address,
+        amount_sol=amount_sol,
+        network=msg.network
+    )
+
+    if not success:
+        ctx.logger.error("")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error("❌ PAYMENT TRANSACTION FAILED")
+        ctx.logger.error("=" * 60)
+        ctx.logger.error(f"   Error: {message}")
+        ctx.logger.error("=" * 60)
+        return
+
+    ctx.logger.info("")
+    ctx.logger.info("✅ Transaction executed successfully!")
+    ctx.logger.info(f"   TX Signature: {tx_hash}")
+    ctx.logger.info(f"   Explorer: https://explorer.solana.com/tx/{tx_hash}?cluster=devnet")
+    ctx.logger.info("")
+    ctx.logger.info("   Waiting for transaction confirmation...")
+    await asyncio.sleep(3)  # Wait for confirmation
 
     # Send payment proof to merchant
     ctx.logger.info("")

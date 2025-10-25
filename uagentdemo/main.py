@@ -54,9 +54,8 @@ from models import (
 class PayAIFacilitatorService:
     """Service for verifying and settling payments via PayAI facilitator
 
-    NOTE: This implementation uses a simplified verification approach for development.
-    For production, you should implement proper EIP3009 payment verification or
-    integrate with a custom PayAI facilitator that supports transaction hash verification.
+    This service handles payment verification through the PayAI facilitator network,
+    which verifies blockchain transactions and settles payments without gas fees.
     """
 
     def __init__(self):
@@ -117,61 +116,65 @@ class PayAIFacilitatorService:
     ) -> dict:
         """Verify payment with facilitator and settle it
 
-        NOTE: This is a simplified implementation for development/testing.
-        In production, you would either:
-        1. Use a custom PayAI facilitator that verifies transaction hashes
-        2. Implement on-chain transaction verification via Web3
-        3. Switch to EIP3009-style payment flow supported by x402
-
-        Current behavior: Performs basic validation and returns success for testing.
-        Set BYPASS_PAYMENT_VERIFICATION=true in .env to enable this mode explicitly.
+        This method verifies the payment transaction on the blockchain via the
+        PayAI facilitator and settles it.
         """
         try:
-            # Check if we should bypass verification for development
-            bypass_verification = os.getenv("BYPASS_PAYMENT_VERIFICATION", "true").lower() == "true"
+            from x402.facilitator import verify_payment, settle_payment
 
-            if bypass_verification:
-                # Development mode: basic validation only
-                print(f"⚠️  DEV MODE: Simulating payment verification for tx {payment_proof.transaction_hash[:16]}...")
+            # Prepare price for verification
+            if isinstance(expected_price, str) and expected_price.startswith("$"):
+                # USD pricing
+                price = expected_price
+            elif token_info:
+                # Token pricing
+                price = TokenAmount(
+                    amount=token_info["amount"],
+                    asset=TokenAsset(
+                        address=token_info["address"],
+                        decimals=token_info["decimals"],
+                        eip712=EIP712Domain(name=token_info["name"], version="2"),
+                    ),
+                )
+            else:
+                price = expected_price
 
-                # Basic validation
-                if not payment_proof.transaction_hash or not payment_proof.transaction_hash.startswith("0x"):
-                    return {
-                        "success": False,
-                        "error": "Invalid transaction hash format",
-                        "verified": False
-                    }
+            # Verify payment with facilitator
+            verification_result = await verify_payment(
+                transaction_hash=payment_proof.transaction_hash,
+                price=price,
+                pay_to_address=self.merchant_address,
+                network=payment_proof.network,
+                facilitator_config=self.facilitator_config
+            )
 
-                if payment_proof.to_address.lower() != self.merchant_address.lower():
-                    return {
-                        "success": False,
-                        "error": "Payment sent to wrong address",
-                        "verified": False
-                    }
-
-                # Simulate successful verification
+            if not verification_result.get("verified"):
                 return {
-                    "success": True,
-                    "verified": True,
-                    "settled": True,
-                    "mode": "development",
-                    "message": "Payment simulated successfully (development mode)"
+                    "success": False,
+                    "error": verification_result.get("error", "Payment verification failed"),
+                    "verified": False
                 }
 
-            # Production mode: would integrate with real facilitator
-            # This requires implementing proper Web3 transaction verification
-            # or integrating with a PayAI facilitator API
+            # Settle payment with facilitator
+            settlement_result = await settle_payment(
+                transaction_hash=payment_proof.transaction_hash,
+                price=price,
+                pay_to_address=self.merchant_address,
+                network=payment_proof.network,
+                facilitator_config=self.facilitator_config
+            )
+
             return {
-                "success": False,
-                "error": "Production payment verification not implemented",
-                "verified": False,
-                "message": "Please implement Web3 transaction verification or integrate with PayAI facilitator API"
+                "success": True,
+                "verified": True,
+                "settled": settlement_result.get("settled", False),
+                "message": "Payment verified and settled successfully"
             }
 
         except Exception as e:
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"Payment verification error: {str(e)}",
                 "verified": False
             }
 
