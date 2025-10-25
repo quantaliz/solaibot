@@ -2,6 +2,46 @@
 
 A production-ready merchant agent built with Fetch.ai's uAgents framework that implements the x402 payment protocol for agent-to-agent commerce. Accept payments via blockchain, verify through PayAI facilitator, and grant access to premium resources—all without gas fees.
 
+## Quick Start (5 Minutes)
+
+Want to run the agent immediately? Here's the fastest path:
+
+```bash
+# 1. Install UV package manager (if needed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Navigate to project
+cd /path/to/uagentdemo
+
+# 3. Create virtual environment
+uv venv
+
+# 4. Install dependencies
+uv pip install uagents x402 python-dotenv pydantic
+
+# 5. Create .env file (or use existing one)
+cat > .env << 'EOF'
+AGENT_NAME=payment_merchant_agent
+AGENT_SEED="my-unique-seed-phrase-12345"
+AGENT_NETWORK=testnet
+MERCHANT_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0
+FACILITATOR_URL=https://facilitator.payai.network
+PAYMENT_NETWORK=solana-devnet
+BYPASS_PAYMENT_VERIFICATION=true
+EOF
+
+# 6. Run the agent!
+uv run main.py
+```
+
+**What you'll see:**
+- ✅ Agent starts successfully
+- 📦 Three premium resources available
+- 🔗 Agent address for clients to connect
+- 📊 Periodic status updates
+
+**Ready to test?** See [Building a Client Agent](#building-a-client-agent) below.
+
 ## What is x402?
 
 x402 is an open payment protocol that brings stablecoin payments to plain HTTP, reviving the `HTTP 402 Payment Required` status code. It enables:
@@ -89,23 +129,38 @@ Three example resources demonstrating different pricing models:
 ### Prerequisites
 
 - Python 3.11 or higher
-- UV package manager (or pip)
-- Base Sepolia wallet address
-- Test ETH on Base Sepolia (for testing only)
+- UV package manager ([Install UV](https://docs.astral.sh/uv/))
+- Blockchain wallet address (for production - Solana or Base Sepolia)
+- Test tokens on devnet/testnet (for production testing)
 
 ### 1. Install Dependencies
 
-```bash
-# Using UV (recommended)
-uv add uagents x402 python-dotenv pydantic
+The project uses UV for dependency management. Follow these steps:
 
-# Or using pip
-pip install uagents x402 python-dotenv pydantic
+```bash
+# Clone or navigate to project directory
+cd /path/to/uagentdemo
+
+# Create virtual environment
+uv venv
+
+# Install dependencies using UV
+uv pip install uagents x402 python-dotenv pydantic
 ```
 
-### 2. Get a Base Sepolia Wallet
+**What gets installed:**
+- `uagents` (0.22.10) - Fetch.ai's agent framework
+- `x402` (0.2.1) - x402 payment protocol SDK
+- `python-dotenv` - Environment variable management
+- `pydantic` - Data validation
 
-You need a blockchain address to receive payments:
+**Note**: The installation creates a `.venv` directory with all dependencies. UV automatically manages this virtual environment.
+
+### 2. Get a Blockchain Wallet (Optional for Development)
+
+**For Development Mode**: Any valid blockchain address format works (you won't receive real payments)
+
+**For Production**: You need a real blockchain address to receive payments:
 
 **Option A: MetaMask**
 1. Install [MetaMask](https://metamask.io/)
@@ -140,18 +195,72 @@ AGENT_NETWORK=testnet
 # PayAI x402 Facilitator Configuration
 MERCHANT_ADDRESS=0x1234567890123456789012345678901234567890
 FACILITATOR_URL=https://facilitator.payai.network
-PAYMENT_NETWORK=base-sepolia
+PAYMENT_NETWORK=solana-devnet
+
+# Development/Testing Mode (optional)
+# Set to "true" to enable simulated payment verification (default: true)
+# Set to "false" for production with real blockchain verification
+BYPASS_PAYMENT_VERIFICATION=true
 ```
 
 ⚠️ **Security Notes**:
 - Use a unique `AGENT_SEED` - this determines your agent's identity
 - For production, use a dedicated merchant wallet
 - Never commit `.env` to version control
+- Set `BYPASS_PAYMENT_VERIFICATION=false` for production
+
+#### Configuration Options Explained
+
+**AGENT_NAME**: Unique identifier for your agent (appears in logs)
+
+**AGENT_SEED**: Cryptographic seed that determines your agent's address
+- Must be unique and kept secret
+- Changing seed = different agent address
+- Use a random phrase or UUID
+
+**AGENT_NETWORK**:
+- `testnet` - Fetch.ai testnet (free, for development)
+- `mainnet` - Fetch.ai mainnet (requires FET tokens)
+
+**MERCHANT_ADDRESS**: Your blockchain wallet address
+- Format: `0x` followed by 40 hexadecimal characters
+- This is where payments will be sent
+- For development, any valid address format works
+- For production, must be an address you control
+
+**PAYMENT_NETWORK**:
+- `solana-devnet` - Solana devnet (default, recommended for testing)
+- `base-sepolia` - Base testnet
+- `base` or `base-mainnet` - Base mainnet (production)
+
+**BYPASS_PAYMENT_VERIFICATION**:
+- `true` (default) - Development mode with simulated verification
+  - Validates transaction format
+  - Validates recipient address
+  - Does NOT verify actual blockchain transactions
+  - Good for testing agent communication flow
+- `false` - Production mode (requires implementing real verification)
+  - Would integrate with PayAI facilitator API
+  - Would verify actual on-chain transactions
+  - Currently returns error (needs implementation)
 
 ### 4. Run the Merchant Agent
 
+Start the merchant agent using UV:
+
 ```bash
+# Make sure you're in the project directory
+cd /path/to/uagentdemo
+
+# Run with UV (automatically uses .venv)
 uv run main.py
+
+# If the above doesn't work, try with python explicitly:
+# uv run python main.py
+
+# Alternative: Activate venv and run directly
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python main.py
 ```
 
 **Expected Output**:
@@ -171,7 +280,7 @@ INFO:     [payment_merchant_agent]: Running on network: testnet
 INFO:     [payment_merchant_agent]: ✅ PayAI Facilitator Integration ENABLED
 INFO:     [payment_merchant_agent]: Facilitator URL: https://facilitator.payai.network
 INFO:     [payment_merchant_agent]: Merchant Address: 0x1234...7890
-INFO:     [payment_merchant_agent]: Payment Network: base-sepolia
+INFO:     [payment_merchant_agent]: Payment Network: solana-devnet
 INFO:     [payment_merchant_agent]:
 INFO:     [payment_merchant_agent]: 📦 Available Premium Resources:
 INFO:     [payment_merchant_agent]:   - premium_weather: $0.001 - Real-time premium weather data
@@ -180,6 +289,64 @@ INFO:     [payment_merchant_agent]:   - premium_api: $0.005 - Premium API access
 ```
 
 **Note the agent address** - clients will need this to send messages!
+
+### Development Mode vs Production Mode
+
+The current implementation includes **two operating modes**:
+
+#### Development Mode (Current Default)
+- Enabled when `BYPASS_PAYMENT_VERIFICATION=true` (default)
+- Simulates payment verification for testing
+- Performs basic validation:
+  - Transaction hash format (must start with `0x` and be 66 chars)
+  - Recipient address (must match merchant address)
+- Does NOT verify actual blockchain transactions
+- Perfect for:
+  - Testing agent communication flow
+  - Developing client agents
+  - Learning the x402 protocol
+  - Demo purposes
+
+**Warning**: ⚠️ Development mode accepts any properly formatted transaction hash. Do not use in production!
+
+#### Production Mode (Requires Implementation)
+- Enabled when `BYPASS_PAYMENT_VERIFICATION=false`
+- Requires implementing one of:
+  1. **Web3.py integration** - Verify transactions on-chain directly
+  2. **PayAI Facilitator API** - Integrate with custom facilitator
+  3. **EIP3009 flow** - Use x402's native payment authorization
+
+**Why this approach?**
+The x402 Python package (v0.2.1) uses EIP3009-style payment authorizations, while this demo uses transaction hash verification (simpler to understand). For production, you'll need to choose your verification method based on your requirements.
+
+**Example Production Implementation** (Web3.py):
+```python
+from web3 import Web3
+
+async def verify_transaction_on_chain(self, tx_hash: str, expected_amount: str, expected_to: str) -> bool:
+    w3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
+
+    try:
+        tx = w3.eth.get_transaction(tx_hash)
+        receipt = w3.eth.get_transaction_receipt(tx_hash)
+
+        # Verify transaction succeeded
+        if receipt['status'] != 1:
+            return False
+
+        # Verify recipient
+        if tx['to'].lower() != expected_to.lower():
+            return False
+
+        # Verify amount
+        if int(tx['value']) != w3.to_wei(expected_amount, 'ether'):
+            return False
+
+        return True
+    except Exception as e:
+        print(f"Verification error: {e}")
+        return False
+```
 
 ## Building a Client Agent
 
@@ -331,6 +498,39 @@ if __name__ == "__main__":
 # In separate terminal
 uv run client.py
 ```
+
+**Expected Flow in Development Mode**:
+1. Client starts and sends `ResourceRequest` for `premium_weather`
+2. Merchant responds with `PaymentRequired` (payment details + payment_id)
+3. Client creates mock transaction hash: `0x1234567890abcdef...` (64 hex chars)
+4. Client sends `PaymentProof` with mock transaction
+5. Merchant validates format and recipient address
+6. Merchant sends `ResourceAccess` with weather data
+7. Client receives premium resource data!
+
+**What you'll see in logs**:
+```
+[Client] 📨 Requesting premium_weather resource...
+[Merchant] 📥 Resource request from agent1q2w3...
+[Merchant] 💳 Requesting payment: pay_abc123...
+[Client] 💳 Payment required for premium_weather
+[Client] ✅ Payment executed: 0x1234567890abcdef...
+[Client] 📤 Sending payment proof to merchant...
+[Merchant] 💰 Payment proof received from agent1q2w3...
+[Merchant] ⚠️ DEV MODE: Simulating payment verification for tx 0x1234567890abcd...
+[Merchant] ✅ Payment verified and settled!
+[Merchant] 🎉 Granting access to premium_weather
+[Client] 🎉 Access granted to premium_weather!
+[Client] 📦 Resource data received: {...}
+```
+
+**Testing Checklist**:
+- [ ] Both agents start without errors
+- [ ] Client receives `PaymentRequired` message
+- [ ] Mock transaction hash is properly formatted (0x + 64 hex)
+- [ ] Merchant logs show "DEV MODE: Simulating payment verification"
+- [ ] Client receives `ResourceAccess` with data
+- [ ] Try different resources: `premium_data`, `premium_api`
 
 ## Message Protocol Reference
 
@@ -515,42 +715,83 @@ uv run main.py
 
 ### Agent Won't Start
 
-**Error**: `ERROR: x402 package not installed`
+**Error**: `ModuleNotFoundError: No module named 'uagents'` or `No module named 'x402'`
+
+**Solution**:
 ```bash
-uv add x402
-# or
-pip install x402
+# Ensure virtual environment is created
+uv venv
+
+# Install all dependencies
+uv pip install uagents x402 python-dotenv pydantic
+
+# Verify installation
+uv run python -c "import uagents, x402; print('✅ All packages installed')"
 ```
 
+**Error**: `ERROR: x402 package not installed`
+- This shouldn't happen if you followed installation steps
+- Try: `uv pip install x402`
+
 **Error**: `ERROR: Facilitator service not configured`
-- Check `.env` has `MERCHANT_ADDRESS` set
-- Ensure address format is correct (0x + 40 hex chars)
+- Check `.env` file exists in project directory
+- Verify `MERCHANT_ADDRESS` is set
+- Address can be any valid format for development mode
+- For production, use actual Base Sepolia address (0x + 40 hex chars)
+
+**Error**: `error: Failed to spawn: main.py`
+- Make sure you're in the project directory
+- Try: `uv run main.py` (this should work directly)
+
+**Error**: `No virtual environment found`
+- Run `uv venv` to create virtual environment first
+- Make sure you're in the project directory
 
 ### Payment Verification Fails
 
 **Symptom**: `❌ Payment verification failed`
 
+#### In Development Mode (BYPASS_PAYMENT_VERIFICATION=true)
+
 **Common causes**:
-1. Transaction not confirmed on blockchain yet
-   - Wait 10-15 seconds and retry
-   - Check transaction status on [BaseScan](https://sepolia.basescan.org)
+1. **Invalid transaction hash format**
+   - Must start with `0x`
+   - Must be 66 characters total (0x + 64 hex chars)
+   - Example valid format: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`
 
-2. Wrong payment amount
-   - Ensure exact amount matches `PaymentRequired.price`
-   - For USD prices, check conversion rate
+2. **Wrong recipient address**
+   - Transaction `to_address` must match merchant's `MERCHANT_ADDRESS`
+   - Check both addresses match exactly (case-insensitive)
 
-3. Wrong recipient address
-   - Payment must go to `PaymentRequired.pay_to_address`
-   - Verify address in MetaMask before sending
+3. **Development mode success indication**
+   - Look for: `⚠️ DEV MODE: Simulating payment verification`
+   - This confirms development mode is active
 
-4. Wrong network
-   - Must use network specified in `PaymentRequired.network`
-   - Base Sepolia = Chain ID 84532
+#### In Production Mode (BYPASS_PAYMENT_VERIFICATION=false)
 
-5. Facilitator unreachable
-   - Check internet connection
-   - Verify `FACILITATOR_URL` is correct
-   - Try https://facilitator.payai.network/health
+**Note**: Production mode is not fully implemented. Will return error: "Production payment verification not implemented"
+
+**To implement production mode**, you need to add one of:
+1. **On-chain verification** - Use Web3.py to verify transactions
+   - Install: `uv pip install web3`
+   - Verify transaction exists and succeeded
+   - Check amount, recipient, and token match
+
+2. **PayAI Facilitator integration** - Use custom facilitator API
+   - Implement HTTP calls to facilitator
+   - Handle verification responses
+
+3. **Switch to EIP3009** - Use x402's native flow
+   - Implement EIP3009 authorization handling
+   - Update client to use permit-style payments
+
+**Production checklist when implementing**:
+- Transaction confirmed on blockchain
+- Correct payment amount
+- Correct recipient address
+- Correct network/chain ID
+- Transaction not reverted (status = 1)
+- Sufficient block confirmations (usually 1-2)
 
 ### Message Not Received
 
@@ -611,10 +852,105 @@ class PersistentStorage:
         return self.data.get(key)
 ```
 
+## Current Implementation Status
+
+### ✅ What Works Now
+- **Agent Framework**: Full uAgents integration with message handling
+- **x402 Package**: Successfully integrated x402 v0.2.1
+- **Message Protocol**: Complete 4-message flow (Request → PaymentRequired → Proof → Access)
+- **Development Mode**: Simulated payment verification for testing
+- **Security Features**: Payment ID tracking, requester validation, replay prevention
+- **Premium Resources**: Three example resources with different pricing models
+- **Error Handling**: Comprehensive error responses and logging
+- **Agent Communication**: Reliable message passing between agents
+
+### 🚧 What Needs Implementation
+- **Production Payment Verification**: Real blockchain transaction verification
+  - Option 1: Web3.py integration for on-chain verification
+  - Option 2: PayAI facilitator API integration
+  - Option 3: EIP3009-style authorization flow
+- **Persistent Storage**: Database for payment tracking (currently in-memory)
+- **Payment Expiration**: Time-based payment ID expiration
+- **Rate Limiting**: Protection against abuse
+- **Monitoring**: Production-grade metrics and alerting
+
+### 🎯 Recommended Next Steps
+
+1. **For Learning/Testing** (Current State)
+   - Use development mode as-is
+   - Build and test client agents
+   - Experiment with different resources and pricing
+   - Understand the message flow
+
+2. **For Production** (Requires Work)
+   - Choose payment verification method (Web3.py recommended)
+   - Implement persistent storage (PostgreSQL/Redis)
+   - Add monitoring and logging
+   - Implement rate limiting
+   - Add payment ID expiration
+   - Security audit
+
+### 📚 Implementation Guide: Web3 Verification
+
+To implement production payment verification with Web3.py:
+
+```bash
+# Install Web3.py
+uv pip install web3
+```
+
+Then update `verify_and_settle_payment()` in main.py:
+
+```python
+from web3 import Web3
+
+async def verify_and_settle_payment(self, payment_proof, expected_price, token_info):
+    """Production implementation with on-chain verification"""
+
+    # Initialize Web3
+    w3 = Web3(Web3.HTTPProvider(f"https://{'sepolia.' if 'sepolia' in self.network else ''}base.org"))
+
+    try:
+        # Get transaction
+        tx = w3.eth.get_transaction(payment_proof.transaction_hash)
+        receipt = w3.eth.get_transaction_receipt(payment_proof.transaction_hash)
+
+        # Verify transaction succeeded
+        if receipt['status'] != 1:
+            return {"success": False, "error": "Transaction failed", "verified": False}
+
+        # Verify recipient
+        if tx['to'].lower() != self.merchant_address.lower():
+            return {"success": False, "error": "Wrong recipient", "verified": False}
+
+        # Verify amount (adjust for token vs ETH)
+        expected_wei = w3.to_wei(float(expected_price.replace('$', '')), 'ether')
+        if int(tx['value']) < expected_wei * 0.99:  # Allow 1% tolerance
+            return {"success": False, "error": "Insufficient amount", "verified": False}
+
+        # All checks passed
+        return {
+            "success": True,
+            "verified": True,
+            "settled": True,
+            "transaction": tx,
+            "receipt": receipt
+        }
+
+    except Exception as e:
+        return {"success": False, "error": f"Verification failed: {str(e)}", "verified": False}
+```
+
+Then set in `.env`:
+```env
+BYPASS_PAYMENT_VERIFICATION=false
+```
+
 ## Production Deployment
 
 ### Pre-Production Checklist
 
+- [ ] Implement production payment verification (Web3.py or facilitator)
 - [ ] Use mainnet blockchain network
 - [ ] Configure dedicated merchant wallet
 - [ ] Implement persistent storage (database)
@@ -625,15 +961,18 @@ class PersistentStorage:
 - [ ] Configure backup systems
 - [ ] Test failure scenarios
 - [ ] Document recovery procedures
+- [ ] Security audit
+- [ ] Load testing
 
 ### Environment Configuration
 
 ```env
 # Production settings
 AGENT_NETWORK=mainnet
-PAYMENT_NETWORK=base  # or base-mainnet
-MERCHANT_ADDRESS=0xYourProductionAddress
+PAYMENT_NETWORK=solana-mainnet  # or base-mainnet for Base network
+MERCHANT_ADDRESS=YourProductionSolanaAddress  # or 0x... for Base
 FACILITATOR_URL=https://facilitator.payai.network
+BYPASS_PAYMENT_VERIFICATION=false  # Must implement real verification for production
 ```
 
 ### Monitoring

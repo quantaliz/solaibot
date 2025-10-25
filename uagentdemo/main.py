@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import uuid
 from datetime import datetime
@@ -97,7 +98,7 @@ class PayAIFacilitatorService:
     def __init__(self):
         self.facilitator_url = os.getenv("FACILITATOR_URL", "https://facilitator.payai.network")
         self.merchant_address = os.getenv("MERCHANT_ADDRESS")
-        self.network = os.getenv("PAYMENT_NETWORK", "base-sepolia")
+        self.network = os.getenv("PAYMENT_NETWORK", "solana-devnet")
 
         # Initialize facilitator client if x402 is available
         if X402_AVAILABLE and FacilitatorClient:
