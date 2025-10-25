@@ -26,51 +26,25 @@ from uagents import Agent, Context
 # Load environment variables
 load_dotenv()
 
-# Import message models from main.py
-# In a real application, these would be in a shared module
-class ResourceRequest(BaseModel):
-    """Request model for accessing a resource"""
-    resource_id: str = Field(..., description="ID of the resource being requested")
-    requester_address: Optional[str] = Field(None, description="Blockchain address of requester")
+# Solana imports (optional - for real payments)
+try:
+    from solana.rpc.api import Client
+    from solders.pubkey import Pubkey
+    SOLANA_AVAILABLE = True
+except ImportError:
+    SOLANA_AVAILABLE = False
+    print("⚠️  solana package not installed. Real Solana payments will not work.")
+    print("   Install with: uv add solana")
+    print("")
 
-class PaymentRequired(BaseModel):
-    """Response when payment is required to access a resource"""
-    resource_id: str
-    price: str = Field(..., description="Price in USD format like '$0.001' or token amount")
-    pay_to_address: str = Field(..., description="Merchant's blockchain address")
-    network: str = Field(default="solana-devnet", description="Blockchain network")
-    token_address: Optional[str] = Field(None, description="Token contract address for ERC20")
-    token_decimals: Optional[int] = Field(None, description="Token decimals")
-    token_name: Optional[str] = Field(None, description="Token name for EIP712")
-    payment_id: str = Field(..., description="Unique payment ID for tracking")
-    message: str = Field(default="Payment required to access this resource")
-
-class PaymentProof(BaseModel):
-    """Payment proof submitted by the requester"""
-    payment_id: str = Field(..., description="Payment ID from PaymentRequired message")
-    resource_id: str = Field(..., description="Resource being purchased")
-    transaction_hash: str = Field(..., description="Blockchain transaction hash")
-    from_address: str = Field(..., description="Sender's blockchain address")
-    to_address: str = Field(..., description="Recipient's blockchain address")
-    amount: str = Field(..., description="Amount paid")
-    network: str = Field(..., description="Network where payment was made")
-
-class ResourceAccess(BaseModel):
-    """Response granting access to a resource"""
-    success: bool
-    payment_id: str
-    resource_id: str
-    resource_data: Optional[dict] = Field(None, description="The actual resource data")
-    message: str
-    verified_at: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-class ResourceError(BaseModel):
-    """Error response for resource access"""
-    success: bool = False
-    payment_id: Optional[str] = None
-    resource_id: str
-    error: str
-    message: str
+# Import shared message models
+from models import (
+    ResourceRequest,
+    PaymentRequired,
+    PaymentProof,
+    ResourceAccess,
+    ResourceError
+)
 
 # ============================================================================
 # Client Configuration
@@ -78,26 +52,41 @@ class ResourceError(BaseModel):
 
 # Client agent configuration
 CLIENT_NAME = os.getenv("CLIENT_NAME", "premium_client")
-CLIENT_SEED = os.getenv("CLIENT_SEED", "client_seed_phrase_secure_random_12345")
+CLIENT_PORT = os.getenv("CLIENT_PORT", 8001)
+CLIENT_ENDPOINT=os.getenv("CLIENT_ENDPOINT", "http://localhost:8001/submit")
+CLIENT_SEED = os.getenv("CLIENT_SEED", "client_seed_phrase_secure_random_input")
 CLIENT_NETWORK = os.getenv("CLIENT_NETWORK", "testnet")
 
-# Merchant configuration
-MERCHANT_AGENT_ADDRESS = os.getenv("MERCHANT_AGENT_ADDRESS", "")
-if not MERCHANT_AGENT_ADDRESS:
+# Merchant configuration - IMPORTANT: Two different addresses!
+# 1. MERCHANT_UAGENT_ADDRESS: For sending uAgent messages (agent1q...)
+# 2. MERCHANT_AGENT_ADDRESS: For sending blockchain payments (blockchain wallet address)
+MERCHANT_UAGENT_ADDRESS = os.getenv("MERCHANT_UAGENT_ADDRESS", "")
+MERCHANT_WALLET_ADDRESS = os.getenv("MERCHANT_AGENT_ADDRESS", "")  # Blockchain payment address
+
+if not MERCHANT_UAGENT_ADDRESS:
     print("=" * 60)
-    print("⚠️  MERCHANT_AGENT_ADDRESS not set in .env")
+    print("⚠️  MERCHANT_UAGENT_ADDRESS not set in .env")
     print("=" * 60)
     print("To use this client:")
     print("1. Start the merchant agent: uv run main.py")
-    print("2. Copy the agent address from merchant logs")
+    print("2. Copy the agent address from merchant logs: 'Agent address: agent1q...'")
     print("3. Add to .env file:")
-    print("   MERCHANT_AGENT_ADDRESS=agent1q...")
+    print("   MERCHANT_UAGENT_ADDRESS=agent1q...")
     print("4. Restart this client")
     print("=" * 60)
     exit(1)
 
+if not MERCHANT_WALLET_ADDRESS:
+    print("=" * 60)
+    print("⚠️  MERCHANT_AGENT_ADDRESS (wallet) not set in .env")
+    print("=" * 60)
+    print("This is the blockchain address where payments will be sent.")
+    print("=" * 60)
+    exit(1)
+
 # Payment configuration
-CLIENT_WALLET_ADDRESS = os.getenv("CLIENT_WALLET_ADDRESS", "ClientWalletAddress123")
+CLIENT_WALLET_ADDRESS = os.getenv("CLIENT_WALLET_ADDRESS", "YOUR_SOLANA_WALLET_ADDRESS_HERE")
+CLIENT_WALLET_PRIVATE_KEY = os.getenv("CLIENT_WALLET_PRIVATE_KEY", "")
 PAYMENT_NETWORK = os.getenv("PAYMENT_NETWORK", "solana-devnet")
 
 # Resource to request (first premium resource: premium_weather)
@@ -110,8 +99,8 @@ TARGET_RESOURCE = os.getenv("TARGET_RESOURCE", "premium_weather")
 client = Agent(
     name=CLIENT_NAME,
     seed=CLIENT_SEED,
-    port=8001,
-    endpoint=["http://localhost:8001/submit"],
+    port=CLIENT_PORT,
+    endpoint=[CLIENT_ENDPOINT],
     network=CLIENT_NETWORK
 )
 
@@ -119,16 +108,70 @@ print("=" * 60)
 print("🛒 Premium Client Agent - x402 Payment Demo")
 print("=" * 60)
 print(f"Client Name: {CLIENT_NAME}")
+print(f"Client Port: {CLIENT_PORT}")
+print(f"Client Wallet: {CLIENT_WALLET_ADDRESS[:20] if len(CLIENT_WALLET_ADDRESS) > 20 else CLIENT_WALLET_ADDRESS}...")
 print(f"uAgent Network: {CLIENT_NETWORK}")
 print(f"Payment Network: {PAYMENT_NETWORK}")
 print(f"Target Resource: {TARGET_RESOURCE}")
-print(f"Merchant Address: {MERCHANT_AGENT_ADDRESS[:20]}...")
+print(f"Merchant uAgent Address: {MERCHANT_UAGENT_ADDRESS[:30]}...")
+print(f"Merchant Wallet Address: {MERCHANT_WALLET_ADDRESS[:30]}...")
 print("=" * 60)
 print("")
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+async def check_solana_balance(wallet_address: str, network: str = "solana-devnet") -> tuple[bool, float, str]:
+    """Check if Solana wallet has sufficient funds
+
+    Args:
+        wallet_address: Solana wallet public address
+        network: Network to check (solana-devnet or solana-mainnet)
+
+    Returns:
+        tuple: (has_funds: bool, balance_sol: float, message: str)
+    """
+    if not SOLANA_AVAILABLE:
+        return (False, 0.0, "Solana library not installed")
+
+    if wallet_address == "YOUR_SOLANA_WALLET_ADDRESS_HERE" or not wallet_address:
+        return (False, 0.0, "Wallet address not configured in .env")
+
+    try:
+        # Determine RPC endpoint based on network
+        if network == "solana-devnet":
+            rpc_url = "https://api.devnet.solana.com"
+        elif network == "solana-mainnet":
+            rpc_url = "https://api.mainnet-beta.solana.com"
+        else:
+            return (False, 0.0, f"Unknown network: {network}")
+
+        # Connect to Solana
+        client = Client(rpc_url)
+
+        # Get balance
+        pubkey = Pubkey.from_string(wallet_address)
+        response = client.get_balance(pubkey)
+
+        if response.value is not None:
+            # Balance is in lamports (1 SOL = 1,000,000,000 lamports)
+            balance_lamports = response.value
+            balance_sol = balance_lamports / 1_000_000_000
+
+            # Check if sufficient (need at least 0.01 SOL for transactions)
+            min_balance = 0.01
+            has_funds = balance_sol >= min_balance
+
+            if has_funds:
+                return (True, balance_sol, f"Wallet has {balance_sol:.4f} SOL")
+            else:
+                return (False, balance_sol, f"Insufficient funds: {balance_sol:.4f} SOL (need at least {min_balance} SOL)")
+        else:
+            return (False, 0.0, "Could not fetch balance")
+
+    except Exception as e:
+        return (False, 0.0, f"Error checking balance: {str(e)}")
 
 def generate_mock_transaction_hash() -> str:
     """Generate a valid mock transaction hash for development mode
@@ -161,8 +204,10 @@ async def startup(ctx: Context):
     """Initialize the client agent"""
     ctx.logger.info("=" * 60)
     ctx.logger.info(f"🛒 Client Agent Started: {client.name}")
-    ctx.logger.info(f"📍 Client Address: {client.address}")
-    ctx.logger.info(f"🏪 Merchant Address: {MERCHANT_AGENT_ADDRESS}")
+    ctx.logger.info(f"📍 Client uAgent Address: {client.address}")
+    ctx.logger.info(f"💼 Client Wallet Address: {CLIENT_WALLET_ADDRESS}")
+    ctx.logger.info(f"🏪 Merchant uAgent Address: {MERCHANT_UAGENT_ADDRESS}")
+    ctx.logger.info(f"💰 Merchant Wallet Address: {MERCHANT_WALLET_ADDRESS}")
     ctx.logger.info(f"🎯 Target Resource: {TARGET_RESOURCE}")
     ctx.logger.info("=" * 60)
 
@@ -171,7 +216,23 @@ async def startup(ctx: Context):
     ctx.storage.set("resource_received", False)
 
     ctx.logger.info("")
-    ctx.logger.info("ℹ️  Client will request resource in 5 seconds...")
+    ctx.logger.info("💰 Checking Solana wallet balance...")
+    has_funds, balance, message = await check_solana_balance(CLIENT_WALLET_ADDRESS, PAYMENT_NETWORK)
+
+    if has_funds:
+        ctx.logger.info(f"✅ {message}")
+        ctx.storage.set("wallet_funded", True)
+    else:
+        ctx.logger.warning(f"⚠️  {message}")
+        ctx.logger.warning("   Client will use MOCK payments (development mode)")
+        ctx.logger.warning("   To use real payments:")
+        ctx.logger.warning(f"   1. Get devnet SOL from: https://faucet.solana.com/")
+        ctx.logger.warning(f"   2. Set CLIENT_WALLET_ADDRESS and CLIENT_WALLET_PRIVATE_KEY in .env")
+        ctx.logger.warning(f"   3. Restart client")
+        ctx.storage.set("wallet_funded", False)
+
+    ctx.logger.info("")
+    ctx.logger.info("ℹ️  Client will request resource in 10 seconds...")
     ctx.logger.info("ℹ️  Make sure merchant agent is running!")
 
 @client.on_interval(period=10.0)
@@ -209,11 +270,13 @@ async def request_premium_resource(ctx: Context):
     )
 
     try:
-        await ctx.send(MERCHANT_AGENT_ADDRESS, request)
+        # Send to merchant's uAgent address (NOT wallet address)
+        await ctx.send(MERCHANT_UAGENT_ADDRESS, request)
         ctx.storage.set("request_count", request_count + 1)
-        ctx.logger.info(f"✅ Request sent to merchant")
+        ctx.logger.info(f"✅ Request sent to merchant uAgent")
+        ctx.logger.info(f"   Merchant uAgent: {MERCHANT_UAGENT_ADDRESS}")
         ctx.logger.info(f"   Resource: {TARGET_RESOURCE}")
-        ctx.logger.info(f"   Requester: {CLIENT_WALLET_ADDRESS}")
+        ctx.logger.info(f"   Requester Wallet: {CLIENT_WALLET_ADDRESS}")
     except Exception as e:
         ctx.logger.error(f"❌ Failed to send request: {str(e)}")
 
@@ -247,10 +310,28 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
     }
     ctx.storage.set("pending_payment", payment_info)
 
-    # In development mode, create a mock transaction
+    # Check if wallet is funded
+    wallet_funded = ctx.storage.get("wallet_funded")
+
+    if not wallet_funded:
+        ctx.logger.warning("")
+        ctx.logger.warning("⚠️  WALLET NOT FUNDED - Using Mock Payment")
+        ctx.logger.warning("=" * 60)
+        ctx.logger.warning("   Your Solana wallet does not have sufficient funds")
+        ctx.logger.warning("   Client will create a MOCK transaction for demonstration")
+        ctx.logger.warning("")
+        ctx.logger.warning("   For REAL payments:")
+        ctx.logger.warning(f"   1. Get devnet SOL: https://faucet.solana.com/")
+        ctx.logger.warning(f"   2. Set CLIENT_WALLET_ADDRESS in .env")
+        ctx.logger.warning(f"   3. Set CLIENT_WALLET_PRIVATE_KEY in .env")
+        ctx.logger.warning("   4. Restart the client")
+        ctx.logger.warning("=" * 60)
+        ctx.logger.info("")
+
+    # In development mode or if unfunded, create a mock transaction
     ctx.logger.info("")
     ctx.logger.info("🔄 Creating mock payment transaction...")
-    ctx.logger.info("   (In production, this would be a real blockchain transaction)")
+    ctx.logger.info("   (In production with funded wallet, this would be a real blockchain transaction)")
 
     # Generate mock transaction hash
     tx_hash = generate_mock_transaction_hash()
