@@ -114,62 +114,25 @@ class PayAIFacilitatorService:
         expected_price: str,
         token_info: Optional[dict] = None
     ) -> dict:
-        """Verify payment with facilitator and settle it
+        """Verify payment with PayAI facilitator and settle it
 
-        This method verifies the payment transaction on the blockchain via the
-        PayAI facilitator and settles it.
+        For Solana: Makes direct HTTP calls to PayAI facilitator
+        The facilitator will broadcast the signed transaction and verify it
         """
         try:
-            from x402.facilitator import verify_payment, settle_payment
+            # Check if this is a Solana network
+            is_solana = payment_proof.network.startswith("solana")
 
-            # Prepare price for verification
-            if isinstance(expected_price, str) and expected_price.startswith("$"):
-                # USD pricing
-                price = expected_price
-            elif token_info:
-                # Token pricing
-                price = TokenAmount(
-                    amount=token_info["amount"],
-                    asset=TokenAsset(
-                        address=token_info["address"],
-                        decimals=token_info["decimals"],
-                        eip712=EIP712Domain(name=token_info["name"], version="2"),
-                    ),
+            if is_solana:
+                # Solana payment: Use direct HTTP calls to PayAI facilitator
+                return await self._verify_and_settle_solana(
+                    payment_proof, expected_price
                 )
             else:
-                price = expected_price
-
-            # Verify payment with facilitator
-            verification_result = await verify_payment(
-                transaction_hash=payment_proof.transaction_hash,
-                price=price,
-                pay_to_address=self.merchant_address,
-                network=payment_proof.network,
-                facilitator_config=self.facilitator_config
-            )
-
-            if not verification_result.get("verified"):
-                return {
-                    "success": False,
-                    "error": verification_result.get("error", "Payment verification failed"),
-                    "verified": False
-                }
-
-            # Settle payment with facilitator
-            settlement_result = await settle_payment(
-                transaction_hash=payment_proof.transaction_hash,
-                price=price,
-                pay_to_address=self.merchant_address,
-                network=payment_proof.network,
-                facilitator_config=self.facilitator_config
-            )
-
-            return {
-                "success": True,
-                "verified": True,
-                "settled": settlement_result.get("settled", False),
-                "message": "Payment verified and settled successfully"
-            }
+                # EVM payment: Use x402 SDK
+                return await self._verify_and_settle_evm(
+                    payment_proof, expected_price, token_info
+                )
 
         except Exception as e:
             return {
@@ -177,6 +140,127 @@ class PayAIFacilitatorService:
                 "error": f"Payment verification error: {str(e)}",
                 "verified": False
             }
+
+    async def _verify_and_settle_solana(
+        self,
+        payment_proof: PaymentProof,
+        expected_price: str
+    ) -> dict:
+        """Verify and settle Solana payment via PayAI facilitator"""
+        import httpx
+
+        try:
+            # The signed transaction is in transaction_hash field (base58 encoded)
+            signed_tx_base58 = payment_proof.transaction_hash
+
+            # Prepare request payload for PayAI facilitator
+            # PayAI expects the signed transaction to broadcast
+            payload = {
+                "network": payment_proof.network,
+                "signedTransaction": signed_tx_base58,
+                "from": payment_proof.from_address,
+                "to": payment_proof.to_address,
+                "amount": payment_proof.amount,
+                "expectedPrice": expected_price
+            }
+
+            # Call PayAI facilitator to broadcast and verify
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # First, broadcast the transaction
+                response = await client.post(
+                    f"{self.facilitator_url}/solana/broadcast",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+
+                if response.status_code != 200:
+                    return {
+                        "success": False,
+                        "error": f"Facilitator broadcast failed: {response.status_code} - {response.text}",
+                        "verified": False
+                    }
+
+                result = response.json()
+                tx_signature = result.get("signature")
+
+                if not tx_signature:
+                    return {
+                        "success": False,
+                        "error": "No transaction signature returned from facilitator",
+                        "verified": False
+                    }
+
+                # Transaction broadcasted successfully
+                return {
+                    "success": True,
+                    "verified": True,
+                    "settled": True,
+                    "transaction_signature": tx_signature,
+                    "message": "Payment verified and settled via Solana"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Solana payment error: {str(e)}",
+                "verified": False
+            }
+
+    async def _verify_and_settle_evm(
+        self,
+        payment_proof: PaymentProof,
+        expected_price: str,
+        token_info: Optional[dict] = None
+    ) -> dict:
+        """Verify and settle EVM payment via x402 SDK"""
+        from x402.facilitator import verify_payment, settle_payment
+
+        # Prepare price for verification
+        if isinstance(expected_price, str) and expected_price.startswith("$"):
+            price = expected_price
+        elif token_info:
+            price = TokenAmount(
+                amount=token_info["amount"],
+                asset=TokenAsset(
+                    address=token_info["address"],
+                    decimals=token_info["decimals"],
+                    eip712=EIP712Domain(name=token_info["name"], version="2"),
+                ),
+            )
+        else:
+            price = expected_price
+
+        # Verify payment
+        verification_result = await verify_payment(
+            transaction_hash=payment_proof.transaction_hash,
+            price=price,
+            pay_to_address=self.merchant_address,
+            network=payment_proof.network,
+            facilitator_config=self.facilitator_config
+        )
+
+        if not verification_result.get("verified"):
+            return {
+                "success": False,
+                "error": verification_result.get("error", "Payment verification failed"),
+                "verified": False
+            }
+
+        # Settle payment
+        settlement_result = await settle_payment(
+            transaction_hash=payment_proof.transaction_hash,
+            price=price,
+            pay_to_address=self.merchant_address,
+            network=payment_proof.network,
+            facilitator_config=self.facilitator_config
+        )
+
+        return {
+            "success": True,
+            "verified": True,
+            "settled": settlement_result.get("settled", False),
+            "message": "Payment verified and settled via EVM"
+        }
 
 # ============================================================================
 # Premium Resources (Example Data)
@@ -314,6 +398,7 @@ async def periodic_status(ctx: Context):
 async def handle_resource_request(ctx: Context, sender: str, request: ResourceRequest):
     """Handle incoming resource access requests"""
     ctx.logger.info(f"📥 Resource request from {sender[:16]}... for: {request.resource_id}")
+    ctx.logger.info(f"📋 Request data: {request.dict()}")
 
     if not facilitator_service:
         error = ResourceError(
@@ -332,13 +417,16 @@ async def handle_resource_request(ctx: Context, sender: str, request: ResourceRe
         payment_id = f"pay_{uuid.uuid4().hex[:16]}"
 
         # Store payment expectation
-        ctx.storage.set(f"payment_{payment_id}", {
+        payment_data = {
             "resource_id": request.resource_id,
             "requester": sender,
             "created_at": datetime.now().isoformat(),
             "price": str(resource_info["price"]),
             "status": "pending"
-        })
+        }
+        ctx.storage.set(f"payment_{payment_id}", payment_data)
+        ctx.logger.info(f"💾 Payment expectation stored: {payment_id}")
+        ctx.logger.info(f"📋 Payment data: {payment_data}")
 
         # Build payment required response
         payment_required = PaymentRequired(
@@ -357,6 +445,7 @@ async def handle_resource_request(ctx: Context, sender: str, request: ResourceRe
             payment_required.token_name = resource_info["token_name"]
 
         ctx.logger.info(f"💳 Requesting payment: {payment_id}")
+        ctx.logger.info(f"📋 Payment required data: {payment_required.dict()}")
         await ctx.send(sender, payment_required)
 
     except ValueError as e:
@@ -374,6 +463,7 @@ async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
     ctx.logger.info(f"💰 Payment proof received from {sender[:16]}...")
     ctx.logger.info(f"Payment ID: {proof.payment_id}")
     ctx.logger.info(f"Transaction: {proof.transaction_hash[:16]}...")
+    ctx.logger.info(f"📋 Payment proof data: {proof.dict()}")
 
     if not facilitator_service:
         error = ResourceError(
@@ -397,6 +487,8 @@ async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
         )
         await ctx.send(sender, error)
         return
+
+    ctx.logger.info(f"📋 Retrieved payment data: {payment_data}")
 
     # Validate payment proof matches expectation
     if payment_data["resource_id"] != proof.resource_id:
@@ -455,12 +547,15 @@ async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
             payment_data["verified_at"] = datetime.now().isoformat()
             payment_data["transaction_hash"] = proof.transaction_hash
             ctx.storage.set(f"payment_{proof.payment_id}", payment_data)
+            ctx.logger.info(f"💾 Payment marked as completed: {proof.payment_id}")
+            ctx.logger.info(f"📋 Updated payment data: {payment_data}")
 
             # Update counters
             total_payments = int(ctx.storage.get('total_payments') or 0) + 1
             total_accesses = int(ctx.storage.get('total_accesses') or 0) + 1
             ctx.storage.set('total_payments', total_payments)
             ctx.storage.set('total_accesses', total_accesses)
+            ctx.logger.info(f"📊 Counters updated - Payments: {total_payments}, Accesses: {total_accesses}")
 
             # Grant access
             access_response = ResourceAccess(
@@ -472,6 +567,7 @@ async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
             )
 
             ctx.logger.info(f"🎉 Granting access to {proof.resource_id}")
+            ctx.logger.info(f"📋 Resource access data: {access_response.dict()}")
             await ctx.send(sender, access_response)
 
         else:
@@ -480,6 +576,8 @@ async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
             payment_data["status"] = "failed"
             payment_data["error"] = result.get("error")
             ctx.storage.set(f"payment_{proof.payment_id}", payment_data)
+            ctx.logger.info(f"💾 Payment marked as failed: {proof.payment_id}")
+            ctx.logger.info(f"📋 Updated payment data: {payment_data}")
 
             error = ResourceError(
                 resource_id=proof.resource_id,

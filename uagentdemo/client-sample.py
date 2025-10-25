@@ -183,13 +183,13 @@ async def check_solana_balance(wallet_address: str, network: str = "solana-devne
     except Exception as e:
         return (False, 0.0, f"Error checking balance: {str(e)}")
 
-async def execute_solana_payment(
+async def create_signed_solana_transaction(
     from_address: str,
     to_address: str,
     amount_sol: float,
     network: str = "solana-devnet"
 ) -> tuple[bool, str, str]:
-    """Execute a real Solana payment transaction
+    """Create and sign a Solana transaction (does NOT broadcast)
 
     Args:
         from_address: Sender's Solana wallet address
@@ -198,7 +198,7 @@ async def execute_solana_payment(
         network: Network to use (solana-devnet or solana-mainnet)
 
     Returns:
-        tuple: (success: bool, tx_hash: str, message: str)
+        tuple: (success: bool, signed_tx_base58: str, message: str)
     """
     if not SOLANA_AVAILABLE:
         return (False, "", "Solana library not installed")
@@ -208,11 +208,13 @@ async def execute_solana_payment(
 
     try:
         from solana.rpc.api import Client as SolanaClient
-        from solana.transaction import Transaction
+        from solders.transaction import VersionedTransaction
         from solders.keypair import Keypair
         from solders.pubkey import Pubkey
         from solders.system_program import TransferParams, transfer
-        from solders.hash import Hash
+        from solders.message import MessageV0
+        from solders.transaction import Transaction as LegacyTransaction
+        import base58
 
         # Determine RPC endpoint
         if network == "solana-devnet":
@@ -223,11 +225,10 @@ async def execute_solana_payment(
             return (False, "", f"Unknown network: {network}")
 
         # Connect to Solana
-        client = SolanaClient(rpc_url)
+        rpc_client = SolanaClient(rpc_url)
 
         # Create keypair from private key (base58 encoded)
         try:
-            import base58
             private_key_bytes = base58.b58decode(CLIENT_WALLET_PRIVATE_KEY)
             sender_keypair = Keypair.from_bytes(private_key_bytes)
         except Exception as e:
@@ -244,7 +245,7 @@ async def execute_solana_payment(
         amount_lamports = int(amount_sol * 1_000_000_000)
 
         # Get recent blockhash
-        recent_blockhash_resp = client.get_latest_blockhash()
+        recent_blockhash_resp = rpc_client.get_latest_blockhash()
         recent_blockhash = recent_blockhash_resp.value.blockhash
 
         # Create transfer instruction
@@ -256,28 +257,24 @@ async def execute_solana_payment(
             )
         )
 
-        # Create transaction
-        transaction = Transaction.new_with_payer(
+        # Create legacy transaction (simpler for facilitator)
+        transaction = LegacyTransaction.new_with_payer(
             instructions=[transfer_instruction],
             payer=sender_keypair.pubkey()
         )
 
-        # Set recent blockhash
-        transaction.recent_blockhash = recent_blockhash
-
-        # Sign transaction
+        # Sign transaction (DO NOT SEND)
         transaction.sign([sender_keypair], recent_blockhash)
 
-        # Send transaction
-        response = client.send_transaction(transaction, sender_keypair)
+        # Serialize to base58 for sending to merchant
+        # Note: solders.transaction.Transaction uses bytes(transaction), not .serialize()
+        serialized_tx = bytes(transaction)
+        signed_tx_base58 = base58.b58encode(serialized_tx).decode('ascii')
 
-        # Get transaction signature
-        tx_signature = str(response.value)
-
-        return (True, tx_signature, f"Transaction sent successfully")
+        return (True, signed_tx_base58, "Transaction signed successfully")
 
     except Exception as e:
-        return (False, "", f"Error executing payment: {str(e)}")
+        return (False, "", f"Error creating signed transaction: {str(e)}")
 
 def format_price(price_str: str) -> str:
     """Format price string for display"""
@@ -440,9 +437,9 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
         ctx.logger.error("=" * 60)
         return
 
-    # Execute Solana payment
+    # Create signed Solana transaction (does NOT broadcast)
     ctx.logger.info("")
-    ctx.logger.info("💳 Executing Solana payment on devnet...")
+    ctx.logger.info("💳 Creating signed Solana transaction...")
     ctx.logger.info("=" * 60)
 
     # Parse price to SOL amount (simple conversion for demo: $0.001 = 0.001 SOL)
@@ -464,10 +461,10 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
     ctx.logger.info(f"   Amount: {amount_sol} SOL")
     ctx.logger.info(f"   Network: {msg.network}")
     ctx.logger.info("")
-    ctx.logger.info("   Sending transaction to Solana devnet...")
+    ctx.logger.info("   Signing transaction (NOT broadcasting)...")
 
-    # Execute the payment
-    success, tx_hash, message = await execute_solana_payment(
+    # Create and sign transaction (DO NOT BROADCAST)
+    success, signed_tx_base58, message = await create_signed_solana_transaction(
         from_address=CLIENT_WALLET_ADDRESS,
         to_address=msg.pay_to_address,
         amount_sol=amount_sol,
@@ -477,19 +474,22 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
     if not success:
         ctx.logger.error("")
         ctx.logger.error("=" * 60)
-        ctx.logger.error("❌ PAYMENT TRANSACTION FAILED")
+        ctx.logger.error("❌ FAILED TO CREATE SIGNED TRANSACTION")
         ctx.logger.error("=" * 60)
         ctx.logger.error(f"   Error: {message}")
         ctx.logger.error("=" * 60)
         return
 
     ctx.logger.info("")
-    ctx.logger.info("✅ Transaction executed successfully!")
-    ctx.logger.info(f"   TX Signature: {tx_hash}")
-    ctx.logger.info(f"   Explorer: https://explorer.solana.com/tx/{tx_hash}?cluster=devnet")
+    ctx.logger.info("✅ Transaction signed successfully!")
+    ctx.logger.info(f"   Signed TX (base58): {signed_tx_base58[:40]}...")
     ctx.logger.info("")
-    ctx.logger.info("   Waiting for transaction confirmation...")
-    await asyncio.sleep(3)  # Wait for confirmation
+    ctx.logger.info("   📤 Sending to merchant for facilitator broadcast...")
+
+    # Use signed transaction as "transaction_hash" for PaymentProof
+    # The merchant will send this to PayAI facilitator
+    # Facilitator will broadcast it to Solana devnet
+    tx_hash = signed_tx_base58
 
     # Send payment proof to merchant
     ctx.logger.info("")
