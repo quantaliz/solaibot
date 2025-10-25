@@ -24,7 +24,7 @@ cat > .env << 'EOF'
 AGENT_NAME=payment_merchant_agent
 AGENT_SEED="my-unique-seed-phrase-12345"
 AGENT_NETWORK=testnet
-MERCHANT_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0
+MERCHANT_AGENT_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0
 FACILITATOR_URL=https://facilitator.payai.network
 PAYMENT_NETWORK=solana-devnet
 BYPASS_PAYMENT_VERIFICATION=true
@@ -193,7 +193,7 @@ AGENT_SEED="your-secure-random-seed-phrase-here"
 AGENT_NETWORK=testnet
 
 # PayAI x402 Facilitator Configuration
-MERCHANT_ADDRESS=0x1234567890123456789012345678901234567890
+MERCHANT_AGENT_ADDRESS=0x1234567890123456789012345678901234567890
 FACILITATOR_URL=https://facilitator.payai.network
 PAYMENT_NETWORK=solana-devnet
 
@@ -222,7 +222,7 @@ BYPASS_PAYMENT_VERIFICATION=true
 - `testnet` - Fetch.ai testnet (free, for development)
 - `mainnet` - Fetch.ai mainnet (requires FET tokens)
 
-**MERCHANT_ADDRESS**: Your blockchain wallet address
+**MERCHANT_AGENT_ADDRESS**: Your blockchain wallet address
 - Format: `0x` followed by 40 hexadecimal characters
 - This is where payments will be sent
 - For development, any valid address format works
@@ -735,7 +735,7 @@ uv run python -c "import uagents, x402; print('✅ All packages installed')"
 
 **Error**: `ERROR: Facilitator service not configured`
 - Check `.env` file exists in project directory
-- Verify `MERCHANT_ADDRESS` is set
+- Verify `MERCHANT_AGENT_ADDRESS` is set
 - Address can be any valid format for development mode
 - For production, use actual Base Sepolia address (0x + 40 hex chars)
 
@@ -760,7 +760,7 @@ uv run python -c "import uagents, x402; print('✅ All packages installed')"
    - Example valid format: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`
 
 2. **Wrong recipient address**
-   - Transaction `to_address` must match merchant's `MERCHANT_ADDRESS`
+   - Transaction `to_address` must match merchant's `MERCHANT_AGENT_ADDRESS`
    - Check both addresses match exactly (case-insensitive)
 
 3. **Development mode success indication**
@@ -920,7 +920,7 @@ async def verify_and_settle_payment(self, payment_proof, expected_price, token_i
             return {"success": False, "error": "Transaction failed", "verified": False}
 
         # Verify recipient
-        if tx['to'].lower() != self.merchant_address.lower():
+        if tx['to'].lower() != self.MERCHANT_AGENT_ADDRESS.lower():
             return {"success": False, "error": "Wrong recipient", "verified": False}
 
         # Verify amount (adjust for token vs ETH)
@@ -970,7 +970,7 @@ BYPASS_PAYMENT_VERIFICATION=false
 # Production settings
 AGENT_NETWORK=mainnet
 PAYMENT_NETWORK=solana-mainnet  # or base-mainnet for Base network
-MERCHANT_ADDRESS=YourProductionSolanaAddress  # or 0x... for Base
+MERCHANT_AGENT_ADDRESS=YourProductionSolanaAddress  # or 0x... for Base
 FACILITATOR_URL=https://facilitator.payai.network
 BYPASS_PAYMENT_VERIFICATION=false  # Must implement real verification for production
 ```

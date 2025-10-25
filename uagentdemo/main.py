@@ -97,7 +97,7 @@ class PayAIFacilitatorService:
 
     def __init__(self):
         self.facilitator_url = os.getenv("FACILITATOR_URL", "https://facilitator.payai.network")
-        self.merchant_address = os.getenv("MERCHANT_ADDRESS")
+        self.merchant_address = os.getenv("MERCHANT_AGENT_ADDRESS")
         self.network = os.getenv("PAYMENT_NETWORK", "solana-devnet")
 
         # Initialize facilitator client if x402 is available
@@ -109,7 +109,7 @@ class PayAIFacilitatorService:
             self.facilitator_client = None
 
         if not self.merchant_address:
-            raise ValueError("MERCHANT_ADDRESS not configured in .env")
+            raise ValueError("MERCHANT_AGENT_ADDRESS not configured in .env")
 
     def get_price_for_resource(self, resource_id: str) -> dict:
         """Get pricing configuration for a resource"""
@@ -540,12 +540,12 @@ if __name__ == "__main__":
     if not X402_AVAILABLE:
         print("ERROR: x402 package not installed")
         print("Install with: pip install x402")
-        print("Then configure MERCHANT_ADDRESS in .env")
+        print("Then configure MERCHANT_AGENT_ADDRESS in .env")
         exit(1)
 
     if not facilitator_service:
         print("ERROR: Facilitator service not configured")
-        print("Make sure MERCHANT_ADDRESS is set in .env")
+        print("Make sure MERCHANT_AGENT_ADDRESS is set in .env")
         exit(1)
 
     print("=" * 60)
