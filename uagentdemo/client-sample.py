@@ -298,9 +298,10 @@ async def startup(ctx: Context):
     ctx.logger.info(f"🎯 Target Resource: {TARGET_RESOURCE}")
     ctx.logger.info("=" * 60)
 
-    # Initialize request counter
+    # Initialize request counter and clear any stale pending payments
     ctx.storage.set("request_count", 0)
     ctx.storage.set("resource_received", False)
+    ctx.storage.set("pending_payment", None)  # Clear stale pending payments from previous runs
 
     ctx.logger.info("")
     ctx.logger.info("💰 Checking Solana wallet balance...")
@@ -334,20 +335,19 @@ async def request_premium_resource(ctx: Context):
     # Only request once
     resource_received = ctx.storage.get("resource_received")
     if resource_received:
-        ctx.logger.info("✅ Resource already received. Client idle.")
+        # Don't log repeatedly - stay quiet once complete
         return
 
     # Check if we already have a pending payment
     pending_payment = ctx.storage.get("pending_payment")
     if pending_payment:
-        ctx.logger.info("⏳ Payment request already pending...")
-        ctx.logger.info(f"   Payment ID: {pending_payment['payment_id']}")
+        # Don't spam logs - wait silently
         return
 
     # Check if we've already made a request
     request_count = int(ctx.storage.get("request_count") or 0)
     if request_count > 0:
-        ctx.logger.info("⏳ Waiting for merchant response...")
+        # Don't spam logs - wait silently
         return
 
     # Make the request
@@ -482,7 +482,8 @@ async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequire
 
     ctx.logger.info("")
     ctx.logger.info("✅ Transaction signed successfully!")
-    ctx.logger.info(f"   Signed TX (base58): {signed_tx_base58[:40]}...")
+    ctx.logger.info(f"   Signed TX (base58, full): {signed_tx_base58}")
+    ctx.logger.info(f"   TX length: {len(signed_tx_base58)} characters")
     ctx.logger.info("")
     ctx.logger.info("   📤 Sending to merchant for facilitator broadcast...")
 

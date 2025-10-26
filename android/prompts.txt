@@ -222,3 +222,18 @@ Make a new script similar to @demo/voice/main.py that, instead of reading the fi
 This new script should be named "demo/voice/video-voice.py
 
 My bad, it was @demo/video-script.md instead of solaibotDemo.md. Update the file to match "video-script.md". Also, allow the user to select which sections to recreate in case necessary, like the @demo/voice/demo-voice.py do
+
+
+I ran @main.py and @client-sample.py in two terminals, but it failed. @log.txt has the traces of what happened. From what I read in the logs, it mentioned "Error creating signed transaction: 'solders.transaction.Transaction'" which should show more logs of what's happening, the client should only send a "signed" transaction to the merchant agent if it effectively signed it to then, send to the facilitator. Check the @docs/ClientMerchand.md as the paths to communicate betweeh merchant and client. If necessary, there are other md files in the docs folder.
+What we are doing here is using uagents as the "messaging" platform for the x402 payment.
+If you try to run code, use "cd /proj/uagentdemo && uv run ..." for the command you want to run with the libraries loaded, otherwise, you will enter a loop of failed transactions if you don't load the environment correctly
+
+Now, it seems to remain stuck. @logClient.txt and @logMain.txt show how the merchant did not receive any payment but the client seems to keep waiting for it. Verify it works and that the client makes a payment and the merchant receives it by running these scripts in the background before telling me the code is correct
+
+I ran @main.py and @client-sample.py in two terminals, but it failed. @logClient.txt & @logMain.txt have the traces of what happened.
+First, the client should only run once, then log everything as "payment succeded" or "payment failed", with full addresses for on-chain devnet verification.
+From what I read in the client logs, it mentioned "Error: Payment verification failed", the client "signed" transaction seems to be incomplete, with "..." signaling it could show more of the signature. Showing everything will help to debug it. Something on the merchant agent is not working well with the facilitator.
+If necessary, check the @docs/ClientMerchant.md as the paths to communicate betweeh merchant and client. Also there are other md files in the docs folder.
+What we are doing here is using uagents as the "messaging" platform for the x402 payment.
+Make sure to run code using "uv run ..." for the command you want to run with the libraries loaded, otherwise, you will enter a loop of failed transactions if you don't load the environment correctly.
+Also, before telling me it is resolved, run it yourself to confirm it is working as expected: Client ask -> Merchant requests payment -> Client sends signature -> Merchant verifies and gives access to premium resource
