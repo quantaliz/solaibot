@@ -469,17 +469,20 @@ aEndpointPort = os.getenv("AGENT_ENDPOINT_PORT", 8000)
 agentverse_mode = os.getenv("AGENTVERSE", "false").lower() == "true"
 agentverse_agent_address = os.getenv("AGENTVERSE_AGENT_ADDRESS", "")
 
-# Initialize agent with conditional mailbox for Agentverse connectivity
+# Initialize agent with conditional proxy for Agentverse connectivity
 if agentverse_mode:
+    # In Agentverse mode, proxy handles communication
+    # IMPORTANT: Do NOT set endpoint when using proxy - it overrides proxy!
     agent = Agent(
         name=aName,
         seed=aSeed,
         port=aEndpointPort,
-        endpoint=[aEndpoint],
-        mailbox=True,  # Enable mailbox to receive from Agentverse
+        proxy=True,  # Enable proxy to receive from Agentverse
         network=aNet
     )
     print("🔗 Agentverse proxy mode - accepting messages from Agentverse agent")
+    print(f"   Proxy enabled - messages routed through Agentverse")
+    print(f"   ⚠️  No endpoint set - proxy handles all routing")
     if agentverse_agent_address:
         print(f"   Agentverse agent address: {agentverse_agent_address[:16]}...")
 else:
@@ -487,7 +490,7 @@ else:
         name=aName,
         seed=aSeed,
         port=aEndpointPort,
-        endpoint=[aEndpont],
+        endpoint=[f"http://{aEndpoint}:{aEndpointPort}/submit"],
         network=aNet
     )
     print("📡 Local mode - direct agent communication")

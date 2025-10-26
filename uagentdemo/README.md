@@ -4,6 +4,8 @@ A production-ready merchant agent built with Fetch.ai's uAgents framework that i
 
 ## Quick Start (5 Minutes)
 
+**📌 New to deployment?** See [DEPLOYMENT_QUICK_START.md](./DEPLOYMENT_QUICK_START.md) for the fastest path!
+
 Want to run the agent immediately? Here's the fastest path:
 
 ```bash
@@ -41,6 +43,37 @@ uv run merchant.py
 - 📊 Periodic status updates
 
 **Ready to test?** See [Building a Client Agent](#building-a-client-agent) below.
+
+---
+
+## Deployment Options
+
+### 🚀 Production Deployment
+
+**Choose your deployment method:**
+
+1. **Mailbox Agent** (Recommended) - Full x402 + EVM + Solana support
+   - Run locally, connect to Agentverse network
+   - See: [X402_AGENTVERSE_OPTIONS.md](./X402_AGENTVERSE_OPTIONS.md#-solution-1-use-mailbox-agent-recommended)
+
+2. **Agentverse Hosted** - Solana-only, fully managed
+   - 24/7 cloud hosting, no infrastructure
+   - Requires uploading 2 files: `models.py` + `merchant-agentverse.py`
+   - See: [AGENTVERSE_DEPLOYMENT.md](./AGENTVERSE_DEPLOYMENT.md)
+   - Files checklist: [AGENTVERSE_FILES_CHECKLIST.md](./AGENTVERSE_FILES_CHECKLIST.md)
+
+**Quick comparison:**
+
+| Feature | Mailbox Agent | Agentverse Hosted |
+|---------|---------------|-------------------|
+| x402 Support | ✅ | ❌ |
+| Solana Payments | ✅ | ✅ |
+| EVM Payments | ✅ | ❌ |
+| Infrastructure | You manage | Platform managed |
+
+📖 **Full deployment guide**: [DEPLOYMENT_QUICK_START.md](./DEPLOYMENT_QUICK_START.md)
+
+---
 
 ## What is x402?
 
