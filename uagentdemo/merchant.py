@@ -462,6 +462,8 @@ def get_premium_resource(resource_id: str) -> dict:
 aName = os.getenv("AGENT_NAME", "payment_merchant_agent")
 aSeed = os.getenv("AGENT_SEED", "merchant_agent_secure_seed_phrase_12345")
 aNet = os.getenv("AGENT_NETWORK", "testnet")
+aEndpoint = os.getenv("AGENT_ENDPOINT", "localhost")
+aEndpointPort = os.getenv("AGENT_ENDPOINT_PORT", 8000)
 
 # Check if Agentverse proxy mode should be enabled
 agentverse_mode = os.getenv("AGENTVERSE", "false").lower() == "true"
@@ -472,8 +474,8 @@ if agentverse_mode:
     agent = Agent(
         name=aName,
         seed=aSeed,
-        port=8000,
-        endpoint=["http://localhost:8000/submit"],
+        port=aEndpointPort,
+        endpoint=[aEndpoint],
         mailbox=True,  # Enable mailbox to receive from Agentverse
         network=aNet
     )
@@ -484,8 +486,8 @@ else:
     agent = Agent(
         name=aName,
         seed=aSeed,
-        port=8000,
-        endpoint=["http://localhost:8000/submit"],
+        port=aEndpointPort,
+        endpoint=[aEndpont],
         network=aNet
     )
     print("📡 Local mode - direct agent communication")
@@ -807,9 +809,9 @@ if __name__ == "__main__":
     print(f"Agent: {aName}")
     print(f"Network: {aNet}")
     if agentverse_mode:
-        print(f"Mode: Agentverse Proxy (Connected via mailbox)")
+        print(f"Mode: Agentverse Proxy")
         if agentverse_agent_address:
-            print(f"Agentverse Agent: {agentverse_agent_address[:16]}...")
+            print(f"Agentverse Agent: {agentverse_agent_address}")
     else:
         print(f"Mode: Local (Direct communication)")
     print(f"Facilitator: {facilitator_service.facilitator_url}")

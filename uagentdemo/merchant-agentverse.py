@@ -61,7 +61,6 @@ async def introduce_agent(ctx: Context):
     ctx.logger.info("=" * 60)
     ctx.logger.info("📨 PayAI Merchant - Agentverse Proxy Agent")
     ctx.logger.info("=" * 60)
-    ctx.logger.info(f"Proxy Agent: {agent.name}")
     ctx.logger.info(f"Proxy Address: {agent.address}")
     ctx.logger.info("Running on: Agentverse (Hosted)")
     ctx.logger.info("")
