@@ -1,223 +1,394 @@
-# Agentverse Deployment Guide
+# Agentverse Proxy Deployment Guide
 
-Complete guide for deploying the PayAI Merchant Agent with Agentverse connectivity.
+**24/7 Agent Commerce with Mailbox Communication**
 
-## Table of Contents
+[![ASI Agents Track](https://img.shields.io/badge/Hackathon-ASI_Agents_Track-blue)](https://earn.superteam.fun/listing/asi-agents-track/)
+[![Platform](https://img.shields.io/badge/Platform-Agentverse-purple)](https://agentverse.ai)
 
-1. [Quick Start](#quick-start)
-2. [Understanding the Architecture](#understanding-the-architecture)
-3. [Endpoint Configuration](#endpoint-configuration)
-4. [Health Check System](#health-check-system)
-5. [Deployment Options](#deployment-options)
-6. [Step-by-Step Setup](#step-by-step-setup)
-7. [Configuration Files](#configuration-files)
-8. [Troubleshooting](#troubleshooting)
-9. [Production Deployment](#production-deployment)
+> Part of the [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/) submission
 
 ---
 
-## Quick Start
+## 🎯 What This Guide Covers
 
-### The Critical Issue: Endpoint vs Mailbox
+This guide explains how to deploy the Agent Commerce Platform using the **Agentverse proxy architecture** for 24/7 availability while maintaining full payment processing capabilities on your infrastructure.
 
-⚠️ **CRITICAL:** When using `mailbox=True`, **DO NOT set the `endpoint` parameter**!
+**What you'll achieve**:
+- ✅ 24/7 message reception via Agentverse cloud
+- ✅ No public endpoint or port forwarding needed
+- ✅ Full x402 + Solana + EVM payment support
+- ✅ Secure payment processing on your infrastructure
+- ✅ Scalable multi-merchant architecture
 
-```python
-# ❌ WRONG - Will cause "Failed to dispatch envelope" error
-agent = Agent(
-    name=aName,
-    seed=aSeed,
-    port=8000,
-    endpoint=["http://localhost:8000/submit"],  # ← This overrides mailbox!
-    mailbox=True,
-    network="testnet"
-)
+## 🏗️ Two-Agent Proxy Architecture
 
-# ✅ CORRECT - Mailbox works properly
-agent = Agent(
-    name=aName,
-    seed=aSeed,
-    port=8000,
-    mailbox=True,  # ← Mailbox handles routing
-    network="testnet"
-    # NO endpoint parameter!
-)
-```
+### The Challenge
 
-**Why?** Setting `endpoint` overrides mailbox functionality, causing the proxy to try direct connections instead of using the mailbox relay system.
+Running an agent commerce platform requires:
+- **24/7 Availability**: Agents need to receive messages any time
+- **Rich Libraries**: Payment verification needs x402, Solana, EVM packages
+- **Security**: Payment processing should stay on your infrastructure
+- **No Public Endpoint**: Most developers don't have static IPs or want to expose endpoints
 
-### What You'll See When It's Wrong
+### The Solution: Two-Agent Proxy with Mailbox Communication
 
-**Merchant logs:**
-```
-WARNING: [payment_merchant_agent]: Endpoint configuration overrides mailbox setting.
-```
-
-**Proxy logs:**
-```
-Failed to dispatch envelope to agent1qtem7xxuw9... @ ['http://localhost:8000/submit']
-```
-
-### Deploy in 6 Steps
-
-```bash
-# 1. Remove AGENT_ENDPOINT from .env (or don't use it in code)
-# 2. Set AGENTVERSE=true in .env
-echo "AGENTVERSE=true" >> .env
-
-# 3. Run local merchant FIRST to get its address
-uv run merchant.py
-# Copy "Agent address: agent1qtem7xxuw9..."
-
-# 4. Deploy proxy to Agentverse
-#    - Upload models.py and merchant-agentverse.py
-#    - Set LOCAL_MERCHANT_ADDRESS secret to the address from step 3
-
-# 5. Verify logs show:
-#    Merchant: "Mailbox enabled - messages routed through Agentverse"
-#    Proxy: "✅ HEALTH CHECK PASSED!"
-
-# 6. Configure client with proxy address (from Agentverse logs)
-```
-
----
-
-## Understanding the Architecture
-
-### Proxy Architecture (What We Use)
+We use **two separate agents** working together:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Agentverse Network                                          │
-│                                                               │
-│  ┌─────────────────────┐         ┌─────────────────────┐    │
-│  │  Client Agent       │         │  Proxy Agent        │    │
-│  │  (Any network node) │ ──────► │  (Hosted)           │    │
-│  │                     │ ◄────── │                     │    │
-│  └─────────────────────┘         └─────────┬───────────┘    │
-│                                            │                  │
-│                                            │ ctx.send()      │
-└────────────────────────────────────────────┼──────────────────┘
-                                             │
-                                             │ Internet (mailbox)
-                                             │
-                                ┌────────────▼──────────────┐
-                                │  Your Cloud Server        │
-                                │  ┌────────────────────┐   │
-                                │  │  merchant.py       │   │
-                                │  │  AGENTVERSE=true   │   │
-                                │  │  mailbox=True      │   │
-                                │  │  NO endpoint set   │   │
-                                │  │                    │   │
-                                │  │  ✅ Full x402      │   │
-                                │  │  ✅ Solana         │   │
-                                │  │  ✅ EVM payments   │   │
-                                │  └────────────────────┘   │
-                                └──────────────────────────┘
+│  ☁️  AGENTVERSE CLOUD (24/7 Managed Hosting)                │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │  🔀 PROXY AGENT (agentverse-proxy.py)              │     │
+│  │  ┌──────────────────────────────────────────────┐  │     │
+│  │  │  • Receives client ResourceRequests          │  │     │
+│  │  │  • Stores client addresses for routing       │  │     │
+│  │  │  • Forwards messages to local merchant       │  │     │
+│  │  │  • Returns responses to original clients     │  │     │
+│  │  │  • Health check monitoring                   │  │     │
+│  │  └──────────────────────────────────────────────┘  │     │
+│  │                                                      │     │
+│  │  Characteristics:                                   │     │
+│  │  ✅ Lightweight forwarder only                      │     │
+│  │  ✅ No payment processing                           │     │
+│  │  ✅ Minimal Python dependencies                     │     │
+│  │  ✅ Agentverse manages uptime                       │     │
+│  └─────────────────┬────────────────────────────────────┘     │
+└────────────────────┼──────────────────────────────────────────┘
+                     │
+                     │  📬 MAILBOX SYSTEM
+                     │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                     │  • Persistent WebSocket connection
+                     │  • Initiated by local merchant (outbound)
+                     │  • Works behind NAT/firewall
+                     │  • Message queuing and delivery
+                     │  • Automatic reconnection
+                     │
+                     ▼
+        ┌────────────────────────────────────────────────┐
+        │  🏢 YOUR INFRASTRUCTURE                         │
+        │  (Local machine / VPS / Cloud server)          │
+        │                                                 │
+        │  ┌──────────────────────────────────────────┐  │
+        │  │  💼 MERCHANT AGENT (merchant.py)          │  │
+        │  │  ┌────────────────────────────────────┐  │  │
+        │  │  │  • Processes ResourceRequests      │  │  │
+        │  │  │  • Generates payment instructions  │  │  │
+        │  │  │  • Verifies blockchain payments    │  │  │
+        │  │  │  • Broadcasts Solana transactions  │  │  │
+        │  │  │  • Delivers premium resources      │  │  │
+        │  │  └────────────────────────────────────┘  │  │
+        │  │                                            │  │
+        │  │  Capabilities:                             │  │
+        │  │  ✅ Full x402 SDK                          │  │
+        │  │  ✅ Solana blockchain integration          │  │
+        │  │  ✅ EVM payments (Base, Ethereum)          │  │
+        │  │  ✅ All Python packages available          │  │
+        │  │  ✅ Payment key security                   │  │
+        │  └──────────────────────────────────────────┘  │
+        └────────────────────────────────────────────────┘
 ```
 
-**Key Points:**
-- **Two distinct agents** with different seeds and addresses
-- **Proxy address** is what clients use
-- **Local merchant** does all payment processing
-- **Mailbox** handles communication between them
-- **NO endpoint parameter** on local merchant when using mailbox
+### Message Flow Example
+
+Let's walk through a complete transaction:
+
+#### 1. Client Requests Resource
+```
+Client Agent (Anywhere)
+    │
+    │ ResourceRequest(resource_id="premium_weather")
+    │
+    ▼
+Proxy Agent (Agentverse)
+    │ • Receives message
+    │ • Stores client address: "client123"
+    │ • Forwards via mailbox ──────────────┐
+                                           │
+                                           ▼
+                            Merchant Agent (Your Server)
+                                │ • Receives via mailbox
+                                │ • Generates payment_id
+                                │ • Returns PaymentRequired
+```
+
+#### 2. Payment Required Response
+```
+Merchant Agent
+    │
+    │ PaymentRequired(price="$0.001", payment_id="pay_xyz")
+    │
+    │ • Sends to proxy via mailbox ────────┐
+                                           │
+                                           ▼
+                            Proxy Agent (Agentverse)
+                                │ • Looks up client: "client123"
+                                │ • Forwards response
+                                │
+                                ▼
+                            Client Agent
+                                • Receives payment instructions
+                                • Executes Solana transaction
+```
+
+#### 3. Payment Proof Submission
+```
+Client Agent
+    │
+    │ PaymentProof(transaction_hash=<signed_tx>)
+    │
+    ▼
+Proxy Agent
+    │ • Forwards to merchant ──────────────┐
+                                           │
+                                           ▼
+                            Merchant Agent
+                                │ • Broadcasts transaction to Solana
+                                │ • Waits for confirmation (~2s)
+                                │ • Verifies payment amount/recipient
+                                │ • Retrieves premium resource
+```
+
+#### 4. Resource Delivery
+```
+Merchant Agent
+    │
+    │ ResourceAccess(resource_data={...})
+    │
+    │ • Sends to proxy via mailbox ────────┐
+                                           │
+                                           ▼
+                            Proxy Agent
+                                │ • Forwards to original client
+                                │
+                                ▼
+                            Client Agent
+                                ✅ Premium resource received!
+```
+
+## 🔧 Mailbox Communication Explained
+
+### What is the Mailbox System?
+
+The **mailbox system** is Agentverse's solution for agents behind firewalls/NAT to receive messages reliably.
+
+#### Traditional Direct Communication (❌ Problems)
+```
+Client Agent ─ HTTP ─> Merchant Agent (http://merchant-ip:8000/submit)
+                            ↑
+                            │ Requires:
+                            │ ❌ Public IP address
+                            │ ❌ Port forwarding
+                            │ ❌ Firewall rules
+                            │ ❌ DDoS protection
+```
+
+#### Mailbox Communication (✅ Solution)
+```
+Client Agent ──> Agentverse ──┐
+                              │
+                              │ Mailbox Queue
+                              │ • Messages stored
+                              │ • Encrypted
+                              │ • Reliable delivery
+                              │
+                              ▼
+          ┌────────── Merchant Agent (pulls messages)
+          │           • Outbound connection only
+          │           • Works behind NAT
+          │           • WebSocket persistent
+          │
+          └─ Sends Response ─> Agentverse ──> Client Agent
+```
+
+### How Mailbox Works Technically
+
+1. **Merchant initiates connection** (outbound WebSocket)
+   ```python
+   agent = Agent(
+       name="merchant",
+       seed="unique-seed",
+       mailbox=True,  # Enable mailbox
+       network="testnet"
+   )
+   ```
+   - Agent connects to Agentverse mailbox servers
+   - Persistent WebSocket connection established
+   - No inbound ports needed
+
+2. **Proxy sends message** via `ctx.send()`
+   ```python
+   # In Agentverse proxy
+   await ctx.send(LOCAL_MERCHANT_ADDRESS, message)
+   ```
+   - Message sent to Agentverse
+   - Queued in merchant's mailbox
+   - Delivered via WebSocket
+
+3. **Merchant receives** through mailbox
+   ```python
+   @agent.on_message(model=ResourceRequest)
+   async def handle_request(ctx, sender, msg):
+       # Message received automatically
+       # Process and respond
+   ```
+
+4. **Response flows back** through same system
+   - Merchant sends to proxy address
+   - Proxy forwards to client
+   - All via mailbox infrastructure
+
+### Key Advantages
+
+| Feature | Direct HTTP | Mailbox System |
+|---------|-------------|----------------|
+| **Works behind NAT** | ❌ No | ✅ Yes |
+| **Public endpoint** | ❌ Required | ✅ Not needed |
+| **Port forwarding** | ❌ Required | ✅ Not needed |
+| **Firewall config** | ❌ Complex | ✅ Simple (outbound only) |
+| **DDoS protection** | ❌ DIY | ✅ Agentverse handles |
+| **Message queuing** | ❌ No | ✅ Yes |
+| **Automatic retry** | ❌ No | ✅ Yes |
+| **Uptime monitoring** | ❌ DIY | ✅ Agentverse |
+
+## 📋 Deployment Checklist
+
+Before starting, ensure you have:
+
+- [ ] **Agentverse Account**: Sign up at [agentverse.ai](https://agentverse.ai)
+- [ ] **Solana Wallet**: With devnet SOL ([Get from faucet](https://faucet.solana.com/))
+- [ ] **Local Environment**: Python 3.11+, UV package manager
+- [ ] **Project Files**: Clone the repository
+- [ ] **Network Access**: Internet connection for mailbox
+
+## 🚀 Step-by-Step Deployment
+
+### Phase 1: Prepare Local Merchant
+
+#### Step 1.1: Install Dependencies
+
+```bash
+cd /path/to/uagentdemo
+
+# Create virtual environment
+uv venv
+
+# Install dependencies
+uv pip install uagents x402 python-dotenv pydantic solana solders base58
+```
+
+#### Step 1.2: Configure Environment
+
+```bash
+# Copy merchant template
+cp .env.merchant.example .env
+
+# Edit configuration
+nano .env
+```
+
+**Critical settings**:
+```env
+# Agent identity (unique seed)
+AGENT_SEED=merchant_local_unique_seed_phrase_xyz123
+
+# Enable mailbox mode
+AGENTVERSE=true
+
+# ⚠️ CRITICAL: Do NOT set AGENT_ENDPOINT
+# Setting endpoint disables mailbox and causes "Failed to dispatch envelope" errors
+# AGENT_ENDPOINT=localhost  ← REMOVE THIS LINE or leave commented out
+
+# Your blockchain wallet (where payments go)
+MERCHANT_AGENT_ADDRESS=YOUR_SOLANA_WALLET_ADDRESS
+
+# Payment network
+PAYMENT_NETWORK=solana-devnet
+```
+
+#### Step 1.3: Start Local Merchant
+
+```bash
+uv run src/merchant.py
+```
+
+**Expected output** (verify these lines):
+```
+🔗 Agentverse proxy mode - accepting messages from Agentverse agent
+   Mailbox enabled - messages routed through Agentverse
+   ⚠️  No endpoint set - mailbox handles all routing
+
+Agent address: agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve
+```
+
+**⚠️ Important checks**:
+- ✅ Should see "Mailbox enabled"
+- ✅ Should see "No endpoint set"
+- ❌ Should NOT see "WARNING: Endpoint configuration overrides mailbox"
+
+**📝 Copy the agent address** - you'll need it for Agentverse configuration!
 
 ---
 
-## Endpoint Configuration
+### Phase 2: Deploy Proxy to Agentverse
 
-### Two Communication Modes
+#### Step 2.1: Access Agentverse
 
-#### Mode 1: Direct Communication (Not for Agentverse)
+1. Go to [agentverse.ai](https://agentverse.ai)
+2. Log in or create account
+3. Navigate to "Agents" section
+4. Click "Create New Agent"
 
-**Use when:** Both agents are on the same network or have public IPs
+#### Step 2.2: Upload Files
 
-```python
-agent = Agent(
-    name="my_agent",
-    port=8000,
-    endpoint=["http://PUBLIC_IP:8000/submit"],
-    network="testnet"
-)
+**File 1: models.py**
+```
+1. Click "Add File" or "+" button
+2. Name: models.py
+3. Copy entire contents from: src/models.py
+4. Paste into editor
+5. Save
 ```
 
-**Requirements:**
-- Public IP address
-- Open port in firewall
-- Direct network connectivity
-
-#### Mode 2: Mailbox Communication (Agentverse Mode)
-
-**Use when:** Agent behind NAT, private network, or cloud server
-
-```python
-agent = Agent(
-    name="my_agent",
-    port=8000,
-    mailbox=True,
-    network="testnet"
-    # ⚠️ NO endpoint parameter!
-)
+**File 2: agentverse-proxy.py**
+```
+1. Click "Add File" or "+" button
+2. Name: agentverse-proxy.py
+   (Or rename to main.py if Agentverse requires)
+3. Copy entire contents from: src/agentverse-proxy.py
+4. Paste into editor
+5. Save
 ```
 
-**How it works:**
-1. Agent creates outbound connection to Agentverse mailbox servers
-2. Messages are relayed through the mailbox system
-3. No direct connections needed
-4. Works behind NAT/firewall
+#### Step 2.3: Configure Secrets
 
-**Benefits:**
-- ✅ Works behind NAT/firewall
-- ✅ Works on private networks
-- ✅ No port forwarding required
-- ✅ No public IP required
-- ✅ Async message delivery
+Navigate to agent settings or secrets section:
 
----
+| Secret Name | Value | Notes |
+|-------------|-------|-------|
+| `LOCAL_MERCHANT_ADDRESS` | `agent1qtem7xxuw9...` | From Step 1.3 (REQUIRED) |
+| `AGENT_SEED` | `proxy_unique_seed_xyz` | Different from merchant (REQUIRED) |
+| `AGENT_NAME` | `agentverse_proxy` | Optional friendly name |
 
-## Health Check System
+**⚠️ Critical**: `LOCAL_MERCHANT_ADDRESS` must match exactly the address from Step 1.3
 
-The health check mechanism ensures the Agentverse proxy can communicate with the local merchant before accepting client requests.
+#### Step 2.4: Deploy
 
-### Health Check Flow
+1. Click "Deploy" or "Run" button
+2. Wait for deployment (usually < 30 seconds)
+3. Check logs section
 
+**Expected logs** (healthy deployment):
 ```
-1. Proxy Starts
-   ↓
-2. Sends HealthCheckRequest to local merchant
-   ↓
-3. Local Merchant Responds with HealthCheckResponse
-   ↓
-4. Proxy Marks Itself as Healthy
-   ↓
-5. Begins Accepting Client Messages
-```
+============================================================
+📨 PayAI Merchant - Agentverse Proxy Agent
+============================================================
+Proxy Address: agent1q2d3chh0dsjpjg8cf5a4g8tx5hl4gn2c89jvt7atz42xg2zx4h6f5vupkxj
+Running on: Agentverse (Hosted)
 
-### Message Models
+Forwarding to: agent1qtem7xxuw9...
+Mode: Proxy/Forwarder (explicit ctx.send)
 
-**HealthCheckRequest:**
-```python
-class HealthCheckRequest(BaseModel):
-    proxy_address: str
-    timestamp: str
-```
-
-**HealthCheckResponse:**
-```python
-class HealthCheckResponse(BaseModel):
-    status: str = "alive"
-    merchant_address: str
-    timestamp: str
-    message: str = "Local merchant is online and ready"
-```
-
-### Expected Logs
-
-**When health check succeeds:**
-
-Proxy (Agentverse):
-```
 🏥 Performing health check with local merchant...
    Health check request sent
    Waiting for response...
@@ -225,435 +396,221 @@ Proxy (Agentverse):
    Local merchant is online: agent1qtem7xxuw9...
    Status: alive
 🟢 Proxy is operational and ready to forward messages
+============================================================
 ```
 
-Local Merchant:
-```
-🏥 Health check received from proxy: agent1q2d3chh0ds...
-✅ Health check response sent to proxy
-```
-
-**When health check fails:**
-
-Proxy:
-```
-⚠️  Status: WAITING FOR HEALTH CHECK | Messages received: 0
-```
-
-Or:
-```
-❌ Status: UNHEALTHY (LOCAL_MERCHANT_ADDRESS not configured)
-```
-
-### Health Check States
-
-The proxy tracks its health state:
-
-- `health_check_passed` (boolean): Whether health check succeeded
-- `awaiting_health_response` (boolean): Waiting for response
-- `health_check_error` (string): Error message if failed
-
-**Before forwarding messages, the proxy checks:**
-```python
-health_check_passed = ctx.storage.get("health_check_passed")
-if not health_check_passed:
-    # Send error to client
-    return
-```
+**📝 Copy the proxy address** (`agent1q2d3chh0dsj...`) - clients will use this!
 
 ---
 
-## Deployment Options
+### Phase 3: Verify Connection
 
-### Option 1: Agentverse Proxy (Recommended)
+#### Step 3.1: Check Local Merchant Logs
 
-**What you get:**
-- ✅ Full x402 package support
-- ✅ Solana + EVM payments
-- ✅ All Python packages available
-- ✅ 24/7 message reception via proxy
-- ✅ Full control over local merchant
+In your local terminal (where merchant.py is running):
 
-**Architecture:**
-- Proxy on Agentverse (different seed)
-- Local merchant on your server (different seed)
-- Explicit message forwarding via `ctx.send()`
-
-**When to use:**
-- Production deployments
-- Need EVM payments (Base, Ethereum)
-- Want full x402 features
-- Have reliable infrastructure
-
-### Option 2: Solana-Only Hosted
-
-**What you get:**
-- ✅ Solana payments only
-- ✅ 24/7 uptime (Agentverse manages)
-- ✅ No infrastructure needed
-- ❌ No EVM payments (x402 not available)
-
-**When to use:**
-- Testing/prototyping
-- Only need Solana payments
-- Want zero infrastructure management
-
----
-
-## Step-by-Step Setup
-
-### Prerequisites
-
-- Cloud server (AWS, GCP, DigitalOcean, etc.)
-- Agentverse account
-- Solana wallet address
-
-### Step 1: Prepare Local Merchant
-
-**1.1 Create/edit `.env` file:**
-
-```env
-# Agent Configuration
-AGENT_NAME=payment_merchant_agent
-AGENT_SEED=merchant_agent_secure_seed_phrase_12345
-AGENT_NETWORK=testnet
-
-# Port for local server
-AGENT_ENDPOINT_PORT=8000
-
-# ✅ CRITICAL: Enable mailbox mode
-AGENTVERSE=true
-
-# ⚠️ DO NOT SET AGENT_ENDPOINT when using mailbox mode!
-# It will override mailbox and cause "Failed to dispatch envelope" errors
-
-# Payment Configuration
-MERCHANT_AGENT_ADDRESS=0xYourBlockchainWallet  # or Solana address
-PAYMENT_NETWORK=solana-devnet
 ```
-
-**1.2 Install dependencies:**
-
-```bash
-uv add uagents solana solders base58 python-dotenv pydantic
-```
-
-**1.3 Run merchant to get its address:**
-
-```bash
-uv run merchant.py
-```
-
-**Expected output:**
-```
-🔗 Agentverse proxy mode - accepting messages from Agentverse agent
-   Mailbox enabled - messages routed through Agentverse
-   ⚠️  No endpoint set - mailbox handles all routing
-Agent address: agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve
-```
-
-**✅ Verify NO warning about endpoint override!**
-
-**Copy the agent address** - you'll need it for Step 2.
-
-### Step 2: Deploy Proxy to Agentverse
-
-**2.1 Go to [agentverse.ai](https://agentverse.ai)**
-
-**2.2 Create new agent**
-
-**2.3 Upload TWO files:**
-
-**File 1: models.py**
-- Copy entire contents from `/proj/models.py`
-- Paste into Agentverse editor
-- Includes: HealthCheckRequest, HealthCheckResponse, and payment models
-
-**File 2: merchant-agentverse.py**
-- Copy entire contents from `/proj/merchant-agentverse.py`
-- Paste into Agentverse editor
-
-**2.4 Configure Secrets:**
-
-| Secret Name | Value | Required |
-|------------|-------|----------|
-| `LOCAL_MERCHANT_ADDRESS` | `agent1qtem7xxuw9...` (from Step 1) | **CRITICAL!** |
-| `AGENT_SEED` | Unique seed for proxy (different from local!) | Yes |
-| `AGENT_NAME` | `agentverse_proxy` | Optional |
-
-**2.5 Deploy the proxy**
-
-**2.6 Check logs for health check:**
-
-Expected:
-```
-✅ HEALTH CHECK PASSED!
-🟢 Proxy is operational and ready to forward messages
-```
-
-If you see:
-```
-❌ CRITICAL ERROR: LOCAL_MERCHANT_ADDRESS not configured!
-```
-
-Go back and add the secret.
-
-**2.7 Copy proxy address from logs:**
-
-Example: `agent1q2d3chh0dsjpjg8cf5a4g8tx5hl4gn2c89jvt7atz42xg2zx4h6f5vupkxj`
-
-### Step 3: Verify Connection
-
-**3.1 Check local merchant logs:**
-
-Should show:
-```
+✅ Should see:
+🏥 Health check received from proxy: agent1q2d3chh0dsj...
 ✅ Health check response sent to proxy
 ```
 
-**3.2 Check proxy logs:**
+#### Step 3.2: Check Proxy Logs (Agentverse)
 
-Should show:
-```
-✅ HEALTH CHECK PASSED!
-   Local merchant is online
-```
+In Agentverse dashboard:
 
-**3.3 Periodic status (every 10 minutes):**
-
-Proxy should show:
 ```
+✅ Should see every 10 minutes:
 📊 Status: HEALTHY | Messages received: 0, forwarded: 0
 ```
 
-### Step 4: Configure Client
+#### Step 3.3: Troubleshooting
 
-**Update client code with proxy address:**
+**Problem**: Health check never passes
 
-```python
-# In client.py
-MERCHANT_UAGENT_ADDRESS = "agent1q2d3chh0dsj..."  # Proxy address from Step 2
+**Solution A**: Verify LOCAL_MERCHANT_ADDRESS
+```bash
+# In local terminal, confirm merchant address
+# Should match LOCAL_MERCHANT_ADDRESS in Agentverse exactly
 ```
 
-**Client flow:**
-1. Client sends to proxy address
-2. Proxy forwards to local merchant
-3. Local merchant processes payment
-4. Local merchant sends response to proxy
-5. Proxy forwards response to client
+**Solution B**: Check mailbox enabled
+```bash
+# In .env file:
+AGENTVERSE=true  # Must be "true"
+
+# Restart merchant:
+uv run src/merchant.py
+```
+
+**Solution C**: Remove endpoint override
+```bash
+# In .env file, ensure this is NOT set:
+# AGENT_ENDPOINT=localhost  ← Should be commented out or removed
+
+# Restart merchant
+```
 
 ---
 
-## Configuration Files
+### Phase 4: Configure Clients
 
-### Local Merchant (.env)
+Clients must connect to the **proxy address**, not the local merchant address.
+
+#### Client Configuration
 
 ```env
-# Agent Configuration
-AGENT_NAME=payment_merchant_agent
-AGENT_SEED=merchant_agent_secure_seed_phrase_12345
-AGENT_NETWORK=testnet
+# .env.client
 
-# Port (optional, defaults to 8000)
-AGENT_ENDPOINT_PORT=8000
+# ✅ CORRECT: Use Agentverse proxy address
+MERCHANT_UAGENT_ADDRESS=agent1q2d3chh0dsjpjg8cf5a4g8tx5hl4gn2c89jvt7atz42xg2zx4h6f5vupkxj
 
-# ✅ Enable Agentverse proxy mode
-AGENTVERSE=true
-
-# ⚠️ DO NOT SET AGENT_ENDPOINT!
-
-# Optional: For reference
-AGENTVERSE_AGENT_ADDRESS=agent1q2d3chh0dsj...
-
-# Payment Configuration
+# ✅ CORRECT: Use merchant's blockchain wallet
 MERCHANT_AGENT_ADDRESS=GDw3EAgyNqv28cn3dH4KuLxxcNPJhunMmx1jBMJTyEAv
-PAYMENT_NETWORK=solana-devnet
+
+# ❌ WRONG: Don't use local merchant's uAgent address
+# MERCHANT_UAGENT_ADDRESS=agent1qtem7xxuw9...  ← This is local merchant, not proxy!
 ```
 
-### Agentverse Proxy (Secrets)
+**Key Distinction**:
+- `MERCHANT_UAGENT_ADDRESS`: **Proxy address** (for agent messages)
+- `MERCHANT_AGENT_ADDRESS`: **Blockchain wallet** (for payments)
 
-```
-LOCAL_MERCHANT_ADDRESS=agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve
-AGENT_SEED=proxy-seed-unique-xyz
-AGENT_NAME=agentverse_proxy
-```
+#### Test the Flow
 
-### Important Notes
-
-**Three different addresses:**
-
-1. **Proxy uAgent Address** (`agent1q2d3chh0dsj...`)
-   - Lives on Agentverse
-   - What clients send messages to
-   - Copy from Agentverse dashboard
-
-2. **Local Merchant uAgent Address** (`agent1qtem7xxuw9...`)
-   - Lives on your server
-   - Where proxy forwards messages
-   - Copy from merchant.py startup logs
-   - Set as `LOCAL_MERCHANT_ADDRESS` in Agentverse
-
-3. **Blockchain Wallet Address** (`0x...` or `GDw3E...`)
-   - Where payments are sent
-   - Set as `MERCHANT_AGENT_ADDRESS` in local .env
-
----
-
-## Troubleshooting
-
-### Issue 1: "Failed to dispatch envelope" + "Endpoint configuration overrides mailbox"
-
-**Symptoms:**
-```
-Merchant: WARNING: Endpoint configuration overrides mailbox setting.
-Proxy: Failed to dispatch envelope to agent1qtem7xxuw9... @ ['http://localhost:8000/submit']
-```
-
-**Root Cause:** You set both `endpoint` and `mailbox=True`. The endpoint overrides mailbox.
-
-**Solution:**
-1. **Remove `endpoint` parameter** from Agent initialization
-2. **Remove `AGENT_ENDPOINT` from .env** (or don't use it in code)
-3. Restart merchant
-4. Verify logs show:
-   - ✅ "Mailbox enabled - messages routed through Agentverse"
-   - ✅ "No endpoint set - mailbox handles all routing"
-   - ❌ NO "WARNING: Endpoint configuration overrides mailbox setting"
-
-**Correct code:**
-```python
-if agentverse_mode:
-    agent = Agent(
-        name=aName,
-        seed=aSeed,
-        port=8000,
-        mailbox=True,
-        network="testnet"
-        # ⚠️ NO endpoint parameter!
-    )
-```
-
-### Issue 2: Health Check Never Completes
-
-**Symptoms:**
-```
-Proxy: ⚠️  Status: WAITING FOR HEALTH CHECK
-```
-
-**Possible Causes:**
-
-1. **Local merchant not running**
-   - Solution: Start merchant.py locally
-
-2. **Wrong merchant address in Agentverse**
-   - Solution: Verify LOCAL_MERCHANT_ADDRESS matches merchant's agent address exactly
-
-3. **Mailbox not enabled**
-   - Solution: Set `AGENTVERSE=true` in merchant's .env and restart
-
-4. **Endpoint override issue**
-   - Solution: Remove endpoint parameter (see Issue 1)
-
-### Issue 3: Proxy Not Forwarding Messages
-
-**Symptoms:**
-- Proxy receives messages but doesn't forward them
-- Proxy logs: `❌ Cannot forward - Health check has not passed`
-
-**Cause:** Health check failed
-
-**Solution:**
-1. Check if LOCAL_MERCHANT_ADDRESS is configured in Agentverse
-2. Verify local merchant is running
-3. Check logs for health check success
-4. Restart proxy if needed
-
-### Issue 4: Client Gets "Proxy unhealthy" Error
-
-**Symptoms:**
-```python
-ResourceError(
-    error="Proxy unhealthy",
-    message="Local merchant is not reachable. Please try again later."
-)
-```
-
-**Cause:** Health check has not passed
-
-**Solution:**
-1. Verify local merchant is running
-2. Check both Agentverse and local logs for health check status
-3. Ensure `AGENTVERSE=true` in local .env
-4. Verify no endpoint override warning
-
-### Issue 5: Messages Not Reaching Local Merchant
-
-**Symptoms:**
-- Proxy logs show "✅ Forwarded successfully"
-- Local merchant shows no messages
-
-**Possible Causes:**
-
-1. **Wrong LOCAL_MERCHANT_ADDRESS**
-   ```bash
-   # Check local merchant's actual address
-   uv run merchant.py
-   # Copy "Agent address: agent1q..."
-   # Verify it matches LOCAL_MERCHANT_ADDRESS in Agentverse
-   ```
-
-2. **Mailbox not enabled**
-   ```bash
-   # Check .env has:
-   AGENTVERSE=true
-   ```
-
-3. **Network issues**
-   ```bash
-   # Test internet connectivity
-   curl https://agentverse.ai
-   ```
-
----
-
-## Production Deployment
-
-### Option 1: Cloud Server (VPS)
-
-**Providers:** DigitalOcean, AWS EC2, GCP Compute Engine, Linode
-
-**Setup:**
 ```bash
-# 1. SSH into server
-ssh user@your-server-ip
-
-# 2. Clone repository
-git clone your-repo
-cd your-repo
-
-# 3. Install dependencies
-uv pip install -r requirements.txt
-
-# 4. Create .env file
-nano .env
-# Add configuration (see Configuration Files section)
-
-# 5. Run with systemd for auto-restart
-sudo nano /etc/systemd/system/merchant-agent.service
+# Run client
+uv run src/client.py
 ```
 
-**Systemd service file:**
+**Expected flow**:
+```
+1. Client sends ResourceRequest
+   → Proxy receives (Agentverse logs)
+   → Proxy forwards via mailbox (Agentverse logs: "✅ Forwarded successfully")
+
+2. Local merchant receives
+   → Processes request (Local logs)
+   → Sends PaymentRequired (Local logs)
+   → Proxy forwards to client (Agentverse logs)
+
+3. Client sends PaymentProof
+   → Proxy forwards to merchant
+   → Merchant broadcasts to Solana
+   → Merchant verifies transaction
+   → Merchant sends ResourceAccess
+   → Proxy forwards to client
+
+4. ✅ Success!
+```
+
+---
+
+## 🔍 Monitoring & Health Checks
+
+### Proxy Health Status
+
+The proxy agent performs continuous health monitoring:
+
+**Startup Health Check**:
+- Proxy sends `HealthCheckRequest` to local merchant
+- Waits for `HealthCheckResponse`
+- Marks self as healthy/unhealthy
+
+**States**:
+- 🟢 **HEALTHY**: Local merchant responding, accepting client requests
+- 🟡 **WAITING**: Health check sent, awaiting response
+- 🔴 **UNHEALTHY**: Local merchant unreachable, rejecting client requests
+
+**Periodic Status** (every 10 minutes):
+```
+📊 Status: HEALTHY | Messages received: 15, forwarded: 15
+```
+
+### What Clients See
+
+**If merchant is healthy**:
+```
+Client → Proxy → Merchant → ✅ ResourceAccess
+```
+
+**If merchant is unhealthy**:
+```
+Client → Proxy → ❌ ResourceError
+Error: "Proxy unhealthy"
+Message: "Local merchant is not reachable. Please try again later."
+```
+
+Clients should retry after merchant comes back online.
+
+---
+
+## 🛡️ Security Considerations
+
+### Two-Agent Security Model
+
+**Proxy Agent (Agentverse)**:
+- ✅ Public-facing, accessible 24/7
+- ✅ No payment processing (no risk)
+- ✅ No private keys
+- ✅ Stateless forwarding only
+- ⚠️ Can be stopped/restarted safely
+
+**Merchant Agent (Your Infrastructure)**:
+- ✅ Private, behind firewall
+- ✅ Holds no payment keys (only wallet address)
+- ✅ Full payment verification
+- ✅ Complete control over processing
+- ⚠️ Must keep running for payments
+
+### Best Practices
+
+```python
+# ✅ DO:
+- Use different seeds for proxy and merchant (two agents)
+- Keep MERCHANT_AGENT_ADDRESS private key offline (not in config)
+- Monitor both Agentverse and local logs
+- Test health check regularly
+- Use testnet/devnet for development
+- Implement rate limiting for production
+
+# ❌ DON'T:
+- Use same seed for proxy and merchant
+- Store private keys in environment variables
+- Commit .env files to version control
+- Expose local merchant endpoint publicly
+- Skip health check verification
+- Deploy to production without testing
+```
+
+---
+
+## 📊 Production Deployment
+
+### Infrastructure Recommendations
+
+**For Local Merchant**:
+- **VPS/Cloud Server**: DigitalOcean, AWS EC2, GCP Compute
+- **Minimum Specs**: 1 CPU, 1GB RAM, 20GB SSD
+- **OS**: Ubuntu 22.04 LTS recommended
+- **Python**: 3.11 or higher
+- **Uptime**: 99.9% target (use systemd or supervisor)
+
+### Systemd Service Example
+
 ```ini
+# /etc/systemd/system/merchant-agent.service
+
 [Unit]
-Description=PayAI Merchant Agent
+Description=PayAI Merchant Agent with x402
 After=network.target
 
 [Service]
 Type=simple
-User=your-user
-WorkingDirectory=/opt/merchant-agent
-EnvironmentFile=/opt/merchant-agent/.env
-ExecStart=/opt/merchant-agent/.venv/bin/python merchant.py
+User=merchant
+WorkingDirectory=/opt/agent-commerce
+EnvironmentFile=/opt/agent-commerce/.env
+ExecStart=/opt/agent-commerce/.venv/bin/python src/merchant.py
 Restart=always
 RestartSec=10
 
@@ -666,12 +623,15 @@ WantedBy=multi-user.target
 sudo systemctl enable merchant-agent
 sudo systemctl start merchant-agent
 sudo systemctl status merchant-agent
+
+# View logs
+sudo journalctl -u merchant-agent -f
 ```
 
-### Option 2: Docker Container
+### Docker Deployment
 
-**Dockerfile:**
 ```dockerfile
+# Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -680,15 +640,12 @@ COPY . /app
 RUN pip install uv
 RUN uv pip install -r requirements.txt
 
-CMD ["uv", "run", "merchant.py"]
+CMD ["uv", "run", "src/merchant.py"]
 ```
 
-**Deploy:**
 ```bash
-# Build
+# Build and run
 docker build -t merchant-agent .
-
-# Run
 docker run -d \
   --name merchant \
   --env-file .env \
@@ -699,108 +656,88 @@ docker run -d \
 docker logs -f merchant
 ```
 
-### Monitoring
+---
 
-**Check health status:**
-```bash
-# Proxy logs (Agentverse dashboard)
-# Should show: "📊 Status: HEALTHY"
+## 🎯 Future Enhancements
 
-# Local merchant logs
-tail -f /var/log/merchant-agent.log
+This proxy architecture enables powerful future features:
 
-# Check process
-ps aux | grep merchant.py
+### Phase 1: Multi-Merchant Load Balancing
 ```
+           Agentverse Proxy
+                  │
+         ┌────────┼────────┐
+         │        │        │
+    Merchant1 Merchant2 Merchant3
+```
+- Distribute load across multiple merchants
+- Automatic failover
+- Geographic distribution
 
-**Key metrics to track:**
-- Messages received (proxy)
-- Messages forwarded (proxy)
-- Payments processed (local)
-- Health check status
-- Uptime
+### Phase 2: Specialized Merchant Roles
+```
+Resource Discovery Proxy
+    │
+    ├─> Weather Merchant (premium_weather)
+    ├─> Data Merchant (premium_data)
+    └─> API Merchant (premium_api)
+```
+- Route by resource type
+- Specialized verification
+- Optimized for specific use cases
+
+### Phase 3: Agent Mesh Network
+```
+Multiple Proxies ↔ Multiple Merchants ↔ Multiple Clients
+```
+- Decentralized discovery
+- Reputation system
+- Dynamic routing
 
 ---
 
-## Deployment Checklist
+## 🤝 Contributing
 
-Before deploying to production:
+Help improve the proxy architecture:
 
-- [ ] Local merchant runs without errors
-- [ ] Agent address copied from merchant logs
-- [ ] Proxy deployed to Agentverse
-- [ ] LOCAL_MERCHANT_ADDRESS configured in Agentverse
-- [ ] Proxy address copied from Agentverse logs
-- [ ] `.env` has `AGENTVERSE=true`
-- [ ] **NO `AGENT_ENDPOINT` in .env when using mailbox**
-- [ ] No "endpoint override" warning in logs
-- [ ] Health check passes (✅ HEALTH CHECK PASSED!)
-- [ ] Proxy shows "HEALTHY" status
-- [ ] Client configured with proxy address
-- [ ] Test payment flow successful
-- [ ] Production server has reliable uptime
-- [ ] Monitoring configured
-- [ ] Secrets secured (never commit .env)
+1. **Test Different Scenarios**: Report edge cases
+2. **Improve Health Checks**: More robust monitoring
+3. **Add Features**: Message analytics, caching
+4. **Write Guides**: Deployment tutorials, troubleshooting
+5. **Build Tools**: Deployment automation, monitoring dashboards
 
 ---
 
-## Quick Reference
+## 📚 Additional Resources
 
-### Key Commands
-
-```bash
-# Start local merchant
-uv run merchant.py
-
-# Check if process is running
-ps aux | grep merchant.py
-
-# View logs
-tail -f merchant.log
-
-# Test connectivity
-curl https://agentverse.ai
-```
-
-### Key Addresses
-
-1. **Proxy**: `agent1q2d3chh0dsj...` (from Agentverse logs)
-2. **Local Merchant**: `agent1qtem7xxuw9...` (from merchant.py logs)
-3. **Blockchain Wallet**: `0x...` or `GDw3E...` (your wallet)
-
-### Key Configuration
-
-```env
-# Enable Agentverse mode
-AGENTVERSE=true
-
-# DO NOT SET when using mailbox
-# AGENT_ENDPOINT=localhost  ← Remove this!
-```
+- **[Main README](./README.md)**: Local mode setup and overview
+- **[CLAUDE.md](./CLAUDE.md)**: Technical implementation details
+- **[Agentverse Documentation](https://docs.fetch.ai/agentverse/)**: Official platform docs
+- **[uAgents Framework](https://fetch.ai/docs/agents)**: Agent development guide
 
 ---
 
-## Summary
+## 🏆 Hackathon Context
 
-**The golden rule:** When `AGENTVERSE=true` and `mailbox=True`, **never set the `endpoint` parameter**!
+This deployment guide is part of the [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/) submission.
 
-This ensures:
-- ✅ Mailbox communication works properly
-- ✅ No "endpoint overrides mailbox" warning
-- ✅ No "Failed to dispatch envelope" errors
-- ✅ Health check succeeds
-- ✅ Messages flow correctly
+**Innovation**: First implementation of two-agent proxy architecture for autonomous agent commerce with mailbox communication.
 
-**Architecture:**
-- Proxy on Agentverse receives from clients
-- Health check verifies local merchant is online
-- Proxy forwards messages via mailbox
-- Local merchant processes payments
-- Responses route back through proxy to clients
+**Impact**: Enables 24/7 agent marketplaces without public endpoints, making autonomous commerce accessible to all developers.
 
-**Three addresses to track:**
-1. Proxy address (clients use this)
-2. Local merchant address (proxy forwards to this)
-3. Blockchain wallet (payments go here)
+---
 
-For questions or issues, check the troubleshooting section above or review the logs on both Agentverse and local merchant.
+## 📞 Support
+
+**Issues with deployment?**
+
+1. Check troubleshooting sections above
+2. Review logs on both Agentverse and local machine
+3. Open GitHub issue with logs and configuration
+4. Join community Discord for real-time help
+
+---
+
+**Built with ❤️ for the autonomous agent future**
+
+[Back to Main README](./README.md) | [View Source Code](https://github.com/your-repo) | [Join Community](#)

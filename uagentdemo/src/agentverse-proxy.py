@@ -1,22 +1,120 @@
 #!/usr/bin/env python3
 """
-PayAI Merchant Agent - Agentverse Proxy/Forwarder
+PayAI x402 Merchant Agent - Agentverse Proxy
+============================================
 
-This version runs on Agentverse and acts as a proxy between clients and your local merchant agent.
-It receives messages from clients and explicitly forwards them to your local merchant.
+This is a lightweight proxy agent that runs on Agentverse and forwards messages
+between client agents and your local merchant agent. It enables 24/7 availability
+for your merchant without requiring a public endpoint or complex networking setup.
 
-IMPORTANT: This is a lightweight proxy only.
-The actual payment processing happens in the local merchant.py agent.
+Architecture Overview:
+---------------------
+┌─────────────────────────────────────────────────────────────┐
+│  Agentverse Network (Cloud)                                  │
+│                                                               │
+│  ┌─────────────────┐         ┌─────────────────┐            │
+│  │  Client Agents  │ ──────► │  This Proxy     │            │
+│  │  (Worldwide)    │ ◄────── │  (Hosted 24/7)  │            │
+│  └─────────────────┘         └────────┬────────┘            │
+│                                        │                      │
+└────────────────────────────────────────┼──────────────────────┘
+                                         │
+                                         │ Mailbox System
+                                         │ (Internet)
+                                         ▼
+                            ┌────────────────────────┐
+                            │  Your Infrastructure   │
+                            │  ┌──────────────────┐  │
+                            │  │  merchant.py     │  │
+                            │  │  (Full x402)     │  │
+                            │  │  (Solana + EVM)  │  │
+                            │  └──────────────────┘  │
+                            └────────────────────────┘
 
-Configuration via Agentverse Secrets:
-- LOCAL_MERCHANT_ADDRESS: Address of your local merchant.py agent (REQUIRED)
+Key Features:
+-------------
+✅ 24/7 availability: Agentverse ensures your proxy is always online
+✅ No public endpoint needed: Works behind NAT/firewall
+✅ Automatic message forwarding: Transparent proxy pattern
+✅ Health check system: Verifies local merchant connectivity on startup
+✅ Client tracking: Routes responses back to correct clients
+✅ Error handling: Returns helpful errors when merchant is offline
 
-DEPLOYMENT NOTE:
-When deploying to Agentverse, you need TWO files:
-1. This file (merchant-agentverse.py)
-2. models.py (shared message models)
+How It Works:
+-------------
+1. **Startup**: Proxy sends HealthCheckRequest to local merchant
+2. **Health Verification**: Local merchant responds with HealthCheckResponse
+3. **Ready State**: Proxy marks itself as healthy and begins accepting requests
+4. **Message Flow**:
+   - Client → Proxy: ResourceRequest or PaymentProof
+   - Proxy → Local Merchant: Forward message via mailbox
+   - Local Merchant: Process payment and verify blockchain transaction
+   - Local Merchant → Proxy: Send response (ResourceAccess or ResourceError)
+   - Proxy → Client: Forward response to original sender
 
-Upload both files to Agentverse.
+Why Use This Architecture?
+---------------------------
+- **Full Feature Support**: Local merchant has access to all Python packages
+  (x402, Solana libraries, EVM libraries) which may not be available on Agentverse
+- **Security**: Payment processing and wallet keys stay on your infrastructure
+- **Flexibility**: Update merchant logic without redeploying proxy
+- **Reliability**: Agentverse provides managed hosting for message reception
+- **Scalability**: Can run multiple local merchants behind one proxy
+
+Configuration:
+--------------
+Required Agentverse Secrets:
+- LOCAL_MERCHANT_ADDRESS: uAgent address of your local merchant.py
+  (Find this by running merchant.py locally and copying the "Agent address" from logs)
+
+Optional:
+- AGENT_NAME: Friendly name for this proxy agent
+- AGENT_SEED: Unique seed for proxy's agent identity
+
+Deployment Steps:
+-----------------
+1. Run merchant.py locally first to get its agent address
+2. Create new agent on Agentverse
+3. Upload TWO files:
+   - This file (agentverse-proxy.py) → Rename to main.py
+   - models.py (message models) → Keep as models.py
+4. Set LOCAL_MERCHANT_ADDRESS secret to your local merchant's address
+5. Deploy proxy on Agentverse
+6. Verify health check passes in Agentverse logs
+7. Configure clients to use proxy address (not local merchant address)
+
+Health Check System:
+--------------------
+The proxy performs a health check on startup to verify connectivity:
+- ✅ Pass: Proxy accepts client requests and forwards to merchant
+- ⏳ Waiting: Proxy received no response yet (check local merchant is running)
+- ❌ Fail: Local merchant unreachable (proxy returns errors to clients)
+
+Periodic status updates (every 10 minutes) show health state and message counts.
+
+Error Handling:
+---------------
+If local merchant is offline or unreachable:
+- Client receives ResourceError with "Proxy unhealthy" status
+- Message: "Local merchant is not reachable. Please try again later."
+- Clients can retry after local merchant comes back online
+
+Important Notes:
+----------------
+⚠️  This proxy does NO payment processing - it only forwards messages
+⚠️  Local merchant must be running with AGENTVERSE=true to receive via mailbox
+⚠️  Proxy address ≠ Local merchant address (two separate agents)
+⚠️  Clients send to proxy address, not local merchant address
+
+For more information:
+---------------------
+- Deployment Guide: See README-Agentverse.md
+- Hackathon: https://earn.superteam.fun/listing/asi-agents-track/
+- uAgents Documentation: https://fetch.ai/docs/agents
+
+Author: PayAI x402 Demo Team
+License: MIT
+Version: 1.0.0
 """
 
 import os
@@ -329,72 +427,3 @@ async def handle_resource_error(ctx: Context, sender: str, msg: ResourceError):
 # For Agentverse: No if __name__ == "__main__" block
 # Agentverse runs agents by importing the 'agent' object directly
 # The agent will start automatically when deployed on Agentverse
-
-# ============================================================================
-# Architecture Notes
-# ============================================================================
-
-"""
-MESSAGE FLOW WITH PROXY ARCHITECTURE:
-
-┌─────────────────────────────────────────────────────────────────┐
-│  Agentverse Network                                              │
-│                                                                   │
-│  ┌─────────────────────┐         ┌─────────────────────┐        │
-│  │  Client Agent       │         │  This Proxy Agent   │        │
-│  │  (Any network node) │ ──────► │  (Hosted)           │        │
-│  │                     │ ◄────── │                     │        │
-│  └─────────────────────┘         └─────────┬───────────┘        │
-│                                            │                      │
-│                                            │ ctx.send()          │
-│                                            │                      │
-│                                            │                      │
-└────────────────────────────────────────────┼──────────────────────┘
-                                             │
-                                             │ Internet
-                                             │ (via mailbox)
-                                             ▼
-                                ┌──────────────────────────┐
-                                │  Your Local Machine      │
-                                │  ┌────────────────────┐  │
-                                │  │  merchant.py       │  │
-                                │  │  (AGENTVERSE=true) │  │
-                                │  │  (mailbox=True)    │  │
-                                │  │                    │  │
-                                │  │  - Receives msgs   │  │
-                                │  │  - Processes pmts  │  │
-                                │  │  - Sends responses │  │
-                                │  └────────────────────┘  │
-                                └──────────────────────────┘
-
-HOW IT WORKS:
-
-1. Client sends ResourceRequest to PROXY agent address
-2. Proxy receives and stores client address
-3. Proxy forwards to local merchant using ctx.send(LOCAL_MERCHANT_ADDRESS, msg)
-4. Local merchant receives via mailbox connection
-5. Local merchant processes payment (full x402 support)
-6. Local merchant sends response back to proxy
-7. Proxy looks up original client and forwards response
-
-WHY THIS ARCHITECTURE:
-
-✅ Full x402 support on local merchant
-✅ Solana + EVM payment support
-✅ 24/7 message receiving on Agentverse
-✅ Explicit message routing (no seed-matching confusion)
-✅ Local merchant does all processing
-✅ Two distinct agents with different addresses
-
-IMPORTANT CONFIGURATION:
-
-Agentverse Secrets:
-- LOCAL_MERCHANT_ADDRESS: The address of your local merchant.py agent
-  (Find this by running merchant.py locally and copying the agent address)
-
-Local .env:
-- AGENTVERSE=true (enables mailbox connectivity)
-- AGENTVERSE_AGENT_ADDRESS: This proxy's address (optional, for reference)
-
-The local merchant must run with AGENTVERSE=true to enable mailbox.
-"""

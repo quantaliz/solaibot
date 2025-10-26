@@ -1,4 +1,94 @@
 #!/usr/bin/env python3
+"""
+PayAI x402 Merchant Agent - Premium Resource Marketplace
+=========================================================
+
+A production-ready merchant agent implementing the x402 payment protocol for
+agent-to-agent commerce. This agent provides a marketplace for premium digital
+resources that can be purchased by autonomous agents using blockchain payments.
+
+The x402 protocol enables:
+- Pay-per-request pricing for digital resources
+- Zero-friction payments without accounts or API keys
+- Agent-native commerce with automatic discovery
+- Instant settlement through PayAI facilitator (<1 second)
+- No gas fees for merchant or customer
+
+Architecture:
+-------------
+This merchant can operate in two modes:
+
+1. **Local Mode** (AGENTVERSE=false):
+   - Runs on your infrastructure
+   - Receives direct agent-to-agent messages
+   - Requires endpoint configuration
+   - Best for development and testing
+
+2. **Proxy Mode** (AGENTVERSE=true):
+   - Runs on your infrastructure
+   - Connects to Agentverse via mailbox
+   - Receives messages forwarded from Agentverse proxy
+   - Enables 24/7 availability without public endpoint
+   - Best for production deployment
+
+Payment Flow:
+-------------
+1. Client sends ResourceRequest → Merchant
+2. Merchant responds with PaymentRequired (price, payment_id, wallet address)
+3. Client executes blockchain transaction
+4. Client sends PaymentProof → Merchant
+5. Merchant verifies payment via blockchain
+6. Merchant sends ResourceAccess with data (success) or ResourceError (failure)
+
+Supported Networks:
+-------------------
+- Solana (devnet and mainnet): Native SOL and SPL token payments
+- Base Sepolia (EVM testnet): Requires x402 package for verification
+- Base Mainnet (EVM production): Requires x402 package for verification
+
+Premium Resources:
+------------------
+Three example resources demonstrate different pricing patterns:
+- premium_weather: $0.001 - Weather data with forecasts and air quality
+- premium_data: 0.01 USDC - Business analytics with insights
+- premium_api: $0.005 - Premium API access with higher rate limits
+
+Configuration:
+--------------
+Required environment variables:
+- MERCHANT_AGENT_ADDRESS: Your blockchain wallet address to receive payments
+- PAYMENT_NETWORK: Blockchain network (solana-devnet, base-sepolia, etc.)
+
+Optional:
+- AGENTVERSE: Set to "true" for proxy mode with Agentverse connectivity
+- AGENTVERSE_AGENT_ADDRESS: Address of your Agentverse proxy (for validation)
+
+Usage:
+------
+    # Local mode (direct communication)
+    AGENTVERSE=false uv run merchant.py
+
+    # Proxy mode (Agentverse connectivity)
+    AGENTVERSE=true uv run merchant.py
+
+Security:
+---------
+- Payment ID tracking prevents replay attacks
+- Requester validation prevents payment hijacking
+- Resource matching prevents substitution attacks
+- Blockchain verification ensures payment authenticity
+
+For more information:
+---------------------
+- x402 Protocol: https://x402.org
+- PayAI Documentation: https://docs.payai.network/x402/introduction
+- Hackathon: https://earn.superteam.fun/listing/asi-agents-track/
+
+Author: PayAI x402 Demo Team
+License: MIT
+Version: 1.0.0
+"""
+
 import os
 import uuid
 from datetime import datetime

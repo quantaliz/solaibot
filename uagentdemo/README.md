@@ -1,1132 +1,554 @@
-# uAgent Merchant with PayAI x402 Payment Protocol
+# Agent Commerce Platform with x402 Payment Protocol
 
-A production-ready merchant agent built with Fetch.ai's uAgents framework that implements the x402 payment protocol for agent-to-agent commerce. Accept payments via blockchain, verify through PayAI facilitator, and grant access to premium resources—all without gas fees.
+**Autonomous Agent-to-Agent Marketplace with Zero-Friction Blockchain Payments**
 
-## Quick Start (5 Minutes)
+[![ASI Agents Track](https://img.shields.io/badge/Hackathon-ASI_Agents_Track-blue)](https://earn.superteam.fun/listing/asi-agents-track/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![uAgents](https://img.shields.io/badge/Framework-Fetch.ai_uAgents-purple)](https://fetch.ai)
+[![x402](https://img.shields.io/badge/Protocol-x402_Payment-orange)](https://x402.org)
 
-**📌 New to deployment?** See [DEPLOYMENT_QUICK_START.md](./DEPLOYMENT_QUICK_START.md) for the fastest path!
+> **Hackathon Submission**: This project is part of the [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/), demonstrating the future of autonomous agent commerce.
 
-Want to run the agent immediately? Here's the fastest path:
+## 🌟 Vision
 
-```bash
-# 1. Install UV package manager (if needed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+Imagine a world where autonomous AI agents discover, purchase, and consume digital resources instantly—without human intervention, without accounts, without API keys. Just agents transacting value with other agents in milliseconds, secured by blockchain, with zero gas fees.
 
-# 2. Navigate to project
-cd /path/to/uagentdemo
+**This is that future.**
 
-# 3. Create virtual environment
-uv venv
+Our platform demonstrates a fully functional agent-to-agent marketplace where:
+- 🤖 **Agents discover** premium resources autonomously
+- 💰 **Agents pay** using blockchain in real-time
+- ⚡ **Merchants verify** payments instantly (<1 second)
+- 🎁 **Agents receive** digital goods immediately
+- 🔒 **Everything is secure** with cryptographic proofs
+- 💸 **Zero gas fees** for both merchant and customer
 
-# 4. Install dependencies
-uv pip install uagents x402 python-dotenv pydantic
+## 🎯 Problem Statement
 
-# 5. Create .env file (or use existing one)
-cat > .env << 'EOF'
-AGENT_NAME=payment_merchant_agent
-AGENT_SEED="my-unique-seed-phrase-12345"
-AGENT_NETWORK=testnet
-MERCHANT_AGENT_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0
-FACILITATOR_URL=https://facilitator.payai.network
-PAYMENT_NETWORK=solana-devnet
-BYPASS_PAYMENT_VERIFICATION=true
-EOF
+Current digital marketplaces are built for humans:
+- ❌ Require accounts and authentication
+- ❌ Need API keys and rate limits
+- ❌ Complex payment processing with fees
+- ❌ Gas fees make micropayments unviable
+- ❌ Slow settlement (minutes to hours)
+- ❌ Not designed for autonomous agents
 
-# 6. Run the merchant agent!
-uv run merchant.py
-```
+**Our Solution**: Agent-native commerce using the x402 protocol—bringing back HTTP 402 "Payment Required" for the blockchain era.
 
-**What you'll see:**
-- ✅ Agent starts successfully
-- 📦 Three premium resources available
-- 🔗 Agent address for clients to connect
-- 📊 Periodic status updates
+## 🏗️ Architecture
 
-**Ready to test?** See [Building a Client Agent](#building-a-client-agent) below.
-
----
-
-## Deployment Options
-
-### 🚀 Production Deployment
-
-**Choose your deployment method:**
-
-1. **Mailbox Agent** (Recommended) - Full x402 + EVM + Solana support
-   - Run locally, connect to Agentverse network
-   - See: [X402_AGENTVERSE_OPTIONS.md](./X402_AGENTVERSE_OPTIONS.md#-solution-1-use-mailbox-agent-recommended)
-
-2. **Agentverse Hosted** - Solana-only, fully managed
-   - 24/7 cloud hosting, no infrastructure
-   - Requires uploading 2 files: `models.py` + `merchant-agentverse.py`
-   - See: [AGENTVERSE_DEPLOYMENT.md](./AGENTVERSE_DEPLOYMENT.md)
-   - Files checklist: [AGENTVERSE_FILES_CHECKLIST.md](./AGENTVERSE_FILES_CHECKLIST.md)
-
-**Quick comparison:**
-
-| Feature | Mailbox Agent | Agentverse Hosted |
-|---------|---------------|-------------------|
-| x402 Support | ✅ | ❌ |
-| Solana Payments | ✅ | ✅ |
-| EVM Payments | ✅ | ❌ |
-| Infrastructure | You manage | Platform managed |
-
-📖 **Full deployment guide**: [DEPLOYMENT_QUICK_START.md](./DEPLOYMENT_QUICK_START.md)
-
----
-
-## What is x402?
-
-x402 is an open payment protocol that brings stablecoin payments to plain HTTP, reviving the `HTTP 402 Payment Required` status code. It enables:
-
-- **Pay-per-request pricing** for APIs and digital content
-- **Zero-friction payments** - no accounts, API keys, or complex auth
-- **Agent-native commerce** - AI agents can discover and pay automatically
-- **Instant settlement** - payments verified and settled in <1 second
-- **No gas fees** - neither merchant nor customer pays blockchain gas fees
-
-## Features
-
-- **x402 Payment Protocol**: Standards-compliant implementation of x402 merchant pattern
-- **PayAI Facilitator Integration**: Automatic payment verification without blockchain complexity
-- **Agent-to-Agent Commerce**: Seamless resource marketplace for autonomous agents
-- **Multi-Network Support**: Works with Base Sepolia testnet (and easily extends to mainnet)
-- **Flexible Pricing**: Support for both USD-based and token-specific pricing
-- **Security Built-in**: Payment ID tracking, requester validation, replay attack prevention
-- **Production Ready**: Comprehensive error handling, logging, and state management
-
-## Architecture
-
-### Payment Flow
+### Core Components
 
 ```
-┌─────────┐                                    ┌──────────┐
-│ Client  │                                    │ Merchant │
-│  Agent  │                                    │  Agent   │
-└────┬────┘                                    └────┬─────┘
-     │                                              │
-     │  1. ResourceRequest(resource_id)             │
-     ├─────────────────────────────────────────────>│
-     │                                              │
-     │                         (Generate payment_id)│
-     │                         (Store payment data) │
-     │                                              │
-     │  2. PaymentRequired(price, payment_id, ...)  │
-     │<─────────────────────────────────────────────┤
-     │                                              │
-(Make blockchain                                    │
- transaction)                                       │
-     │                                              │
-     │  3. PaymentProof(tx_hash, payment_id, ...)   │
-     ├─────────────────────────────────────────────>│
-     │                                              │
-     │                           (Verify with       │
-     │                            PayAI facilitator)│
-     │                                              │
-     │  4a. ResourceAccess(resource_data) [success] │
-     │<─────────────────────────────────────────────┤
-     │                                              │
-     │  4b. ResourceError(error, message)  [failed] │
-     │<─────────────────────────────────────────────┤
-     │                                              │
+┌─────────────────────────────────────────────────────────────────┐
+│                    Agent Commerce Platform                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐                          ┌─────────────────┐  │
+│  │   Client     │   1. ResourceRequest     │    Merchant     │  │
+│  │   Agent      │  ───────────────────────>│     Agent       │  │
+│  │              │                          │                 │  │
+│  │              │   2. PaymentRequired     │  ┌───────────┐  │  │
+│  │              │  <───────────────────────│  │ Premium   │  │  │
+│  │              │                          │  │ Resources │  │  │
+│  │              │   3. PaymentProof        │  └───────────┘  │  │
+│  │ ┌─────────┐  │  ───────────────────────>│                 │  │
+│  │ │ Solana  │  │                          │  ┌───────────┐  │  │
+│  │ │ Wallet  │  │   4. ResourceAccess      │  │ Payment   │  │  │
+│  │ └─────────┘  │  <───────────────────────│  │ Verifier  │  │  │
+│  └──────────────┘                          └─────────────────┘  │
+│         │                                            │           │
+│         │ Blockchain Payment                        │           │
+│         ▼                                            ▼           │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │         Solana Blockchain (Devnet/Mainnet)               │   │
+│  │         • Instant transactions                            │   │
+│  │         • Low fees (< $0.0001)                            │   │
+│  │         • High throughput                                 │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### How PayAI Facilitator Works
+### x402 Protocol Flow
 
-The facilitator acts as a trusted intermediary that:
+The platform implements the x402 payment protocol—a modern revival of HTTP 402 "Payment Required":
 
-1. **Monitors blockchain** for payment transactions
-2. **Verifies payment details** (amount, recipient, token type)
-3. **Provides instant verification** via HTTP API (<1 second)
-4. **Handles settlement** off-chain, reducing gas costs to zero
-5. **Batches transactions** for efficient on-chain settlement later
+1. **Discovery**: Client agent requests a premium resource
+2. **Price Quote**: Merchant responds with price, payment address, and payment ID
+3. **Payment**: Client executes blockchain transaction
+4. **Proof**: Client sends transaction proof to merchant
+5. **Verification**: Merchant verifies on blockchain (< 1 second)
+6. **Delivery**: Merchant grants access and delivers resource data
 
-This means:
-- ✅ Merchants receive confirmation instantly
-- ✅ No waiting for block confirmations
-- ✅ No gas fees for merchant or customer
-- ✅ Supports micropayments (sub-cent pricing viable)
+**Key Innovation**: The entire flow is automated, agent-native, and completes in seconds.
 
-### Premium Resources
+### Technical Stack
 
-Three example resources demonstrating different pricing models:
+- **Agent Framework**: [Fetch.ai uAgents](https://fetch.ai/docs/agents) - Autonomous agent orchestration
+- **Payment Protocol**: [x402](https://x402.org) - HTTP 402 revival for blockchain payments
+- **Blockchain**: [Solana](https://solana.com) (devnet/mainnet) - Fast, low-cost transactions
+- **Message Models**: Pydantic - Type-safe agent communication
+- **Deployment**: Local mode or Agentverse proxy for 24/7 availability
 
-| Resource ID | Price | Description | Use Case |
-|------------|-------|-------------|----------|
-| `premium_weather` | $0.001 USD | Weather data with forecasts, AQI, UV index | IoT devices, travel planning agents |
-| `premium_data` | 0.01 USDC | Analytics dashboard with metrics & insights | Business intelligence agents |
-| `premium_api` | $0.005 USD | Premium API access with higher rate limits | Developer tools, automation |
+## 🚀 Quick Start (Local Mode)
 
-## Setup
+Get the platform running in under 5 minutes:
 
 ### Prerequisites
 
 - Python 3.11 or higher
-- UV package manager ([Install UV](https://docs.astral.sh/uv/))
-- Blockchain wallet address (for production - Solana or Base Sepolia)
-- Test tokens on devnet/testnet (for production testing)
+- [UV package manager](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- Solana devnet wallet with test SOL ([Get from faucet](https://faucet.solana.com/))
 
-### 1. Install Dependencies
-
-The project uses UV for dependency management. Follow these steps:
+### Step 1: Install Dependencies
 
 ```bash
-# Clone or navigate to project directory
-cd /path/to/uagentdemo
+# Clone the repository
+git clone <repository-url>
+cd uagentdemo
 
-# Create virtual environment
+# Create virtual environment and install dependencies
 uv venv
-
-# Install dependencies using UV
-uv pip install uagents x402 python-dotenv pydantic
+uv pip install uagents x402 python-dotenv pydantic solana solders base58
 ```
 
-**What gets installed:**
-- `uagents` (0.22.10) - Fetch.ai's agent framework
-- `x402` (0.2.1) - x402 payment protocol SDK
-- `python-dotenv` - Environment variable management
-- `pydantic` - Data validation
-
-**Note**: The installation creates a `.venv` directory with all dependencies. UV automatically manages this virtual environment.
-
-### 2. Get a Blockchain Wallet (Optional for Development)
-
-**For Development Mode**: Any valid blockchain address format works (you won't receive real payments)
-
-**For Production**: You need a real blockchain address to receive payments:
-
-**Option A: MetaMask**
-1. Install [MetaMask](https://metamask.io/)
-2. Create or import a wallet
-3. Add Base Sepolia network:
-   - Network Name: `Base Sepolia`
-   - RPC URL: `https://sepolia.base.org`
-   - Chain ID: `84532`
-   - Currency Symbol: `ETH`
-   - Block Explorer: `https://sepolia.basescan.org`
-4. Get test ETH from [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
-5. Copy your wallet address (0x...)
-
-**Option B: Programmatic Wallet**
-```python
-from eth_account import Account
-account = Account.create()
-print(f"Address: {account.address}")
-print(f"Private Key: {account.key.hex()}")  # Store securely!
-```
-
-### 3. Configure Environment
-
-Create or edit `.env` file:
-
-```env
-# Agent Configuration
-AGENT_NAME=payment_merchant_agent
-AGENT_SEED="your-secure-random-seed-phrase-here"
-AGENT_NETWORK=testnet
-
-# PayAI x402 Facilitator Configuration
-MERCHANT_AGENT_ADDRESS=0x1234567890123456789012345678901234567890
-FACILITATOR_URL=https://facilitator.payai.network
-PAYMENT_NETWORK=solana-devnet
-
-# Development/Testing Mode (optional)
-# Set to "true" to enable simulated payment verification (default: true)
-# Set to "false" for production with real blockchain verification
-BYPASS_PAYMENT_VERIFICATION=true
-```
-
-⚠️ **Security Notes**:
-- Use a unique `AGENT_SEED` - this determines your agent's identity
-- For production, use a dedicated merchant wallet
-- Never commit `.env` to version control
-- Set `BYPASS_PAYMENT_VERIFICATION=false` for production
-
-#### Configuration Options Explained
-
-**AGENT_NAME**: Unique identifier for your agent (appears in logs)
-
-**AGENT_SEED**: Cryptographic seed that determines your agent's address
-- Must be unique and kept secret
-- Changing seed = different agent address
-- Use a random phrase or UUID
-
-**AGENT_NETWORK**:
-- `testnet` - Fetch.ai testnet (free, for development)
-- `mainnet` - Fetch.ai mainnet (requires FET tokens)
-
-**MERCHANT_AGENT_ADDRESS**: Your blockchain wallet address
-- Format: `0x` followed by 40 hexadecimal characters
-- This is where payments will be sent
-- For development, any valid address format works
-- For production, must be an address you control
-
-**PAYMENT_NETWORK**:
-- `solana-devnet` - Solana devnet (default, recommended for testing)
-- `base-sepolia` - Base testnet
-- `base` or `base-mainnet` - Base mainnet (production)
-
-**BYPASS_PAYMENT_VERIFICATION**:
-- `true` (default) - Development mode with simulated verification
-  - Validates transaction format
-  - Validates recipient address
-  - Does NOT verify actual blockchain transactions
-  - Good for testing agent communication flow
-- `false` - Production mode (requires implementing real verification)
-  - Would integrate with PayAI facilitator API
-  - Would verify actual on-chain transactions
-  - Currently returns error (needs implementation)
-
-### 4. Run the Merchant Agent
-
-Start the merchant agent using UV:
+### Step 2: Configure Merchant Agent
 
 ```bash
-# Make sure you're in the project directory
-cd /path/to/uagentdemo
+# Copy merchant environment template
+cp .env.merchant.example .env
 
-# Run with UV (automatically uses .venv)
-uv run merchant.py
-
-# If the above doesn't work, try with python explicitly:
-# uv run python merchant.py
-
-# Alternative: Activate venv and run directly
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-python merchant.py
+# Edit .env with your blockchain wallet address
+nano .env
 ```
 
-**Expected Output**:
+Update these critical values:
+```env
+MERCHANT_AGENT_ADDRESS=YOUR_SOLANA_WALLET_ADDRESS  # Where you receive payments
+PAYMENT_NETWORK=solana-devnet
+AGENTVERSE=false  # Local mode for development
+```
+
+### Step 3: Start Merchant Agent
+
+```bash
+uv run src/merchant.py
+```
+
+**Expected output:**
 ```
 ============================================================
 🏪 PayAI Merchant Agent with x402 Payment Verification
 ============================================================
-Agent: payment_merchant_agent
-Network: testnet
-Facilitator: https://facilitator.payai.network
-Merchant Address: 0x1234...7890
+Agent address: agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve
+Running on network: testnet
+✅ PayAI Facilitator Integration ENABLED
+
+📦 Available Premium Resources:
+  - premium_weather: $0.001 - Real-time premium weather data
+  - premium_data: 0.01 USDC - Premium analytics data
+  - premium_api: $0.005 - Premium API access
+```
+
+**⚠️ Important**: Copy the `Agent address` - you'll need it for the client!
+
+### Step 4: Configure Client Agent
+
+```bash
+# In a NEW terminal window
+# Copy client environment template
+cp .env.client.example .env.client
+
+# Edit configuration
+nano .env.client
+```
+
+Update these values:
+```env
+# Paste the merchant agent address from Step 3
+MERCHANT_UAGENT_ADDRESS=agent1qtem7xxuw9...
+
+# Your Solana wallet for payments
+CLIENT_WALLET_ADDRESS=YOUR_SOLANA_PUBLIC_KEY
+CLIENT_WALLET_PRIVATE_KEY=YOUR_SOLANA_PRIVATE_KEY
+
+# Payment configuration (must match merchant)
+MERCHANT_AGENT_ADDRESS=MERCHANT_SOLANA_WALLET  # Where payments go
+PAYMENT_NETWORK=solana-devnet
+
+# Which resource to request
+TARGET_RESOURCE=premium_weather
+```
+
+**Getting a Solana Wallet**:
+```python
+# Generate a new wallet for testing
+from solders.keypair import Keypair
+import base58
+
+keypair = Keypair()
+print(f"Public Key: {keypair.pubkey()}")
+print(f"Private Key: {base58.b58encode(keypair.secret()).decode()}")
+```
+
+Then fund it at https://faucet.solana.com/
+
+### Step 5: Run Client Agent
+
+```bash
+# Activate the .env.client configuration
+mv .env .env.merchant.backup  # Save merchant config
+mv .env.client .env           # Use client config
+
+# Run client
+uv run src/client.py
+```
+
+**Expected flow** (completes in ~5 seconds):
+```
+🛒 Premium Client Agent - x402 Payment Demo
 ============================================================
+✅ Wallet has 0.5000 SOL
 
-INFO:     [payment_merchant_agent]: 🏪 Merchant Agent Started: payment_merchant_agent
-INFO:     [payment_merchant_agent]: Agent address: agent1q2w3e4r5t6y7u8i9o0p1
-INFO:     [payment_merchant_agent]: Running on network: testnet
-INFO:     [payment_merchant_agent]: ✅ PayAI Facilitator Integration ENABLED
-INFO:     [payment_merchant_agent]: Facilitator URL: https://facilitator.payai.network
-INFO:     [payment_merchant_agent]: Merchant Address: 0x1234...7890
-INFO:     [payment_merchant_agent]: Payment Network: solana-devnet
-INFO:     [payment_merchant_agent]:
-INFO:     [payment_merchant_agent]: 📦 Available Premium Resources:
-INFO:     [payment_merchant_agent]:   - premium_weather: $0.001 - Real-time premium weather data
-INFO:     [payment_merchant_agent]:   - premium_data: USDC - Premium analytics data
-INFO:     [payment_merchant_agent]:   - premium_api: $0.005 - Premium API access
-```
+📨 Requesting resource: premium_weather
+💳 PAYMENT REQUIRED
+   Price: $0.001
+   Pay to: GDw3EAgyNqv28cn3dH4KuLxxcNPJhunMmx1jBMJTyEAv
+   Payment ID: pay_abc123...
 
-**Note the agent address** - clients will need this to send messages!
+💳 Creating signed Solana transaction...
+✅ Transaction signed successfully!
+📤 Sending payment proof to merchant...
 
-### Development Mode vs Production Mode
-
-The current implementation includes **two operating modes**:
-
-#### Development Mode (Current Default)
-- Enabled when `BYPASS_PAYMENT_VERIFICATION=true` (default)
-- Simulates payment verification for testing
-- Performs basic validation:
-  - Transaction hash format (must start with `0x` and be 66 chars)
-  - Recipient address (must match merchant address)
-- Does NOT verify actual blockchain transactions
-- Perfect for:
-  - Testing agent communication flow
-  - Developing client agents
-  - Learning the x402 protocol
-  - Demo purposes
-
-**Warning**: ⚠️ Development mode accepts any properly formatted transaction hash. Do not use in production!
-
-#### Production Mode (Requires Implementation)
-- Enabled when `BYPASS_PAYMENT_VERIFICATION=false`
-- Requires implementing one of:
-  1. **Web3.py integration** - Verify transactions on-chain directly
-  2. **PayAI Facilitator API** - Integrate with custom facilitator
-  3. **EIP3009 flow** - Use x402's native payment authorization
-
-**Why this approach?**
-The x402 Python package (v0.2.1) uses EIP3009-style payment authorizations, while this demo uses transaction hash verification (simpler to understand). For production, you'll need to choose your verification method based on your requirements.
-
-**Example Production Implementation** (Web3.py):
-```python
-from web3 import Web3
-
-async def verify_transaction_on_chain(self, tx_hash: str, expected_amount: str, expected_to: str) -> bool:
-    w3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
-
-    try:
-        tx = w3.eth.get_transaction(tx_hash)
-        receipt = w3.eth.get_transaction_receipt(tx_hash)
-
-        # Verify transaction succeeded
-        if receipt['status'] != 1:
-            return False
-
-        # Verify recipient
-        if tx['to'].lower() != expected_to.lower():
-            return False
-
-        # Verify amount
-        if int(tx['value']) != w3.to_wei(expected_amount, 'ether'):
-            return False
-
-        return True
-    except Exception as e:
-        print(f"Verification error: {e}")
-        return False
-```
-
-## Building a Client Agent
-
-Here's a complete example client agent that requests and purchases premium resources:
-
-```python
-# client.py
-import os
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field
-from uagents import Agent, Context
-from typing import Optional
-
-load_dotenv()
-
-# Import message models from merchant
-from merchant import ResourceRequest, PaymentRequired, PaymentProof, ResourceAccess, ResourceError
-
-# Client configuration
-CLIENT_NAME = os.getenv("CLIENT_NAME", "premium_client")
-CLIENT_SEED = os.getenv("CLIENT_SEED", "client_seed_phrase_12345")
-
-# Merchant agent address (get from merchant startup logs)
-MERCHANT_AGENT_ADDRESS = "agent1q..."  # Replace with actual address
-
-# Create client agent
-client = Agent(
-    name=CLIENT_NAME,
-    seed=CLIENT_SEED,
-    port=8001,
-    endpoint=["http://localhost:8001/submit"],
-    network="testnet"
-)
-
-@client.on_event("startup")
-async def startup(ctx: Context):
-    ctx.logger.info(f"🛒 Client agent started: {client.name}")
-    ctx.logger.info(f"Client address: {client.address}")
-    ctx.logger.info(f"Merchant address: {MERCHANT_AGENT_ADDRESS}")
-
-@client.on_interval(period=30.0)
-async def request_resource(ctx: Context):
-    """Periodically request a premium resource"""
-
-    # Check if we already have active request
-    if ctx.storage.get("pending_payment"):
-        ctx.logger.info("⏳ Payment request already pending...")
-        return
-
-    # Request premium weather data
-    ctx.logger.info("📨 Requesting premium_weather resource...")
-    request = ResourceRequest(
-        resource_id="premium_weather",
-        requester_address=os.getenv("CLIENT_WALLET_ADDRESS")  # Optional
-    )
-
-    await ctx.send(MERCHANT_AGENT_ADDRESS, request)
-
-@client.on_message(model=PaymentRequired)
-async def handle_payment_required(ctx: Context, sender: str, msg: PaymentRequired):
-    """Handle payment instruction from merchant"""
-    ctx.logger.info(f"💳 Payment required for {msg.resource_id}")
-    ctx.logger.info(f"   Price: {msg.price}")
-    ctx.logger.info(f"   Pay to: {msg.pay_to_address}")
-    ctx.logger.info(f"   Network: {msg.network}")
-    ctx.logger.info(f"   Payment ID: {msg.payment_id}")
-
-    # Store payment info
-    ctx.storage.set("pending_payment", {
-        "payment_id": msg.payment_id,
-        "resource_id": msg.resource_id,
-        "price": msg.price,
-        "pay_to_address": msg.pay_to_address,
-        "network": msg.network
-    })
-
-    # In real implementation, execute blockchain transaction here
-    # For testing, simulate with a mock transaction hash
-
-    ctx.logger.info("🔄 Execute blockchain payment now...")
-    ctx.logger.info("   Then submit transaction hash as PaymentProof")
-
-    # Example: Simulate payment (replace with actual blockchain transaction)
-    # from web3 import Web3
-    # w3 = Web3(Web3.HTTPProvider(f"https://sepolia.base.org"))
-    # tx = {
-    #     'from': your_address,
-    #     'to': msg.pay_to_address,
-    #     'value': w3.to_wei(msg.price, 'ether'),
-    #     'gas': 21000,
-    #     'gasPrice': w3.eth.gas_price,
-    #     'nonce': w3.eth.get_transaction_count(your_address),
-    # }
-    # signed = w3.eth.account.sign_transaction(tx, private_key)
-    # tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-
-    # For demo purposes, use a mock transaction hash
-    # IMPORTANT: In production, this must be a real blockchain transaction!
-    mock_tx_hash = "0x" + "1234567890abcdef" * 4  # 64 hex chars
-
-    ctx.logger.info(f"✅ Payment executed: {mock_tx_hash}")
-
-    # Send payment proof
-    proof = PaymentProof(
-        payment_id=msg.payment_id,
-        resource_id=msg.resource_id,
-        transaction_hash=mock_tx_hash,
-        from_address=os.getenv("CLIENT_WALLET_ADDRESS", "0xClientAddress"),
-        to_address=msg.pay_to_address,
-        amount=msg.price,
-        network=msg.network
-    )
-
-    ctx.logger.info("📤 Sending payment proof to merchant...")
-    await ctx.send(sender, proof)
-
-@client.on_message(model=ResourceAccess)
-async def handle_resource_access(ctx: Context, sender: str, msg: ResourceAccess):
-    """Handle successful resource access"""
-    if msg.success:
-        ctx.logger.info(f"🎉 Access granted to {msg.resource_id}!")
-        ctx.logger.info(f"📦 Resource data received:")
-        ctx.logger.info(f"   {msg.resource_data}")
-
-        # Clear pending payment
-        ctx.storage.set("pending_payment", None)
-
-        # Store resource for use
-        ctx.storage.set(f"resource_{msg.resource_id}", msg.resource_data)
-    else:
-        ctx.logger.error(f"❌ Access denied: {msg.message}")
-
-@client.on_message(model=ResourceError)
-async def handle_error(ctx: Context, sender: str, msg: ResourceError):
-    """Handle error responses"""
-    ctx.logger.error(f"❌ Error: {msg.error}")
-    ctx.logger.error(f"   Message: {msg.message}")
-    ctx.logger.error(f"   Resource: {msg.resource_id}")
-
-    # Clear pending payment on error
-    ctx.storage.set("pending_payment", None)
-
-if __name__ == "__main__":
-    client.run()
-```
-
-**To run the client**:
-```bash
-# In separate terminal
-uv run client.py
-```
-
-**Expected Flow in Development Mode**:
-1. Client starts and sends `ResourceRequest` for `premium_weather`
-2. Merchant responds with `PaymentRequired` (payment details + payment_id)
-3. Client creates mock transaction hash: `0x1234567890abcdef...` (64 hex chars)
-4. Client sends `PaymentProof` with mock transaction
-5. Merchant validates format and recipient address
-6. Merchant sends `ResourceAccess` with weather data
-7. Client receives premium resource data!
-
-**What you'll see in logs**:
-```
-[Client] 📨 Requesting premium_weather resource...
-[Merchant] 📥 Resource request from agent1q2w3...
-[Merchant] 💳 Requesting payment: pay_abc123...
-[Client] 💳 Payment required for premium_weather
-[Client] ✅ Payment executed: 0x1234567890abcdef...
-[Client] 📤 Sending payment proof to merchant...
-[Merchant] 💰 Payment proof received from agent1q2w3...
-[Merchant] ⚠️ DEV MODE: Simulating payment verification for tx 0x1234567890abcd...
-[Merchant] ✅ Payment verified and settled!
-[Merchant] 🎉 Granting access to premium_weather
-[Client] 🎉 Access granted to premium_weather!
-[Client] 📦 Resource data received: {...}
-```
-
-**Testing Checklist**:
-- [ ] Both agents start without errors
-- [ ] Client receives `PaymentRequired` message
-- [ ] Mock transaction hash is properly formatted (0x + 64 hex)
-- [ ] Merchant logs show "DEV MODE: Simulating payment verification"
-- [ ] Client receives `ResourceAccess` with data
-- [ ] Try different resources: `premium_data`, `premium_api`
-
-## Message Protocol Reference
-
-### ResourceRequest
-Sent by client to request access to a resource.
-
-```python
+🎉 PAYMENT VERIFIED - ACCESS GRANTED!
+📊 PREMIUM RESOURCE DATA RECEIVED:
 {
-    "resource_id": "premium_weather",      # Required: ID of resource
-    "requester_address": "0x..."           # Optional: Client's blockchain address
+  "resource_id": "premium_weather",
+  "data": {
+    "location": "San Francisco",
+    "temperature": 72,
+    "conditions": "Sunny",
+    "forecast": [...],
+    "air_quality_index": 45,
+    "uv_index": 6
+  },
+  "premium": true
 }
+
+✨ Transaction Complete!
 ```
 
-### PaymentRequired (Response)
-Sent by merchant with payment instructions.
+**Success!** You've just executed autonomous agent-to-agent commerce with blockchain payment.
+
+## 📦 Premium Resources
+
+The platform includes three example premium resources demonstrating different pricing models:
+
+### 1. Premium Weather Data (`premium_weather`)
+- **Price**: $0.001 (micropayment demonstration)
+- **Content**: Real-time weather with 3-day forecast, air quality index, UV index
+- **Use Case**: IoT devices, travel planning agents, smart home automation
+
+### 2. Premium Analytics (`premium_data`)
+- **Price**: 0.01 USDC (stablecoin payment)
+- **Content**: Business metrics, conversion rates, growth insights, user analytics
+- **Use Case**: Business intelligence agents, market analysis bots, reporting systems
+
+### 3. Premium API Access (`premium_api`)
+- **Price**: $0.005
+- **Content**: API key with 1000 req/hour rate limit, advanced endpoints
+- **Use Case**: Developer tools, API aggregators, service integrations
+
+## 🏢 Production Deployment (Agentverse Proxy)
+
+For 24/7 availability, deploy using the Agentverse proxy architecture:
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Agentverse Cloud (24/7 Managed)                        │
+│  ┌───────────────────────────────────────────────┐      │
+│  │  Agentverse Proxy Agent                       │      │
+│  │  • Receives client messages                   │      │
+│  │  • Forwards via mailbox system                │      │
+│  │  • Returns responses to clients               │      │
+│  └─────────────────┬─────────────────────────────┘      │
+└────────────────────┼──────────────────────────────────────┘
+                     │
+                     │ Mailbox System (Internet)
+                     │ • Works behind NAT/firewall
+                     │ • No public endpoint needed
+                     ▼
+        ┌────────────────────────────────────┐
+        │  Your Infrastructure               │
+        │  ┌──────────────────────────────┐  │
+        │  │  Local Merchant Agent         │  │
+        │  │  • Full x402 support          │  │
+        │  │  • Solana + EVM payments      │  │
+        │  │  • Payment verification       │  │
+        │  │  • Resource delivery          │  │
+        │  └──────────────────────────────┘  │
+        └────────────────────────────────────┘
+```
+
+### Deployment Steps
+
+1. **Configure merchant for proxy mode**:
+   ```env
+   AGENTVERSE=true  # Enable mailbox communication
+   # DO NOT set AGENT_ENDPOINT
+   ```
+
+2. **Run merchant locally**:
+   ```bash
+   uv run src/merchant.py
+   # Copy the agent address from logs
+   ```
+
+3. **Deploy proxy to Agentverse**:
+   - Go to [agentverse.ai](https://agentverse.ai)
+   - Create new agent
+   - Upload `src/agentverse-proxy.py` and `src/models.py`
+   - Set secret: `LOCAL_MERCHANT_ADDRESS=<merchant-address-from-step-2>`
+   - Deploy
+
+4. **Configure clients**:
+   - Use proxy address (from Agentverse), not local merchant address
+   - Keep blockchain wallet address unchanged
+
+**Benefits**:
+- ✅ 24/7 message reception (Agentverse manages uptime)
+- ✅ Works behind NAT/firewall (no port forwarding)
+- ✅ Full feature support (x402, Solana, EVM)
+- ✅ Secure (payment processing stays on your infrastructure)
+
+**Detailed Guide**: See [README-Agentverse.md](./README-Agentverse.md)
+
+## 🔒 Security Features
+
+### Payment Security
+- **Payment ID Tracking**: UUID-based unique identifiers prevent replay attacks
+- **Requester Validation**: Only original requester can submit payment proof
+- **Resource Matching**: Proof must match requested resource (prevents substitution)
+- **Blockchain Verification**: Every payment verified on-chain (immutable proof)
+
+### Agent Security
+- **Cryptographic Seeds**: Each agent has unique cryptographic identity
+- **Message Signing**: All agent messages are cryptographically signed
+- **Network Isolation**: Separate test/production networks (devnet/mainnet)
+
+### Best Practices
+```python
+# ✅ DO:
+- Use testnet/devnet for development
+- Generate unique wallet for each environment
+- Monitor transactions on blockchain explorer
+- Keep private keys in environment variables (never commit)
+- Use hardware wallets for production
+
+# ❌ DON'T:
+- Commit .env files to version control
+- Reuse production wallets for testing
+- Share private keys
+- Skip transaction verification
+- Ignore error messages
+```
+
+## 📊 Monitoring & Analytics
+
+Track key metrics for your merchant:
 
 ```python
-{
-    "resource_id": "premium_weather",
-    "price": "$0.001",                     # USD string or token amount
-    "pay_to_address": "0xMerchant...",     # Merchant's blockchain address
-    "network": "base-sepolia",             # Blockchain network
-    "token_address": "0xToken...",         # Optional: ERC20 token contract
-    "token_decimals": 6,                   # Optional: Token decimals
-    "token_name": "USDC",                  # Optional: Token name
-    "payment_id": "pay_abc123...",         # Unique payment ID
-    "message": "Payment required for..."   # Human-readable message
-}
+# Built-in counters (in merchant storage)
+- total_payments: Number of completed payments
+- total_accesses: Number of resources delivered
+- payment_status: Per-payment tracking (pending/completed/failed)
 ```
 
-### PaymentProof
-Sent by client after executing blockchain payment.
-
-```python
-{
-    "payment_id": "pay_abc123...",         # Payment ID from PaymentRequired
-    "resource_id": "premium_weather",
-    "transaction_hash": "0xTxHash...",     # Blockchain transaction hash
-    "from_address": "0xClient...",         # Client's address
-    "to_address": "0xMerchant...",         # Merchant's address
-    "amount": "0.001",                     # Amount paid
-    "network": "base-sepolia"              # Network used
-}
-```
-
-### ResourceAccess (Success Response)
-Sent by merchant after payment verification.
-
-```python
-{
-    "success": true,
-    "payment_id": "pay_abc123...",
-    "resource_id": "premium_weather",
-    "resource_data": {                     # The actual premium resource
-        "resource_id": "premium_weather",
-        "data": {
-            "temperature": 72,
-            "conditions": "Sunny",
-            "humidity": 65,
-            "wind_speed": 12,
-            "forecast": [...],
-            "air_quality_index": 45,
-            "uv_index": 6
-        },
-        "timestamp": "2025-10-24T12:00:00Z",
-        "premium": true
-    },
-    "message": "Access granted to premium_weather",
-    "verified_at": "2025-10-24T12:00:15Z"
-}
-```
-
-### ResourceError (Error Response)
-Sent by merchant when request fails.
-
-```python
-{
-    "success": false,
-    "payment_id": "pay_abc123...",         # If applicable
-    "resource_id": "premium_weather",
-    "error": "Payment verification failed", # Error category
-    "message": "Transaction not found..."  # Detailed message
-}
-```
-
-## Adding Custom Premium Resources
-
-### Step 1: Define Resource Pricing
-
-In `merchant.py`, update `PayAIFacilitatorService.get_price_for_resource()`:
-
-```python
-resources = {
-    # ... existing resources ...
-
-    "custom_resource": {
-        "price": "$0.002",  # USD pricing
-        "description": "My custom premium resource"
-    },
-
-    # OR for token-specific pricing:
-    "token_resource": {
-        "price": TokenAmount(
-            amount="5000",  # 0.005 USDC (6 decimals)
-            asset=TokenAsset(
-                address="0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-                decimals=6,
-                eip712=EIP712Domain(name="USDC", version="2"),
-            ),
-        ),
-        "token_address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-        "token_decimals": 6,
-        "token_name": "USDC",
-        "description": "Token-priced resource"
-    }
-}
-```
-
-### Step 2: Define Resource Data
-
-In `merchant.py`, update `get_premium_resource()`:
-
-```python
-resources = {
-    # ... existing resources ...
-
-    "custom_resource": {
-        "resource_id": "custom_resource",
-        "data": {
-            # Your custom data structure
-            "items": [...],
-            "metadata": {...},
-            "generated_at": datetime.now().isoformat()
-        },
-        "timestamp": datetime.now().isoformat(),
-        "premium": True
-    }
-}
-```
-
-### Step 3: Restart and Test
-
-```bash
-# Restart merchant
-uv run merchant.py
-
-# Resource is immediately available!
-# Clients can now request "custom_resource"
-```
-
-## Security Features
-
-### Payment ID Tracking
-- Each payment request generates unique `payment_id` (UUID-based)
-- Stored in agent storage with request metadata
-- Prevents replay attacks
-- Expires when used or after agent restart (add TTL in production)
-
-### Requester Validation
-- Only original requester can submit payment proof
-- Validates sender address matches stored requester
-- Prevents payment hijacking
-
-### Resource Matching
-- Payment proof must match requested resource_id
-- Prevents resource substitution attacks
-
-### Facilitator Verification
-- All payments verified through PayAI facilitator
-- Blockchain transaction checked for:
-  - Correct recipient address
-  - Correct payment amount
-  - Correct token type
-  - Transaction confirmation status
-
-### Transaction Logging
-- All payment requests logged with status
-- Payment lifecycle tracked (pending → completed/failed)
-- Counters maintained for monitoring (`total_payments`, `total_accesses`)
-
-## Troubleshooting
-
-### Agent Won't Start
-
-**Error**: `ModuleNotFoundError: No module named 'uagents'` or `No module named 'x402'`
-
-**Solution**:
-```bash
-# Ensure virtual environment is created
-uv venv
-
-# Install all dependencies
-uv pip install uagents x402 python-dotenv pydantic
-
-# Verify installation
-uv run python -c "import uagents, x402; print('✅ All packages installed')"
-```
-
-**Error**: `ERROR: x402 package not installed`
-- This shouldn't happen if you followed installation steps
-- Try: `uv pip install x402`
-
-**Error**: `ERROR: Facilitator service not configured`
-- Check `.env` file exists in project directory
-- Verify `MERCHANT_AGENT_ADDRESS` is set
-- Address can be any valid format for development mode
-- For production, use actual Base Sepolia address (0x + 40 hex chars)
-
-**Error**: `error: Failed to spawn: merchant.py`
-- Make sure you're in the project directory
-- Try: `uv run merchant.py` (this should work directly)
-
-**Error**: `No virtual environment found`
-- Run `uv venv` to create virtual environment first
-- Make sure you're in the project directory
-
-### Payment Verification Fails
-
-**Symptom**: `❌ Payment verification failed`
-
-#### In Development Mode (BYPASS_PAYMENT_VERIFICATION=true)
-
-**Common causes**:
-1. **Invalid transaction hash format**
-   - Must start with `0x`
-   - Must be 66 characters total (0x + 64 hex chars)
-   - Example valid format: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`
-
-2. **Wrong recipient address**
-   - Transaction `to_address` must match merchant's `MERCHANT_AGENT_ADDRESS`
-   - Check both addresses match exactly (case-insensitive)
-
-3. **Development mode success indication**
-   - Look for: `⚠️ DEV MODE: Simulating payment verification`
-   - This confirms development mode is active
-
-#### In Production Mode (BYPASS_PAYMENT_VERIFICATION=false)
-
-**Note**: Production mode is not fully implemented. Will return error: "Production payment verification not implemented"
-
-**To implement production mode**, you need to add one of:
-1. **On-chain verification** - Use Web3.py to verify transactions
-   - Install: `uv pip install web3`
-   - Verify transaction exists and succeeded
-   - Check amount, recipient, and token match
-
-2. **PayAI Facilitator integration** - Use custom facilitator API
-   - Implement HTTP calls to facilitator
-   - Handle verification responses
-
-3. **Switch to EIP3009** - Use x402's native flow
-   - Implement EIP3009 authorization handling
-   - Update client to use permit-style payments
-
-**Production checklist when implementing**:
-- Transaction confirmed on blockchain
-- Correct payment amount
-- Correct recipient address
-- Correct network/chain ID
-- Transaction not reverted (status = 1)
-- Sufficient block confirmations (usually 1-2)
-
-### Message Not Received
-
-**Symptom**: Client sends message but merchant doesn't respond
-
-**Debugging steps**:
-```bash
-# Check merchant agent is running
-# Look for: "🏪 Merchant Agent Started"
-
-# Verify agent addresses match
-# Client must use exact agent address from merchant logs
-
-# Check network compatibility
-# Both agents must be on same network (testnet/mainnet)
-
-# Check message model compatibility
-# Ensure both use same Pydantic models
-
-# Enable verbose logging
-export UAGENTS_LOG_LEVEL=DEBUG
-uv run main.py
-```
-
-### Storage Issues
-
-**Symptom**: Payment ID not found
-
-- Agent storage is in-memory by default
-- Restarting agent clears all payment IDs
-- For production, implement persistent storage:
-
-```python
-# Example: Using file-based storage
-import json
-
-class PersistentStorage:
-    def __init__(self, filename="storage.json"):
-        self.filename = filename
-        self.data = self._load()
-
-    def _load(self):
-        try:
-            with open(self.filename, 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
-
-    def _save(self):
-        with open(self.filename, 'w') as f:
-            json.dump(self.data, f)
-
-    def set(self, key, value):
-        self.data[key] = value
-        self._save()
-
-    def get(self, key):
-        return self.data.get(key)
-```
-
-## Current Implementation Status
-
-### ✅ What Works Now
-- **Agent Framework**: Full uAgents integration with message handling
-- **x402 Package**: Successfully integrated x402 v0.2.1
-- **Message Protocol**: Complete 4-message flow (Request → PaymentRequired → Proof → Access)
-- **Development Mode**: Simulated payment verification for testing
-- **Security Features**: Payment ID tracking, requester validation, replay prevention
-- **Premium Resources**: Three example resources with different pricing models
-- **Error Handling**: Comprehensive error responses and logging
-- **Agent Communication**: Reliable message passing between agents
-
-### 🚧 What Needs Implementation
-- **Production Payment Verification**: Real blockchain transaction verification
-  - Option 1: Web3.py integration for on-chain verification
-  - Option 2: PayAI facilitator API integration
-  - Option 3: EIP3009-style authorization flow
-- **Persistent Storage**: Database for payment tracking (currently in-memory)
-- **Payment Expiration**: Time-based payment ID expiration
-- **Rate Limiting**: Protection against abuse
-- **Monitoring**: Production-grade metrics and alerting
-
-### 🎯 Recommended Next Steps
-
-1. **For Learning/Testing** (Current State)
-   - Use development mode as-is
-   - Build and test client agents
-   - Experiment with different resources and pricing
-   - Understand the message flow
-
-2. **For Production** (Requires Work)
-   - Choose payment verification method (Web3.py recommended)
-   - Implement persistent storage (PostgreSQL/Redis)
-   - Add monitoring and logging
-   - Implement rate limiting
-   - Add payment ID expiration
-   - Security audit
-
-### 📚 Implementation Guide: Web3 Verification
-
-To implement production payment verification with Web3.py:
-
-```bash
-# Install Web3.py
-uv pip install web3
-```
-
-Then update `verify_and_settle_payment()` in merchant.py:
-
-```python
-from web3 import Web3
-
-async def verify_and_settle_payment(self, payment_proof, expected_price, token_info):
-    """Production implementation with on-chain verification"""
-
-    # Initialize Web3
-    w3 = Web3(Web3.HTTPProvider(f"https://{'sepolia.' if 'sepolia' in self.network else ''}base.org"))
-
-    try:
-        # Get transaction
-        tx = w3.eth.get_transaction(payment_proof.transaction_hash)
-        receipt = w3.eth.get_transaction_receipt(payment_proof.transaction_hash)
-
-        # Verify transaction succeeded
-        if receipt['status'] != 1:
-            return {"success": False, "error": "Transaction failed", "verified": False}
-
-        # Verify recipient
-        if tx['to'].lower() != self.MERCHANT_AGENT_ADDRESS.lower():
-            return {"success": False, "error": "Wrong recipient", "verified": False}
-
-        # Verify amount (adjust for token vs ETH)
-        expected_wei = w3.to_wei(float(expected_price.replace('$', '')), 'ether')
-        if int(tx['value']) < expected_wei * 0.99:  # Allow 1% tolerance
-            return {"success": False, "error": "Insufficient amount", "verified": False}
-
-        # All checks passed
-        return {
-            "success": True,
-            "verified": True,
-            "settled": True,
-            "transaction": tx,
-            "receipt": receipt
-        }
-
-    except Exception as e:
-        return {"success": False, "error": f"Verification failed: {str(e)}", "verified": False}
-```
-
-Then set in `.env`:
-```env
-BYPASS_PAYMENT_VERIFICATION=false
-```
-
-## Production Deployment
-
-### Pre-Production Checklist
-
-- [ ] Implement production payment verification (Web3.py or facilitator)
-- [ ] Use mainnet blockchain network
-- [ ] Configure dedicated merchant wallet
-- [ ] Implement persistent storage (database)
-- [ ] Add payment ID expiration (e.g., 15 minutes)
-- [ ] Set up monitoring and alerting
-- [ ] Implement rate limiting
-- [ ] Add logging aggregation
-- [ ] Configure backup systems
-- [ ] Test failure scenarios
-- [ ] Document recovery procedures
-- [ ] Security audit
-- [ ] Load testing
-
-### Environment Configuration
-
-```env
-# Production settings
-AGENT_NETWORK=mainnet
-PAYMENT_NETWORK=solana-mainnet  # or base-mainnet for Base network
-MERCHANT_AGENT_ADDRESS=YourProductionSolanaAddress  # or 0x... for Base
-FACILITATOR_URL=https://facilitator.payai.network
-BYPASS_PAYMENT_VERIFICATION=false  # Must implement real verification for production
-```
-
-### Monitoring
-
-Track these metrics:
-- Total payment requests received
-- Payment verification success rate
+**Recommended Production Monitoring**:
+- Payment success rate
 - Average verification time
-- Failed payment reasons
 - Revenue per resource
+- Failed payment reasons
 - Active payment IDs (should be low)
 
-### Scaling Considerations
+**Future Enhancements** (see Roadmap):
+- Real-time analytics dashboard
+- Revenue trends and forecasting
+- Customer acquisition metrics
+- Resource popularity rankings
 
-**Horizontal Scaling**:
-- Run multiple agent instances
-- Use shared database for payment tracking
-- Implement distributed locking for payment IDs
+## 🛣️ Roadmap & Future Enhancements
 
-**Performance Optimization**:
-- Cache resource data
-- Batch facilitator verification calls
-- Use async/await properly
-- Connection pooling for database
+Our vision for the future of agent commerce:
 
-**High Availability**:
-- Deploy across multiple regions
-- Use load balancer for agent endpoints
-- Implement health checks
-- Automated failover
+### Phase 1: Foundation (Current - Hackathon Demo)
+- ✅ x402 protocol implementation
+- ✅ Solana blockchain integration
+- ✅ Agent-to-agent messaging
+- ✅ Basic payment verification
+- ✅ Agentverse proxy architecture
+- ✅ Three example premium resources
 
-## Advanced Topics
+### Phase 2: Production Ready (Q1 2025)
+- 🔄 **Persistent Storage**: PostgreSQL/Redis for payment tracking
+- 🔄 **Payment Expiration**: Time-based payment ID cleanup (15-min TTL)
+- 🔄 **Rate Limiting**: Protect against abuse (per-agent limits)
+- 🔄 **Multi-Currency**: Support for multiple tokens (USDC, USDT, SOL)
+- 🔄 **Analytics Dashboard**: Real-time monitoring and insights
+- 🔄 **Error Recovery**: Automatic retry and fallback mechanisms
 
-### Custom Pricing Logic
+### Phase 3: Marketplace Expansion (Q2 2025)
+- 📋 **Resource Discovery**: Agents browse and search marketplace
+- 📋 **Dynamic Pricing**: Supply/demand-based pricing algorithms
+- 📋 **Subscription Models**: Time-based access (daily/monthly/yearly)
+- 📋 **Volume Discounts**: Bulk purchase incentives
+- 📋 **Reputation System**: Merchant and client trust scores
+- 📋 **Dispute Resolution**: Automated refund and arbitration
 
-Implement dynamic pricing based on:
-- Time of day
-- User history
-- Resource demand
-- Market conditions
+### Phase 4: Advanced Features (Q3 2025)
+- 🚀 **Cross-Chain Support**: Ethereum, Polygon, Arbitrum via x402 SDK
+- 🚀 **API Monetization Platform**: Turn any API into pay-per-request
+- 🚀 **Agent Wallet Management**: Non-custodial wallet-as-a-service
+- 🚀 **Payment Streaming**: Continuous payments for ongoing services
+- 🚀 **ML Model Marketplace**: Buy/sell AI model inference
+- 🚀 **Data Marketplace**: Real-time data feeds and datasets
 
-```python
-def get_price_for_resource(self, resource_id: str, context: dict) -> dict:
-    base_price = self.base_prices[resource_id]
+### Phase 5: Ecosystem Growth (Q4 2025)
+- 🌐 **SDK for Popular Languages**: JavaScript, Rust, Go clients
+- 🌐 **Integration Plugins**: Shopify, WooCommerce, Stripe
+- 🌐 **Developer Tools**: Testing framework, mock facilitator
+- 🌐 **Documentation Hub**: Tutorials, examples, best practices
+- 🌐 **Community Governance**: DAO for protocol improvements
+- 🌐 **Grant Program**: Fund developers building on platform
 
-    # Peak hours pricing
-    if context.get("hour") in range(9, 17):
-        base_price *= 1.5
+## 💡 Why This Matters
 
-    # Volume discounts
-    if context.get("purchase_count", 0) > 10:
-        base_price *= 0.9
+### For Developers
+- **Instant Monetization**: Turn any API/data/service into pay-per-use
+- **Zero Backend**: No payment processing infrastructure needed
+- **Global Access**: Agents worldwide can discover and pay instantly
+- **Micropayments Work**: Sub-cent pricing is economically viable
 
-    return {"price": f"${base_price:.3f}", "description": "..."}
+### For Autonomous Agents
+- **Resource Discovery**: Find and purchase resources autonomously
+- **No Human Intervention**: Full automation from discovery to consumption
+- **Trustless**: Blockchain provides payment proof
+- **Cost-Effective**: Pay only for what you use
+
+### For the Ecosystem
+- **New Business Models**: Enables previously impossible micropayment use cases
+- **Agent Economy**: Foundation for autonomous agent marketplace
+- **Open Protocol**: Anyone can build merchants or clients
+- **Network Effects**: More resources → more agents → more resources
+
+## 🤝 Contributing
+
+We welcome contributions from the community! This project is open-source and growing.
+
+### How to Contribute
+
+1. **Add Premium Resources**:
+   - Edit `src/merchant.py`
+   - Add pricing in `get_price_for_resource()`
+   - Add data in `get_premium_resource()`
+   - Submit PR with resource description
+
+2. **Improve Protocol**:
+   - Enhance payment verification
+   - Add new payment networks
+   - Optimize message flow
+   - Add error handling
+
+3. **Build Integrations**:
+   - Create client libraries for other languages
+   - Build plugins for popular platforms
+   - Develop tools and utilities
+   - Write tutorials and guides
+
+4. **Test and Report**:
+   - Test on different networks
+   - Find and report bugs
+   - Suggest improvements
+   - Share use cases
+
+### Development Setup
+
+```bash
+# Fork and clone
+git clone <your-fork>
+cd uagentdemo
+
+# Create branch
+git checkout -b feature/your-feature
+
+# Install dev dependencies
+uv pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Submit PR
+git push origin feature/your-feature
 ```
 
-### Subscription Model
+## 📚 Documentation
 
-Implement time-based access:
+- **[README-Agentverse.md](./README-Agentverse.md)**: Detailed Agentverse proxy deployment guide
+- **[CLAUDE.md](./CLAUDE.md)**: Technical implementation details and architecture
+- **Code Documentation**: All modules have comprehensive docstrings
 
-```python
-@agent.on_message(model=SubscriptionRequest)
-async def handle_subscription(ctx: Context, sender: str, msg: SubscriptionRequest):
-    # Verify payment for subscription period
-    # Grant access token valid for duration
-    # Store subscription end time
-    # Implement renewal logic
-    pass
-```
-
-### Refund Mechanism
-
-Handle refund requests:
-
-```python
-@agent.on_message(model=RefundRequest)
-async def handle_refund(ctx: Context, sender: str, msg: RefundRequest):
-    # Verify original payment
-    # Check refund policy
-    # Initiate blockchain refund
-    # Revoke resource access
-    pass
-```
-
-## Resources & Links
-
-### Documentation
+### External Resources
 - [x402 Protocol Specification](https://x402.org)
 - [PayAI Documentation](https://docs.payai.network/x402/introduction)
-- [uAgents Framework](https://uagents.fetch.ai/docs/)
-- [Base Network](https://base.org)
+- [Fetch.ai uAgents Framework](https://fetch.ai/docs/agents)
+- [Solana Developer Docs](https://docs.solana.com/)
 
-### Tools
-- [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
-- [BaseScan Explorer](https://sepolia.basescan.org)
-- [MetaMask Wallet](https://metamask.io/)
+## 🏆 Hackathon Submission
 
-### Community
-- [PayAI Discord](https://discord.gg/eWJRwMpebQ)
-- [Fetch.ai Community](https://fetch.ai/community)
+**Competition**: [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/)
 
-### Source Code
-- [x402 Python Package](https://github.com/coinbase/x402/tree/main/python)
-- [This Repository](https://github.com/yourusername/uagentdemo)
+**Category**: Autonomous Agent Commerce
 
-## License
+**Key Innovations**:
+1. **First x402 implementation** for autonomous agents on Fetch.ai
+2. **Zero gas fees** for both merchant and customer via facilitator
+3. **Sub-second verification** with instant resource delivery
+4. **Agentverse proxy architecture** enabling 24/7 availability
+5. **Multi-network support** (Solana + EVM)
 
-MIT License - see LICENSE file for details
+**Impact**:
+- Demonstrates viable autonomous agent economy
+- Enables micropayment use cases ($0.001 and below)
+- Removes barriers to agent-to-agent commerce
+- Open-source foundation for ecosystem growth
 
-## Contributing
+## 🙏 Acknowledgments
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+- **[Fetch.ai](https://fetch.ai)**: uAgents framework and Agentverse platform
+- **[PayAI](https://payai.network)**: x402 protocol and facilitator infrastructure
+- **[Solana](https://solana.com)**: Fast, low-cost blockchain for payments
+- **ASI Agents Track**: Hackathon opportunity and support
 
-## Support
+## 📄 License
 
-Need help?
-- Open an issue on GitHub
-- Join PayAI Discord
-- Check documentation at docs.payai.network
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 📞 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+- **Twitter**: [@yourhandle](#)
+- **Discord**: [Join our community](#)
+
+## 🌟 Star Us!
+
+If you find this project valuable, please ⭐ star the repository and share with your network!
+
+---
+
+**Built with ❤️ for the autonomous agent future**
+
+[Get Started](#-quick-start-local-mode) | [View Demo](#) | [Read Docs](./README-Agentverse.md) | [Join Community](#)
