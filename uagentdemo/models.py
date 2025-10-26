@@ -57,3 +57,17 @@ class ResourceError(BaseModel):
     resource_id: str
     error: str
     message: str
+
+
+class HealthCheckRequest(BaseModel):
+    """Health check request from Agentverse proxy to local merchant"""
+    proxy_address: str = Field(..., description="Address of the proxy agent sending the check")
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+
+class HealthCheckResponse(BaseModel):
+    """Health check response from local merchant to Agentverse proxy"""
+    status: str = Field(default="alive", description="Status of the local merchant")
+    merchant_address: str = Field(..., description="Address of the local merchant")
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+    message: str = Field(default="Local merchant is online and ready")

@@ -44,7 +44,9 @@ from models import (
     PaymentRequired,
     PaymentProof,
     ResourceAccess,
-    ResourceError
+    ResourceError,
+    HealthCheckRequest,
+    HealthCheckResponse
 )
 
 # ============================================================================
@@ -461,21 +463,23 @@ aName = os.getenv("AGENT_NAME", "payment_merchant_agent")
 aSeed = os.getenv("AGENT_SEED", "merchant_agent_secure_seed_phrase_12345")
 aNet = os.getenv("AGENT_NETWORK", "testnet")
 
-# Check if mailbox should be enabled
-mailbox_key = os.getenv("MAILBOX_KEY")
-use_mailbox = mailbox_key is not None and mailbox_key.strip() != ""
+# Check if Agentverse proxy mode should be enabled
+agentverse_mode = os.getenv("AGENTVERSE", "false").lower() == "true"
+agentverse_agent_address = os.getenv("AGENTVERSE_AGENT_ADDRESS", "")
 
-# Initialize agent with conditional mailbox
-if use_mailbox:
+# Initialize agent with conditional mailbox for Agentverse connectivity
+if agentverse_mode:
     agent = Agent(
         name=aName,
         seed=aSeed,
         port=8000,
         endpoint=["http://localhost:8000/submit"],
-        mailbox=True,
+        mailbox=True,  # Enable mailbox to receive from Agentverse
         network=aNet
     )
-    print("🔗 Mailbox enabled - agent will connect to Agentverse network")
+    print("🔗 Agentverse proxy mode - accepting messages from Agentverse agent")
+    if agentverse_agent_address:
+        print(f"   Agentverse agent address: {agentverse_agent_address[:16]}...")
 else:
     agent = Agent(
         name=aName,
@@ -484,7 +488,7 @@ else:
         endpoint=["http://localhost:8000/submit"],
         network=aNet
     )
-    print("📡 Local mode - agent running without mailbox")
+    print("📡 Local mode - direct agent communication")
 
 # Initialize PayAI facilitator service (if x402 is available)
 facilitator_service = None
@@ -505,10 +509,12 @@ async def introduce_agent(ctx: Context):
     ctx.logger.info(f"Agent address: {agent.address}")
     ctx.logger.info(f"Running on network: {aNet}")
 
-    if use_mailbox:
-        ctx.logger.info("🔗 Mailbox: ENABLED - Connected to Agentverse")
+    if agentverse_mode:
+        ctx.logger.info("🔗 Agentverse Proxy Mode: ENABLED")
+        if agentverse_agent_address:
+            ctx.logger.info(f"   Accepting messages from: {agentverse_agent_address[:16]}...")
     else:
-        ctx.logger.info("📡 Mailbox: DISABLED - Local mode only")
+        ctx.logger.info("📡 Mode: Local (Direct communication)")
 
     if facilitator_service:
         ctx.logger.info("✅ PayAI Facilitator Integration ENABLED")
@@ -602,6 +608,19 @@ async def handle_resource_request(ctx: Context, sender: str, request: ResourceRe
             message=str(e)
         )
         await ctx.send(sender, error)
+
+@agent.on_message(model=HealthCheckRequest)
+async def handle_health_check(ctx: Context, sender: str, request: HealthCheckRequest):
+    """Respond to health check from Agentverse proxy"""
+    ctx.logger.info(f"🏥 Health check received from proxy: {sender[:16]}...")
+
+    response = HealthCheckResponse(
+        merchant_address=agent.address,
+        message="Local merchant is online and ready"
+    )
+
+    await ctx.send(sender, response)
+    ctx.logger.info(f"✅ Health check response sent to proxy")
 
 @agent.on_message(model=PaymentProof)
 async def handle_payment_proof(ctx: Context, sender: str, proof: PaymentProof):
@@ -787,10 +806,12 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Agent: {aName}")
     print(f"Network: {aNet}")
-    if use_mailbox:
-        print(f"Mode: Mailbox (Connected to Agentverse)")
+    if agentverse_mode:
+        print(f"Mode: Agentverse Proxy (Connected via mailbox)")
+        if agentverse_agent_address:
+            print(f"Agentverse Agent: {agentverse_agent_address[:16]}...")
     else:
-        print(f"Mode: Local (Standalone)")
+        print(f"Mode: Local (Direct communication)")
     print(f"Facilitator: {facilitator_service.facilitator_url}")
     print(f"Merchant Address: {facilitator_service.merchant_address}")
     print("=" * 60)
