@@ -237,3 +237,25 @@ If necessary, check the @docs/ClientMerchant.md as the paths to communicate betw
 What we are doing here is using uagents as the "messaging" platform for the x402 payment.
 Make sure to run code using "uv run ..." for the command you want to run with the libraries loaded, otherwise, you will enter a loop of failed transactions if you don't load the environment correctly.
 Also, before telling me it is resolved, run it yourself to confirm it is working as expected: Client ask -> Merchant requests payment -> Client sends signature -> Merchant verifies and gives access to premium resource
+
+We are about to release the first version of the uagentdemo with x402 support. It consist of multiple files inside "src" (recent change) of which:
+- @src/models.py  messaging classes
+- @src/merchant.py the core sample code that offers the x402 functionality. It works in local mode, receiving messages directly or as a "proxy" from other agents
+- @src/agentverse-proxy.py sample code that runs on agentverse.ai and forwards messages received to the merchant
+Therefore, perform the following tasks:
+- This code needs to be well documented.
+- Make sure @.env.client.example & @.env.merchant.example match the required environment constants and it is well documented
+- The merchant and the agentverse-proxy communicate using the "proxy" communication protocol, make sure documentation reflects that
+- Update the @README.md file to explain how the project works and what needs to be done to replicate its execution in local mode.
+- README.md should mention "this is a project for the hackathon explained here: "https://earn.superteam.fun/listing/asi-agents-track/", therefore, it should have professional language with focus on future work that will enhance the platform's experience and entice users/agents to use it
+- Update @README-Agentverse.md to explain how the "proxy" messaging works and how to replicate the code using the agentverse.ai platform. Similar wording as the normal README.md and this will be published in the webpage platform.
+
+
+There has been a change of plans, there is no need anymore for the @src/agentverse-proxy.py, I was able to deploy the full @src/merchant.py agent in agentverse. Now, make update to the README.md file signaling that the agent is live:
+- https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile
+- Agent Handle @x402merchant
+- There won't be any need for the proxy/mailbox communication as everything will be handled directly by the @src/merchant.py file and the server running it's code
+- Update the code to avoid any confusion with the proxy/mailbox code paths
+- When you finish analyzing the code, remove the @src/agentverse-proxy.py file
+- Add to the README.md file the @src/register.py step as metioned in the documentation here: "https://docs.agentverse.ai/documentation/launch-agents/connect-your-agents-chat-protocol-integration" in the step "You will now have to run the provided registration script. Copy and paste it on your end,"
+- Make sure @src/client.py is aligned with all the changes to README.md or (if anything) to the merchant

@@ -548,34 +548,68 @@ def get_premium_resource(resource_id: str) -> dict:
 # ============================================================================
 # Agent Configuration
 # ============================================================================
+#
+# Three deployment modes:
+#
+# 1. LOCAL MODE (Development):
+#    - Set AGENT_ENDPOINT and AGENT_ENDPOINT_PORT
+#    - Agent runs on your machine with direct endpoint
+#    - Use for: Local development and testing
+#
+# 2. LOCAL WITH MAILBOX (Hybrid):
+#    - Set AGENTVERSE=true
+#    - Agent runs locally but receives via Agentverse mailbox
+#    - Use for: Local agent that needs 24/7 message reception
+#    - NOTE: This is NOT the same as deploying ON Agentverse
+#
+# 3. AGENTVERSE CLOUD (Production):
+#    - Do NOT set AGENTVERSE, AGENT_ENDPOINT, or AGENT_ENDPOINT_PORT
+#    - Agent runs entirely on Agentverse infrastructure
+#    - Use for: Production deployment with managed hosting
+#    - Example: @x402merchant at agent1qtem7xxuw9...
+#
+# ============================================================================
 
 aName = os.getenv("AGENT_NAME", "payment_merchant_agent")
 aSeed = os.getenv("AGENT_SEED", "merchant_agent_secure_seed_phrase_12345")
 aNet = os.getenv("AGENT_NETWORK", "testnet")
-aEndpoint = os.getenv("AGENT_ENDPOINT", "localhost")
+aEndpoint = os.getenv("AGENT_ENDPOINT")  # None = Agentverse cloud mode
 aEndpointPort = os.getenv("AGENT_ENDPOINT_PORT", 8000)
 
-# Check if Agentverse proxy mode should be enabled
-agentverse_mode = os.getenv("AGENTVERSE", "false").lower() == "true"
-agentverse_agent_address = os.getenv("AGENTVERSE_AGENT_ADDRESS", "")
+# Check deployment mode
+agentverse_mailbox_mode = os.getenv("AGENTVERSE", "false").lower() == "true"
 
-# Initialize agent with conditional proxy for Agentverse connectivity
-if agentverse_mode:
-    # In Agentverse mode, proxy handles communication
-    # IMPORTANT: Do NOT set endpoint when using proxy - it overrides proxy!
+# Initialize agent based on deployment mode
+if not aEndpoint and not agentverse_mailbox_mode:
+    # Mode 3: Running ON Agentverse cloud
+    # Agentverse manages all infrastructure - use minimal config
+    agent = Agent(
+        name=aName,
+        seed=aSeed,
+        network=aNet
+    )
+    print("☁️  Agentverse Cloud Mode")
+    print("   Running on Agentverse managed infrastructure")
+    print("   All networking handled by Agentverse")
+
+elif agentverse_mailbox_mode:
+    # Mode 2: Local agent with Agentverse mailbox
+    # Agent runs locally but receives messages via mailbox
     agent = Agent(
         name=aName,
         seed=aSeed,
         port=aEndpointPort,
-        proxy=True,  # Enable proxy to receive from Agentverse
+        proxy=True,  # Enable mailbox for message reception
         network=aNet
     )
-    print("🔗 Agentverse proxy mode - accepting messages from Agentverse agent")
-    print(f"   Proxy enabled - messages routed through Agentverse")
-    print(f"   ⚠️  No endpoint set - proxy handles all routing")
-    if agentverse_agent_address:
-        print(f"   Agentverse agent address: {agentverse_agent_address[:16]}...")
+    print("🔗 Local Agent + Agentverse Mailbox Mode")
+    print("   Agent running locally with mailbox proxy")
+    print("   Receives messages via Agentverse mailbox system")
+    print("   ⚠️  This is for local agents, not Agentverse deployment")
+
 else:
+    # Mode 1: Local development mode
+    # Agent runs locally with direct endpoint
     agent = Agent(
         name=aName,
         seed=aSeed,
@@ -583,7 +617,8 @@ else:
         endpoint=[f"http://{aEndpoint}:{aEndpointPort}/submit"],
         network=aNet
     )
-    print("📡 Local mode - direct agent communication")
+    print("📡 Local Development Mode")
+    print(f"   Direct endpoint: http://{aEndpoint}:{aEndpointPort}/submit")
 
 # Initialize PayAI facilitator service (if x402 is available)
 facilitator_service = None
@@ -604,12 +639,13 @@ async def introduce_agent(ctx: Context):
     ctx.logger.info(f"Agent address: {agent.address}")
     ctx.logger.info(f"Running on network: {aNet}")
 
-    if agentverse_mode:
-        ctx.logger.info("🔗 Agentverse Proxy Mode: ENABLED")
-        if agentverse_agent_address:
-            ctx.logger.info(f"   Accepting messages from: {agentverse_agent_address[:16]}...")
+    # Log deployment mode for clarity
+    if not aEndpoint and not agentverse_mailbox_mode:
+        ctx.logger.info("☁️  Mode: Agentverse Cloud (Production)")
+    elif agentverse_mailbox_mode:
+        ctx.logger.info("🔗 Mode: Local + Mailbox (Hybrid)")
     else:
-        ctx.logger.info("📡 Mode: Local (Direct communication)")
+        ctx.logger.info("📡 Mode: Local Development")
 
     if facilitator_service:
         ctx.logger.info("✅ PayAI Facilitator Integration ENABLED")
@@ -901,12 +937,15 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Agent: {aName}")
     print(f"Network: {aNet}")
-    if agentverse_mode:
-        print(f"Mode: Agentverse Proxy")
-        if agentverse_agent_address:
-            print(f"Agentverse Agent: {agentverse_agent_address}")
+
+    # Display deployment mode
+    if not aEndpoint and not agentverse_mailbox_mode:
+        print("Mode: ☁️  Agentverse Cloud (Production)")
+    elif agentverse_mailbox_mode:
+        print("Mode: 🔗 Local + Mailbox (Hybrid)")
     else:
-        print(f"Mode: Local (Direct communication)")
+        print(f"Mode: 📡 Local Development (http://{aEndpoint}:{aEndpointPort})")
+
     print(f"Facilitator: {facilitator_service.facilitator_url}")
     print(f"Merchant Address: {facilitator_service.merchant_address}")
     print("=" * 60)

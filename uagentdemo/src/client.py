@@ -69,7 +69,9 @@ CLIENT_NETWORK = os.getenv("CLIENT_NETWORK", "testnet")
 
 # Merchant configuration - IMPORTANT: Two different addresses!
 # 1. MERCHANT_UAGENT_ADDRESS: For sending uAgent messages (agent1q...)
-# 2. MERCHANT_AGENT_ADDRESS: For sending blockchain payments (blockchain wallet address)
+#    - Use live merchant: agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve
+#    - Or use your own local/deployed merchant address
+# 2. MERCHANT_AGENT_ADDRESS: For sending blockchain payments (Solana wallet address)
 MERCHANT_UAGENT_ADDRESS = os.getenv("MERCHANT_UAGENT_ADDRESS", "")
 MERCHANT_WALLET_ADDRESS = os.getenv("MERCHANT_AGENT_ADDRESS", "")  # Blockchain payment address
 
@@ -78,11 +80,16 @@ if not MERCHANT_UAGENT_ADDRESS:
     print("⚠️  MERCHANT_UAGENT_ADDRESS not set in .env")
     print("=" * 60)
     print("To use this client:")
-    print("1. Start the merchant agent: uv run main.py")
-    print("2. Copy the agent address from merchant logs: 'Agent address: agent1q...'")
-    print("3. Add to .env file:")
-    print("   MERCHANT_UAGENT_ADDRESS=agent1q...")
-    print("4. Restart this client")
+    print("")
+    print("Option 1: Use the live merchant (fastest)")
+    print("  MERCHANT_UAGENT_ADDRESS=agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve")
+    print("  Profile: https://agentverse.ai/agents/details/agent1qtem7xxuw9.../profile")
+    print("")
+    print("Option 2: Use your own merchant")
+    print("  1. Start your merchant agent: uv run src/merchant.py")
+    print("  2. Copy the agent address from logs: 'Agent address: agent1q...'")
+    print("  3. Set in .env: MERCHANT_UAGENT_ADDRESS=agent1q...")
+    print("  4. Restart this client")
     print("=" * 60)
     exit(1)
 

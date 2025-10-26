@@ -7,6 +7,8 @@
 [![uAgents](https://img.shields.io/badge/Framework-Fetch.ai_uAgents-purple)](https://fetch.ai)
 [![x402](https://img.shields.io/badge/Protocol-x402_Payment-orange)](https://x402.org)
 
+> **🎉 LIVE DEMO**: Try the merchant agent now at [@x402merchant](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) on Agentverse!
+
 > **Hackathon Submission**: This project is part of the [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/), demonstrating the future of autonomous agent commerce.
 
 ## 🌟 Vision
@@ -91,7 +93,18 @@ The platform implements the x402 payment protocol—a modern revival of HTTP 402
 - **Message Models**: Pydantic - Type-safe agent communication
 - **Deployment**: Local mode or Agentverse proxy for 24/7 availability
 
-## 🚀 Quick Start (Local Mode)
+## 🚀 Quick Start
+
+### Option 1: Use the Live Merchant (Fastest)
+
+Connect directly to the live merchant agent on Agentverse:
+
+**Merchant Address**: `agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve`
+**Agent Handle**: [@x402merchant](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile)
+
+Skip directly to [Step 4: Configure Client Agent](#step-4-configure-client-agent) and use the merchant address above.
+
+### Option 2: Run Your Own Merchant (Local Development)
 
 Get the platform running in under 5 minutes:
 
@@ -260,71 +273,88 @@ The platform includes three example premium resources demonstrating different pr
 - **Content**: API key with 1000 req/hour rate limit, advanced endpoints
 - **Use Case**: Developer tools, API aggregators, service integrations
 
-## 🏢 Production Deployment (Agentverse Proxy)
+## 🏢 Deploy Your Own Merchant on Agentverse
 
-For 24/7 availability, deploy using the Agentverse proxy architecture:
-
-### Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Agentverse Cloud (24/7 Managed)                        │
-│  ┌───────────────────────────────────────────────┐      │
-│  │  Agentverse Proxy Agent                       │      │
-│  │  • Receives client messages                   │      │
-│  │  • Forwards via mailbox system                │      │
-│  │  • Returns responses to clients               │      │
-│  └─────────────────┬─────────────────────────────┘      │
-└────────────────────┼──────────────────────────────────────┘
-                     │
-                     │ Mailbox System (Internet)
-                     │ • Works behind NAT/firewall
-                     │ • No public endpoint needed
-                     ▼
-        ┌────────────────────────────────────┐
-        │  Your Infrastructure               │
-        │  ┌──────────────────────────────┐  │
-        │  │  Local Merchant Agent         │  │
-        │  │  • Full x402 support          │  │
-        │  │  • Solana + EVM payments      │  │
-        │  │  • Payment verification       │  │
-        │  │  • Resource delivery          │  │
-        │  └──────────────────────────────┘  │
-        └────────────────────────────────────┘
-```
+For 24/7 availability, deploy your merchant agent directly on Agentverse cloud:
 
 ### Deployment Steps
 
-1. **Configure merchant for proxy mode**:
-   ```env
-   AGENTVERSE=true  # Enable mailbox communication
-   # DO NOT set AGENT_ENDPOINT
-   ```
+#### 1. Prepare Your Code
 
-2. **Run merchant locally**:
-   ```bash
-   uv run src/merchant.py
-   # Copy the agent address from logs
-   ```
+Create a deployment package with these files:
+- `src/merchant.py` → Rename to `agent.py` (Agentverse requirement)
+- `src/models.py` → Keep as `models.py`
+- `.env` → Configure as Agentverse Secrets (see below)
 
-3. **Deploy proxy to Agentverse**:
-   - Go to [agentverse.ai](https://agentverse.ai)
-   - Create new agent
-   - Upload `src/agentverse-proxy.py` and `src/models.py`
-   - Set secret: `LOCAL_MERCHANT_ADDRESS=<merchant-address-from-step-2>`
-   - Deploy
+#### 2. Configure Environment
 
-4. **Configure clients**:
-   - Use proxy address (from Agentverse), not local merchant address
-   - Keep blockchain wallet address unchanged
+In your Agentverse agent settings, add these secrets:
 
-**Benefits**:
-- ✅ 24/7 message reception (Agentverse manages uptime)
-- ✅ Works behind NAT/firewall (no port forwarding)
-- ✅ Full feature support (x402, Solana, EVM)
-- ✅ Secure (payment processing stays on your infrastructure)
+```env
+MERCHANT_AGENT_ADDRESS=<your-solana-wallet-address>
+PAYMENT_NETWORK=solana-devnet
+AGENT_SEED=<unique-seed-phrase-for-agent-identity>
+AGENTVERSE_API_TOKEN=<your-agentverse-api-token>
+```
 
-**Detailed Guide**: See [README-Agentverse.md](./README-Agentverse.md)
+**Important**: When running on Agentverse:
+- Do NOT set `AGENTVERSE=true` (only needed for local agents using mailbox)
+- Do NOT set `AGENT_ENDPOINT` or `AGENT_ENDPOINT_PORT` (Agentverse handles this)
+- Agent configuration will be minimal - Agentverse manages the infrastructure
+
+#### 3. Deploy to Agentverse
+
+1. Go to [agentverse.ai](https://agentverse.ai)
+2. Create new agent
+3. Upload `agent.py` and `models.py`
+4. Configure secrets from step 2
+5. Deploy and start the agent
+6. Copy the agent address from the Agentverse console
+
+#### 4. Register for Chat Protocol (Optional)
+
+To enable your agent for chat-based interactions on Agentverse:
+
+```bash
+# Configure register.py with your settings
+nano src/register.py
+
+# Update with your values:
+# - AGENTVERSE_API_TOKEN: Your Agentverse API token
+# - AGENT_SEED: Same seed used in agent deployment
+# - Agent name: Your chosen name
+# - Endpoint URL: Your agent's public endpoint (if different)
+
+# Run the registration script
+uv run src/register.py
+```
+
+**What this does**: Registers your agent with the Agentverse chat protocol, enabling:
+- Discovery via agent handle (e.g., @x402merchant)
+- Direct messaging through Agentverse UI
+- Integration with Agentverse social features
+
+**Reference**: [Agentverse Chat Protocol Documentation](https://docs.agentverse.ai/documentation/launch-agents/connect-your-agents-chat-protocol-integration)
+
+#### 5. Configure Clients
+
+Update your client configuration to use your Agentverse merchant:
+
+```env
+MERCHANT_UAGENT_ADDRESS=<agent-address-from-agentverse-console>
+MERCHANT_AGENT_ADDRESS=<your-solana-wallet-for-payments>
+PAYMENT_NETWORK=solana-devnet
+```
+
+**Benefits of Agentverse Deployment**:
+- ✅ 24/7 availability (managed infrastructure)
+- ✅ No server setup required
+- ✅ Automatic scaling
+- ✅ Built-in monitoring and logs
+- ✅ Global edge network for low latency
+- ✅ Simple deployment and updates
+
+**Live Example**: See [@x402merchant](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile)
 
 ## 🔒 Security Features
 
