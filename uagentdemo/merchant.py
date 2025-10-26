@@ -461,14 +461,30 @@ aName = os.getenv("AGENT_NAME", "payment_merchant_agent")
 aSeed = os.getenv("AGENT_SEED", "merchant_agent_secure_seed_phrase_12345")
 aNet = os.getenv("AGENT_NETWORK", "testnet")
 
-# Initialize agent
-agent = Agent(
-    name=aName,
-    seed=aSeed,
-    port=8000,
-    endpoint=["http://localhost:8000/submit"],
-    network=aNet
-)
+# Check if mailbox should be enabled
+mailbox_key = os.getenv("MAILBOX_KEY")
+use_mailbox = mailbox_key is not None and mailbox_key.strip() != ""
+
+# Initialize agent with conditional mailbox
+if use_mailbox:
+    agent = Agent(
+        name=aName,
+        seed=aSeed,
+        port=8000,
+        endpoint=["http://localhost:8000/submit"],
+        mailbox=True,
+        network=aNet
+    )
+    print("🔗 Mailbox enabled - agent will connect to Agentverse network")
+else:
+    agent = Agent(
+        name=aName,
+        seed=aSeed,
+        port=8000,
+        endpoint=["http://localhost:8000/submit"],
+        network=aNet
+    )
+    print("📡 Local mode - agent running without mailbox")
 
 # Initialize PayAI facilitator service (if x402 is available)
 facilitator_service = None
@@ -488,6 +504,11 @@ async def introduce_agent(ctx: Context):
     ctx.logger.info(f"🏪 Merchant Agent Started: {agent.name}")
     ctx.logger.info(f"Agent address: {agent.address}")
     ctx.logger.info(f"Running on network: {aNet}")
+
+    if use_mailbox:
+        ctx.logger.info("🔗 Mailbox: ENABLED - Connected to Agentverse")
+    else:
+        ctx.logger.info("📡 Mailbox: DISABLED - Local mode only")
 
     if facilitator_service:
         ctx.logger.info("✅ PayAI Facilitator Integration ENABLED")
@@ -766,6 +787,10 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Agent: {aName}")
     print(f"Network: {aNet}")
+    if use_mailbox:
+        print(f"Mode: Mailbox (Connected to Agentverse)")
+    else:
+        print(f"Mode: Local (Standalone)")
     print(f"Facilitator: {facilitator_service.facilitator_url}")
     print(f"Merchant Address: {facilitator_service.merchant_address}")
     print("=" * 60)
