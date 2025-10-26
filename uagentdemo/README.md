@@ -30,8 +30,8 @@ PAYMENT_NETWORK=solana-devnet
 BYPASS_PAYMENT_VERIFICATION=true
 EOF
 
-# 6. Run the agent!
-uv run main.py
+# 6. Run the merchant agent!
+uv run merchant.py
 ```
 
 **What you'll see:**
@@ -253,14 +253,14 @@ Start the merchant agent using UV:
 cd /path/to/uagentdemo
 
 # Run with UV (automatically uses .venv)
-uv run main.py
+uv run merchant.py
 
 # If the above doesn't work, try with python explicitly:
-# uv run python main.py
+# uv run python merchant.py
 
 # Alternative: Activate venv and run directly
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-python main.py
+python merchant.py
 ```
 
 **Expected Output**:
@@ -362,8 +362,8 @@ from typing import Optional
 
 load_dotenv()
 
-# Import message models from main
-from main import ResourceRequest, PaymentRequired, PaymentProof, ResourceAccess, ResourceError
+# Import message models from merchant
+from merchant import ResourceRequest, PaymentRequired, PaymentProof, ResourceAccess, ResourceError
 
 # Client configuration
 CLIENT_NAME = os.getenv("CLIENT_NAME", "premium_client")
@@ -620,7 +620,7 @@ Sent by merchant when request fails.
 
 ### Step 1: Define Resource Pricing
 
-In `main.py`, update `PayAIFacilitatorService.get_price_for_resource()`:
+In `merchant.py`, update `PayAIFacilitatorService.get_price_for_resource()`:
 
 ```python
 resources = {
@@ -651,7 +651,7 @@ resources = {
 
 ### Step 2: Define Resource Data
 
-In `main.py`, update `get_premium_resource()`:
+In `merchant.py`, update `get_premium_resource()`:
 
 ```python
 resources = {
@@ -675,7 +675,7 @@ resources = {
 
 ```bash
 # Restart merchant
-uv run main.py
+uv run merchant.py
 
 # Resource is immediately available!
 # Clients can now request "custom_resource"
@@ -739,9 +739,9 @@ uv run python -c "import uagents, x402; print('✅ All packages installed')"
 - Address can be any valid format for development mode
 - For production, use actual Base Sepolia address (0x + 40 hex chars)
 
-**Error**: `error: Failed to spawn: main.py`
+**Error**: `error: Failed to spawn: merchant.py`
 - Make sure you're in the project directory
-- Try: `uv run main.py` (this should work directly)
+- Try: `uv run merchant.py` (this should work directly)
 
 **Error**: `No virtual environment found`
 - Run `uv venv` to create virtual environment first
@@ -899,7 +899,7 @@ To implement production payment verification with Web3.py:
 uv pip install web3
 ```
 
-Then update `verify_and_settle_payment()` in main.py:
+Then update `verify_and_settle_payment()` in merchant.py:
 
 ```python
 from web3 import Web3

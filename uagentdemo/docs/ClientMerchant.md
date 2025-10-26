@@ -313,47 +313,6 @@ curl https://facilitator.payai.network/health
 - **Fix**: Update Solana library imports (API changed)
 - **Use**: `from solders.transaction import Transaction`
 
-## File Structure
-
-```
-/proj/uagentdemo/
-├── main.py                          # Merchant agent
-├── client-sample.py                 # Client agent
-├── models.py                        # Shared message models
-├── .env                             # Configuration
-├── How_client_merchant_works.md     # This file
-└── docs/
-    ├── PayAIx402-Merchant.md        # PayAI merchant docs
-    ├── PayAIx402-Client.md          # PayAI client docs
-    └── repositories/x402/           # x402 examples
-```
-
-## Running the Demo
-
-### Prerequisites
-```bash
-# 1. Install dependencies
-cd /proj/uagentdemo
-uv sync
-
-# 2. Fund your Solana wallet (client)
-# Visit: https://faucet.solana.com/
-# Request SOL for your CLIENT_WALLET_ADDRESS
-
-# 3. Configure .env with all required values
-```
-
-### Start Services
-```bash
-# Terminal 1 - Merchant
-cd /proj/uagentdemo
-uv run main.py
-
-# Terminal 2 - Client
-cd /proj/uagentdemo
-uv run client-sample.py
-```
-
 ### Expected Output
 
 **Merchant**:
