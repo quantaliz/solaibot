@@ -228,3 +228,13 @@ Here is another demo video uploaded earlier: https://youtu.be/ieUBE9uDSwE
 With these two, update the @webpage/hackathon.html webpage to show these links within.
 The first link should be placed as a new section just after the first "Financially Autonomous AI Agents". Name this new section "SolAIBot Video Animation"
 The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"
+
+Add a new section to @webpage/hackathon.html before the Quantaliz logo at the end that gives an overview of the team:
+- R. CEO & CTO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/Chihuahua0.png?raw=true
+- Dylen. COO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/PekigneseBlue.png?raw=true
+Make images the same size and place R & Dylen side by side.
+Also, add "Special Thanks to" referencing people.
+- Metasal Twitter @metalsal
+- Notorious D.E.V. Twitter @notorious_d_e_v
+- Darren Twitter @darrenrogan
+Use the twitter image to jump to their twitter profile. This section should be small compared to the R & D
