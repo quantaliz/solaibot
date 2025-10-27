@@ -955,6 +955,7 @@
                 <div class="badges">
                     <span class="badge">🏆 Cypherpunk 2025</span>
                     <span class="badge">🏆 Hackaroo 2025</span>
+                    <span class="badge">🏆 ASI Agents Track</span>
                 </div>
 
                 <div class="cta-buttons">
@@ -1025,7 +1026,7 @@
     <section id="solution" data-section="3">
         <div class="container">
             <h2>Our Solution</h2>
-            <p class="section-subtitle">Two powerful implementations enabling private, financially autonomous AI agents</p>
+            <p class="section-subtitle">Three powerful implementations enabling private, financially autonomous AI agents</p>
 
             <div class="solution-grid">
                 <!-- SolAIBot -->
@@ -1074,6 +1075,33 @@
                     <span class="expand-toggle" onclick="toggleExpand('plugin-details', this)">Show technical details</span>
 
                     <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">View Repository</a>
+                </div>
+
+                <!-- Agent Commerce Platform ---->
+                <div class="solution-card" style="grid-column: 1 / -1; max-width: 900px; margin: 0 auto;">
+                    <h3>🏪 Agent Commerce Platform</h3>
+                    <span class="tech-badge">Fetch.ai uAgents • Python • Agentverse</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        A fully functional agent-to-agent marketplace where autonomous AI agents discover, purchase, and consume digital resources instantly—without human intervention. Live 24/7 on Agentverse.
+                    </p>
+
+                    <div class="expandable-content" id="agent-platform-details">
+                        <ul>
+                            <li>Autonomous agent-to-agent transactions with zero human intervention</li>
+                            <li>24/7 merchant agent deployment on Agentverse (@x402merchant)</li>
+                            <li>Sub-second payment verification with instant resource delivery</li>
+                            <li>Zero gas fees via facilitator settlement (merchant-paid)</li>
+                            <li>Premium marketplace: weather data, analytics, API access</li>
+                            <li>Production-ready security with cryptographic verification</li>
+                        </ul>
+                    </div>
+
+                    <span class="expand-toggle" onclick="toggleExpand('agent-platform-details', this)">Show technical details</span>
+
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" class="btn btn-primary" target="_blank">Try Live Demo</a>
+                        <a href="https://github.com/quantaliz/solaibot/tree/main/uagentdemo" class="btn btn-secondary" target="_blank">View Documentation</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1173,7 +1201,7 @@
     <section id="architecture" data-section="7">
         <div class="container">
             <h2>Complete Ecosystem Architecture</h2>
-            <p class="section-subtitle">Mobile to desktop, unified by x402 + Solana</p>
+            <p class="section-subtitle">Mobile to desktop to agent-to-agent, unified by x402 + Solana</p>
 
             <div class="architecture">
                 <div class="mermaid">
@@ -1186,24 +1214,31 @@ graph TB
         B[Solana Agent Kit<br/>Node.js<br/>TypeScript<br/>Any LLM<br/>Multi-chain]
     end
 
+    subgraph Agents["🤖 AGENT-TO-AGENT"]
+        E[Fetch.ai uAgents<br/>Merchant Agent<br/>Client Agent<br/>Agentverse<br/>24/7 Deploy]
+    end
+
     subgraph Protocol["x402 Protocol"]
         C[HTTP 402 Payments<br/>Payment Challenges<br/>Transaction Building]
     end
 
     subgraph Blockchain["⛓️ Solana Blockchain"]
-        D[400ms Finality<br/>Low Fees<br/>MWA Security<br/>On-chain Settlement]
+        D[400ms Finality<br/>Zero Gas Fees<br/>MWA Security<br/>On-chain Settlement]
     end
 
     A --> C
     B --> C
+    E --> C
     C --> D
 
     style A fill:#7c3aed,stroke:#f97316,color:#fff
     style B fill:#7c3aed,stroke:#f97316,color:#fff
+    style E fill:#7c3aed,stroke:#f97316,color:#fff
     style C fill:#1a1a1a,stroke:#7c3aed,color:#f8f8f8
     style D fill:#1a1a1a,stroke:#f97316,color:#f8f8f8
     style Mobile fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Desktop fill:#0f0f0f,stroke:#333,color:#f8f8f8
+    style Agents fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Protocol fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Blockchain fill:#0f0f0f,stroke:#333,color:#f8f8f8
                 </div>
@@ -1345,12 +1380,12 @@ graph TB
 
             <div class="traction-grid">
                 <div class="traction-item">
-                    <div class="number">2</div>
+                    <div class="number">3</div>
                     <div class="label">Complete Projects</div>
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">1,000+</div>
+                    <div class="number">2,000+</div>
                     <div class="label">Lines of Code</div>
                 </div>
 
@@ -1365,13 +1400,13 @@ graph TB
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">2</div>
+                    <div class="number">3+</div>
                     <div class="label">Working Demos</div>
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">100%</div>
-                    <div class="label">Devnet Tested</div>
+                    <div class="number">24/7</div>
+                    <div class="label">Live on Agentverse</div>
                 </div>
             </div>
 
@@ -1385,10 +1420,12 @@ graph TB
                         <ul class="checkmark-list">
                             <li>Working Android app (v1.0.7) with production APK releases</li>
                             <li>Production Node.js toolkit with comprehensive test suite</li>
+                            <li>Live agent-to-agent marketplace deployed 24/7 on Agentverse</li>
                             <li>Successfully tested end-to-end on Solana devnet with Solflare</li>
                             <li>CLI demo with step-by-step payment flows</li>
                             <li>MCP server for Claude Desktop integration</li>
-                            <li>Complete documentation for both projects</li>
+                            <li>Working merchant agent (@x402merchant) serving premium resources</li>
+                            <li>Complete documentation for all three projects</li>
                             <li>Cross-platform x402 payment protocol implementation</li>
                         </ul>
                     </div>
@@ -1501,6 +1538,9 @@ graph TB
                 <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">
                     📱 Download SolAIBot APK
                 </a>
+                <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" class="btn btn-primary" target="_blank">
+                    🤖 Try Live Agent
+                </a>
                 <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">
                     💻 Clone Agent Kit
                 </a>
@@ -1596,11 +1636,12 @@ graph TB
         <div class="container" style="text-align: center;">
             <img src="https://github.com/quantaliz/solaibot/blob/main/images/Quantaliz.png?raw=true" alt="Quantaliz Logo" class="logo-footer">
 
-            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
+            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0; flex-wrap: wrap;">
                 <a href="https://www.quantaliz.com" target="_blank">Website</a>
                 <a href="https://github.com/quantaliz" target="_blank">GitHub</a>
                 <a href="https://github.com/quantaliz/solaibot" target="_blank">SolAIBot</a>
                 <a href="https://github.com/quantaliz/solana-agent-kit" target="_blank">Agent Kit</a>
+                <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" target="_blank">Live Agent Demo</a>
             </div>
 
             <p style="margin-bottom: 1rem; color: var(--light-text);">
@@ -1609,8 +1650,9 @@ graph TB
             </p>
 
             <p style="font-size: 0.9rem; color: var(--gray-text);">
-                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>
-                & <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>,
+                <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+                & <a href="https://earn.superteam.fun/listing/asi-agents-track/" target="_blank" style="color: var(--primary-purple);">ASI Agents Track</a>
             </p>
 
             <p style="font-size: 0.85rem; margin-top: 2rem; color: var(--gray-text);">

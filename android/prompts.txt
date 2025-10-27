@@ -281,3 +281,6 @@ Also, add "Special Thanks to" referencing people.
 Use the twitter image to jump to their twitter profile. This section should be small compared to the R & D
 
 When the webpage loads, the video animation fails to load telling me "Error 153 Video player configuration error", what can be done about it?
+
+This project now has a new demo, which is inside the uagentdemo folder. The @uagentdemo/README.md provides a general overview of what's happening to that subproject. Make sure to update the @README.md to reference what's been worked there, then forward people interested in knowing more to the @uagentdemo/README.md file. Make sure that wording in both documents feels consistent, considering as priority the one @README.md file and subordinate the one @uagentdemo/README.md
+Along the same line, make sure it follows the patterns for the hackathon explained in @context/PitchReference.md
