@@ -259,3 +259,11 @@ There has been a change of plans, there is no need anymore for the @src/agentver
 - When you finish analyzing the code, remove the @src/agentverse-proxy.py file
 - Add to the README.md file the @src/register.py step as metioned in the documentation here: "https://docs.agentverse.ai/documentation/launch-agents/connect-your-agents-chat-protocol-integration" in the step "You will now have to run the provided registration script. Copy and paste it on your end,"
 - Make sure @src/client.py is aligned with all the changes to README.md or (if anything) to the merchant
+
+I created a video with this @demo/video-script.md now I need the youtube description for that video. Consider the @README.md as reference of what's doing. Place a new file inside "demo/youtubedescription.md" file.
+
+Here is the youtube video link: https://youtu.be/cwwICOWi-qE
+Here is another demo video uploaded earlier: https://youtu.be/ieUBE9uDSwE
+With these two, update the @webpage/hackathon.html webpage to show these links within.
+The first link should be placed as a new section just after the first "Financially Autonomous AI Agents". Name this new section "SolAIBot Video Animation"
+The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"
