@@ -279,3 +279,5 @@ Also, add "Special Thanks to" referencing people.
 - Notorious D.E.V. Twitter @notorious_d_e_v
 - Darren Twitter @darrenrogan
 Use the twitter image to jump to their twitter profile. This section should be small compared to the R & D
+
+When the webpage loads, the video animation fails to load telling me "Error 153 Video player configuration error", what can be done about it?

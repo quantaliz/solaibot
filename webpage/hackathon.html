@@ -971,15 +971,17 @@
             <p class="section-subtitle">Watch how AI agents become financially autonomous</p>
 
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
-                    <iframe
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
-                        src="https://www.youtube.com/embed/cwwICOWi-qE"
-                        title="SolAIBot Video Animation"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen>
-                    </iframe>
+                <div class="video-container" data-video-id="cwwICOWi-qE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/cwwICOWi-qE/hqdefault.jpg"
+                        alt="SolAIBot Video Animation"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
                 </div>
                 <div style="text-align: center; margin-top: 1.5rem;">
                     <a href="https://youtu.be/cwwICOWi-qE" class="btn btn-secondary" target="_blank">
@@ -1142,15 +1144,17 @@
             <p class="section-subtitle">See SolAIBot in action with live payment flows</p>
 
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
-                    <iframe
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
-                        src="https://www.youtube.com/embed/ieUBE9uDSwE"
-                        title="SolAIBot Demo"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen>
-                    </iframe>
+                <div class="video-container" data-video-id="ieUBE9uDSwE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/ieUBE9uDSwE/hqdefault.jpg"
+                        alt="SolAIBot Demo"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
                 </div>
                 <p style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
                     Watch the complete demo showing on-device AI processing and autonomous Solana payments
@@ -1725,6 +1729,34 @@ graph TB
                 dot.addEventListener('mouseleave', function() {
                     // Remove active from all cards when mouse leaves dot
                     timelineCards.forEach(c => c.classList.remove('active'));
+                });
+            });
+
+            // Lazy-load YouTube videos on click
+            const videoContainers = document.querySelectorAll('.video-container');
+            videoContainers.forEach(container => {
+                container.addEventListener('click', function() {
+                    const videoId = this.getAttribute('data-video-id');
+
+                    // Create iframe
+                    const iframe = document.createElement('iframe');
+                    iframe.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`);
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                    iframe.setAttribute('allowfullscreen', '');
+                    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                    iframe.setAttribute('title', 'YouTube video player');
+                    iframe.style.position = 'absolute';
+                    iframe.style.top = '0';
+                    iframe.style.left = '0';
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = '2px solid var(--primary-purple)';
+                    iframe.style.borderRadius = '12px';
+
+                    // Replace container content with iframe
+                    this.innerHTML = '';
+                    this.appendChild(iframe);
                 });
             });
         });
