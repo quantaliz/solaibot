@@ -267,3 +267,5 @@ Here is another demo video uploaded earlier: https://youtu.be/ieUBE9uDSwE
 With these two, update the @webpage/hackathon.html webpage to show these links within.
 The first link should be placed as a new section just after the first "Financially Autonomous AI Agents". Name this new section "SolAIBot Video Animation"
 The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"
+
+The current roadmap in the @wepbage/hackathon.html is really boring and not engaging. The content is fine but does not show actual progression at first sight. Change it to something like in this image @images/RoadmapSample.jpg This image is just a sample of how to improve the current content of the roadmap in the webpage. Try it

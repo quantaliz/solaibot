@@ -651,23 +651,192 @@
             background: transparent !important;
         }
 
-        /* Roadmap horizontal layout */
-        .roadmap-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 2rem;
-            margin-top: 3rem;
+        /* Roadmap compact timeline */
+        .roadmap-timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 3rem 2rem;
+            background: var(--darker-bg);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
         }
 
-        @media (max-width: 1200px) {
-            .roadmap-grid {
+        .timeline-progress-bar {
+            position: relative;
+            height: 12px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+
+        .timeline-progress-fill {
+            height: 100%;
+            background: linear-gradient(to right,
+                #c4969c 0%, #c4969c 25%,
+                #7c9cb4 25%, #7c9cb4 50%,
+                #f4c542 50%, #f4c542 75%,
+                #c4969c 75%, #c4969c 100%
+            );
+            border-radius: 10px;
+        }
+
+        .timeline-milestones {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2px;
+        }
+
+        .timeline-dot {
+            width: 20px;
+            height: 20px;
+            background: var(--darker-bg);
+            border: 3px solid var(--primary-purple);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+
+        .timeline-dot:nth-child(1) { border-color: #c4969c; }
+        .timeline-dot:nth-child(2) { border-color: #7c9cb4; }
+        .timeline-dot:nth-child(3) { border-color: #f4c542; }
+        .timeline-dot:nth-child(4) { border-color: #c4969c; }
+
+        .timeline-dot:hover {
+            transform: scale(1.5);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+        }
+
+        .timeline-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .timeline-card {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-card:nth-child(1) { border-left: 4px solid #c4969c; }
+        .timeline-card:nth-child(2) { border-left: 4px solid #7c9cb4; }
+        .timeline-card:nth-child(3) { border-left: 4px solid #f4c542; }
+        .timeline-card:nth-child(4) { border-left: 4px solid #c4969c; }
+
+        .timeline-card:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+        }
+
+        .timeline-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-card-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .timeline-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--light-text);
+            line-height: 1.3;
+        }
+
+        .timeline-card-summary {
+            font-size: 0.95rem;
+            color: var(--gray-text);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-card-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, opacity 0.4s ease-out;
+            opacity: 0;
+        }
+
+        .timeline-card:hover .timeline-card-details,
+        .timeline-card.active .timeline-card-details {
+            max-height: 300px;
+            opacity: 1;
+            transition: max-height 0.5s ease-in, opacity 0.5s ease-in;
+        }
+
+        .timeline-card-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0.75rem 0 0 0;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+        }
+
+        .timeline-card-details li {
+            padding: 0.4rem 0;
+            color: var(--gray-text);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: start;
+        }
+
+        .timeline-card-details li::before {
+            content: '→';
+            color: var(--primary-purple);
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .timeline-cards {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        @media (max-width: 768px) {
-            .roadmap-grid {
+        @media (max-width: 640px) {
+            .timeline-cards {
                 grid-template-columns: 1fr;
+            }
+
+            .timeline-progress-bar {
+                margin-bottom: 2rem;
+            }
+
+            .timeline-card {
+                padding: 1.25rem;
+            }
+
+            .timeline-card-details {
+                max-height: 250px;
             }
         }
 
@@ -1227,68 +1396,89 @@ graph TB
     <section id="roadmap" data-section="12">
         <div class="container">
             <h2>Roadmap</h2>
-            <p class="section-subtitle">Next steps to scale the AI agent economy</p>
+            <p class="section-subtitle">Hover over each milestone to see more details</p>
 
-            <div class="roadmap-grid">
-                <div class="card">
-                    <div class="icon">🚀</div>
-                    <h4>Q2 2025 - Mainnet Launch</h4>
-                    <p><strong>Production payments on Solana mainnet</strong></p>
-                    <div class="expandable-content" id="roadmap-q2">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mainnet deployment for SolAIBot</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Real-world payment testing with users</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• SPL token support beyond SOL</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Enhanced security audits</li>
-                        </ul>
+            <div class="roadmap-timeline">
+                <!-- Progress bar with dots -->
+                <div class="timeline-progress-bar">
+                    <div class="timeline-progress-fill"></div>
+                    <div class="timeline-milestones">
+                        <div class="timeline-dot" data-card="0" title="Q1 2026"></div>
+                        <div class="timeline-dot" data-card="1" title="Q2 2026"></div>
+                        <div class="timeline-dot" data-card="2" title="Q3 2026"></div>
+                        <div class="timeline-dot" data-card="3" title="Q4 2026"></div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q2', this)" style="font-size: 0.9rem;">Details</span>
                 </div>
 
-                <div class="card">
-                    <div class="icon">🎨</div>
-                    <h4>Q3 2025 - Enhanced UX</h4>
-                    <p><strong>Multi-model support and voice interface</strong></p>
-                    <div class="expandable-content" id="roadmap-q3">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Support for multiple LLMs simultaneously</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Voice interface for hands-free operation</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Custom plugin marketplace</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Improved model download management</li>
-                        </ul>
+                <!-- Compact cards -->
+                <div class="timeline-cards">
+                    <!-- Card 1 -->
+                    <div class="timeline-card" data-card-index="0">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">01</div>
+                            <h4 class="timeline-card-title">Q1 2026<br>Mainnet Launch</h4>
+                        </div>
+                        <p class="timeline-card-summary">Production payments on Solana mainnet</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Mainnet deployment for SolAIBot</li>
+                                <li>Real-world payment testing with users</li>
+                                <li>SPL token support beyond SOL</li>
+                                <li>Enhanced security audits</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q3', this)" style="font-size: 0.9rem;">Details</span>
-                </div>
 
-                <div class="card">
-                    <div class="icon">🌐</div>
-                    <h4>Q4 2025 - Multi-Platform</h4>
-                    <p><strong>Desktop version and iOS support</strong></p>
-                    <div class="expandable-content" id="roadmap-q4">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Desktop version of SolAIBot (Windows, Mac, Linux)</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• iOS app development</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mobile SDK for native integrations</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• MCP client support in mobile app</li>
-                        </ul>
+                    <!-- Card 2 -->
+                    <div class="timeline-card" data-card-index="1">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">02</div>
+                            <h4 class="timeline-card-title">Q2 2026<br>Agent Marketplace</h4>
+                        </div>
+                        <p class="timeline-card-summary">Service discovery and monetization</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Agent marketplace platform launch</li>
+                                <li>Service discovery protocols</li>
+                                <li>Agent reputation system</li>
+                                <li>API monetization tools for developers</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q4', this)" style="font-size: 0.9rem;">Details</span>
-                </div>
 
-                <div class="card">
-                    <div class="icon">🔗</div>
-                    <h4>2026 - Agent Ecosystem</h4>
-                    <p><strong>Agent marketplace and multi-chain support</strong></p>
-                    <div class="expandable-content" id="roadmap-2026">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent marketplace for service discovery</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Cross-chain payment bridges (EVM chains)</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Payment streaming for subscriptions</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent-to-agent communication protocol</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Analytics dashboard for developers</li>
-                        </ul>
+                    <!-- Card 3 -->
+                    <div class="timeline-card" data-card-index="2">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">03</div>
+                            <h4 class="timeline-card-title">Q3 2026<br>Multi-Chain Support</h4>
+                        </div>
+                        <p class="timeline-card-summary">Cross-chain payment bridges</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>EVM chain payment bridges</li>
+                                <li>Payment streaming for subscriptions</li>
+                                <li>Multi-chain routing optimization</li>
+                                <li>Cross-chain settlement automation</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-2026', this)" style="font-size: 0.9rem;">Details</span>
+
+                    <!-- Card 4 -->
+                    <div class="timeline-card" data-card-index="3">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">04</div>
+                            <h4 class="timeline-card-title">Q4 2026<br>Agent Economy</h4>
+                        </div>
+                        <p class="timeline-card-summary">Complete agent-to-agent ecosystem</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Agent-to-agent communication protocol</li>
+                                <li>Developer analytics dashboard</li>
+                                <li>Autonomous agent networks</li>
+                                <li>Enterprise integration solutions</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1421,8 +1611,57 @@ graph TB
             }
         }
 
-        // Make toggleExpand globally available
+        // Timeline expandable toggle
+        function toggleTimelineExpand(contentId, toggleElement) {
+            const content = document.getElementById(contentId);
+            content.classList.toggle('expanded');
+            toggleElement.classList.toggle('expanded');
+        }
+
+        // Make functions globally available
         window.toggleExpand = toggleExpand;
+        window.toggleTimelineExpand = toggleTimelineExpand;
+
+        // Touch support for timeline cards on mobile
+        document.addEventListener('DOMContentLoaded', () => {
+            const timelineCards = document.querySelectorAll('.timeline-card');
+            const timelineDots = document.querySelectorAll('.timeline-dot');
+
+            // Card click/touch interaction
+            timelineCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Toggle active class for mobile touch
+                    if (window.innerWidth <= 1024) {
+                        // Remove active from all other cards
+                        timelineCards.forEach(c => {
+                            if (c !== this) c.classList.remove('active');
+                        });
+                        // Toggle active on clicked card
+                        this.classList.toggle('active');
+                    }
+                });
+            });
+
+            // Timeline dot hover activates corresponding card
+            timelineDots.forEach(dot => {
+                dot.addEventListener('mouseenter', function() {
+                    const cardIndex = this.getAttribute('data-card');
+                    const targetCard = document.querySelector(`[data-card-index="${cardIndex}"]`);
+
+                    if (targetCard) {
+                        // Remove active from all cards
+                        timelineCards.forEach(c => c.classList.remove('active'));
+                        // Add active to target card
+                        targetCard.classList.add('active');
+                    }
+                });
+
+                dot.addEventListener('mouseleave', function() {
+                    // Remove active from all cards when mouse leaves dot
+                    timelineCards.forEach(c => c.classList.remove('active'));
+                });
+            });
+        });
 
         // Section navigation state
         let currentSection = 0;
