@@ -46,6 +46,7 @@ fun LlmChatScreen(
     navigateUp = navigateUp,
     modifier = modifier,
     activityResultSender = activityResultSender,
+    showTopAppBar = false,
   )
 }
 
@@ -94,6 +95,7 @@ fun ChatViewWrapper(
   modifier: Modifier = Modifier,
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
   onWalletConnectClicked: (() -> Unit)? = null,
+  showTopAppBar: Boolean = true,
 ) {
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
@@ -203,5 +205,6 @@ fun ChatViewWrapper(
     walletViewModel = walletViewModel,
     activityResultSender = activityResultSender,
     onWalletConnectClicked = effectiveOnWalletConnect,
+    showTopAppBar = showTopAppBar,
   )
 }

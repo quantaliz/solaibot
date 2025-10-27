@@ -18,7 +18,6 @@ package com.quantaliz.solaibot.ui.llmchat
 
 import android.content.Context
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mms
 import androidx.compose.runtime.Composable
@@ -48,7 +47,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       id = BuiltInTaskId.LLM_CHAT,
       label = "SolAIBot",
       category = Category.LLM,
-      icon = Icons.Outlined.Forum,
+      iconVectorResourceId = R.drawable.ic_robot,
       models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
       description = "On-device Large Language Model that can make x402 payments. Developed for Hackaroo & Cypherpunk",
       docUrl = "https://quantaliz.com/hackaroo",
