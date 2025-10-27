@@ -269,3 +269,13 @@ The first link should be placed as a new section just after the first "Financial
 The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"
 
 The current roadmap in the @wepbage/hackathon.html is really boring and not engaging. The content is fine but does not show actual progression at first sight. Change it to something like in this image @images/RoadmapSample.jpg This image is just a sample of how to improve the current content of the roadmap in the webpage. Try it
+
+Add a new section to @webpage/hackathon.html before the Quantaliz logo at the end that gives an overview of the team:
+- R. CEO & CTO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/Chihuahua0.png?raw=true
+- Dylen. COO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/PekigneseBlue.png?raw=true
+Make images the same size and place R & Dylen side by side.
+Also, add "Special Thanks to" referencing people.
+- Metasal Twitter @metalsal
+- Notorious D.E.V. Twitter @notorious_d_e_v
+- Darren Twitter @darrenrogan
+Use the twitter image to jump to their twitter profile. This section should be small compared to the R & D
