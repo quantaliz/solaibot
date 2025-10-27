@@ -461,6 +461,21 @@ val MODEL_HAMMER_2_1_1_5B: Model =
      llmSupportFunctionCalling = true,
    )
 
+val PHI4_MINI_INSTRUCT: Model =
+    Model(
+    name = "Phi-4-mini-instruct",
+    displayName = "Phi-4-mini-instruct 4B",
+    info = "Phi-4-mini-instruct 4B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
+    configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
+    url = "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
+    downloadFileName = "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm",
+    sizeInBytes = 3900000000L, // 1.5 GB
+    showBenchmarkButton = true,
+    showRunAgainButton = true,
+    learnMoreUrl = "https://huggingface.co/litert-community/Phi-4-mini-instruct",
+    llmSupportFunctionCalling = true,
+    )
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Model collections for different tasks.
 
