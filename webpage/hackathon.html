@@ -651,23 +651,192 @@
             background: transparent !important;
         }
 
-        /* Roadmap horizontal layout */
-        .roadmap-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 2rem;
-            margin-top: 3rem;
+        /* Roadmap compact timeline */
+        .roadmap-timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 3rem 2rem;
+            background: var(--darker-bg);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
         }
 
-        @media (max-width: 1200px) {
-            .roadmap-grid {
+        .timeline-progress-bar {
+            position: relative;
+            height: 12px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+
+        .timeline-progress-fill {
+            height: 100%;
+            background: linear-gradient(to right,
+                #c4969c 0%, #c4969c 25%,
+                #7c9cb4 25%, #7c9cb4 50%,
+                #f4c542 50%, #f4c542 75%,
+                #c4969c 75%, #c4969c 100%
+            );
+            border-radius: 10px;
+        }
+
+        .timeline-milestones {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2px;
+        }
+
+        .timeline-dot {
+            width: 20px;
+            height: 20px;
+            background: var(--darker-bg);
+            border: 3px solid var(--primary-purple);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+
+        .timeline-dot:nth-child(1) { border-color: #c4969c; }
+        .timeline-dot:nth-child(2) { border-color: #7c9cb4; }
+        .timeline-dot:nth-child(3) { border-color: #f4c542; }
+        .timeline-dot:nth-child(4) { border-color: #c4969c; }
+
+        .timeline-dot:hover {
+            transform: scale(1.5);
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+        }
+
+        .timeline-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .timeline-card {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-card:nth-child(1) { border-left: 4px solid #c4969c; }
+        .timeline-card:nth-child(2) { border-left: 4px solid #7c9cb4; }
+        .timeline-card:nth-child(3) { border-left: 4px solid #f4c542; }
+        .timeline-card:nth-child(4) { border-left: 4px solid #c4969c; }
+
+        .timeline-card:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+        }
+
+        .timeline-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-card-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .timeline-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--light-text);
+            line-height: 1.3;
+        }
+
+        .timeline-card-summary {
+            font-size: 0.95rem;
+            color: var(--gray-text);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-card-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, opacity 0.4s ease-out;
+            opacity: 0;
+        }
+
+        .timeline-card:hover .timeline-card-details,
+        .timeline-card.active .timeline-card-details {
+            max-height: 300px;
+            opacity: 1;
+            transition: max-height 0.5s ease-in, opacity 0.5s ease-in;
+        }
+
+        .timeline-card-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0.75rem 0 0 0;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+        }
+
+        .timeline-card-details li {
+            padding: 0.4rem 0;
+            color: var(--gray-text);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: start;
+        }
+
+        .timeline-card-details li::before {
+            content: '→';
+            color: var(--primary-purple);
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .timeline-cards {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        @media (max-width: 768px) {
-            .roadmap-grid {
+        @media (max-width: 640px) {
+            .timeline-cards {
                 grid-template-columns: 1fr;
+            }
+
+            .timeline-progress-bar {
+                margin-bottom: 2rem;
+            }
+
+            .timeline-card {
+                padding: 1.25rem;
+            }
+
+            .timeline-card-details {
+                max-height: 250px;
             }
         }
 
@@ -744,6 +913,7 @@
             <li><a href="#revenue">Revenue Model</a></li>
             <li><a href="#traction">Traction</a></li>
             <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="#team">Team</a></li>
             <li><a href="#contact">Contact</a></li>
         </ul>
     </nav>
@@ -765,6 +935,7 @@
         <div class="nav-dot" data-section="12"></div>
         <div class="nav-dot" data-section="13"></div>
         <div class="nav-dot" data-section="14"></div>
+        <div class="nav-dot" data-section="15"></div>
     </div>
 
     <!-- Keyboard Hint -->
@@ -776,6 +947,7 @@
     <section id="hero" class="hero" data-section="0">
         <div class="container">
             <div class="fade-in">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/IconSolAI_002.png?raw=true" alt="SolAI Icon" style="width: 200px; height: auto; margin: 0 auto 2rem auto; display: block;">
                 <h1>Financially Autonomous<br>AI Agents</h1>
                 <p class="subtitle">Privacy-First AI Meets Solana Micropayments</p>
                 <p class="tagline">AI agents can't pay for anything. They're brilliant, but broke. We fixed that.</p>
@@ -783,6 +955,7 @@
                 <div class="badges">
                     <span class="badge">🏆 Cypherpunk 2025</span>
                     <span class="badge">🏆 Hackaroo 2025</span>
+                    <span class="badge">🏆 ASI Agents Track</span>
                 </div>
 
                 <div class="cta-buttons">
@@ -800,15 +973,17 @@
             <p class="section-subtitle">Watch how AI agents become financially autonomous</p>
 
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
-                    <iframe
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
-                        src="https://www.youtube.com/embed/cwwICOWi-qE"
-                        title="SolAIBot Video Animation"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen>
-                    </iframe>
+                <div class="video-container" data-video-id="cwwICOWi-qE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/cwwICOWi-qE/hqdefault.jpg"
+                        alt="SolAIBot Video Animation"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
                 </div>
                 <div style="text-align: center; margin-top: 1.5rem;">
                     <a href="https://youtu.be/cwwICOWi-qE" class="btn btn-secondary" target="_blank">
@@ -851,7 +1026,7 @@
     <section id="solution" data-section="3">
         <div class="container">
             <h2>Our Solution</h2>
-            <p class="section-subtitle">Two powerful implementations enabling private, financially autonomous AI agents</p>
+            <p class="section-subtitle">Three powerful implementations enabling private, financially autonomous AI agents</p>
 
             <div class="solution-grid">
                 <!-- SolAIBot -->
@@ -900,6 +1075,33 @@
                     <span class="expand-toggle" onclick="toggleExpand('plugin-details', this)">Show technical details</span>
 
                     <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">View Repository</a>
+                </div>
+
+                <!-- Agent Commerce Platform ---->
+                <div class="solution-card" style="grid-column: 1 / -1; max-width: 900px; margin: 0 auto;">
+                    <h3>🏪 Agent Commerce Platform</h3>
+                    <span class="tech-badge">Fetch.ai uAgents • Python • Agentverse</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        A fully functional agent-to-agent marketplace where autonomous AI agents discover, purchase, and consume digital resources instantly—without human intervention. Live 24/7 on Agentverse.
+                    </p>
+
+                    <div class="expandable-content" id="agent-platform-details">
+                        <ul>
+                            <li>Autonomous agent-to-agent transactions with zero human intervention</li>
+                            <li>24/7 merchant agent deployment on Agentverse (@x402merchant)</li>
+                            <li>Sub-second payment verification with instant resource delivery</li>
+                            <li>Zero gas fees via facilitator settlement (merchant-paid)</li>
+                            <li>Premium marketplace: weather data, analytics, API access</li>
+                            <li>Production-ready security with cryptographic verification</li>
+                        </ul>
+                    </div>
+
+                    <span class="expand-toggle" onclick="toggleExpand('agent-platform-details', this)">Show technical details</span>
+
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" class="btn btn-primary" target="_blank">Try Live Demo</a>
+                        <a href="https://github.com/quantaliz/solaibot/tree/main/uagentdemo" class="btn btn-secondary" target="_blank">View Documentation</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -971,15 +1173,17 @@
             <p class="section-subtitle">See SolAIBot in action with live payment flows</p>
 
             <div style="max-width: 900px; margin: 0 auto;">
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
-                    <iframe
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
-                        src="https://www.youtube.com/embed/ieUBE9uDSwE"
-                        title="SolAIBot Demo"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen>
-                    </iframe>
+                <div class="video-container" data-video-id="ieUBE9uDSwE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/ieUBE9uDSwE/hqdefault.jpg"
+                        alt="SolAIBot Demo"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
                 </div>
                 <p style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
                     Watch the complete demo showing on-device AI processing and autonomous Solana payments
@@ -997,7 +1201,7 @@
     <section id="architecture" data-section="7">
         <div class="container">
             <h2>Complete Ecosystem Architecture</h2>
-            <p class="section-subtitle">Mobile to desktop, unified by x402 + Solana</p>
+            <p class="section-subtitle">Mobile to desktop to agent-to-agent, unified by x402 + Solana</p>
 
             <div class="architecture">
                 <div class="mermaid">
@@ -1010,24 +1214,31 @@ graph TB
         B[Solana Agent Kit<br/>Node.js<br/>TypeScript<br/>Any LLM<br/>Multi-chain]
     end
 
+    subgraph Agents["🤖 AGENT-TO-AGENT"]
+        E[Fetch.ai uAgents<br/>Merchant Agent<br/>Client Agent<br/>Agentverse<br/>24/7 Deploy]
+    end
+
     subgraph Protocol["x402 Protocol"]
         C[HTTP 402 Payments<br/>Payment Challenges<br/>Transaction Building]
     end
 
     subgraph Blockchain["⛓️ Solana Blockchain"]
-        D[400ms Finality<br/>Low Fees<br/>MWA Security<br/>On-chain Settlement]
+        D[400ms Finality<br/>Zero Gas Fees<br/>MWA Security<br/>On-chain Settlement]
     end
 
     A --> C
     B --> C
+    E --> C
     C --> D
 
     style A fill:#7c3aed,stroke:#f97316,color:#fff
     style B fill:#7c3aed,stroke:#f97316,color:#fff
+    style E fill:#7c3aed,stroke:#f97316,color:#fff
     style C fill:#1a1a1a,stroke:#7c3aed,color:#f8f8f8
     style D fill:#1a1a1a,stroke:#f97316,color:#f8f8f8
     style Mobile fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Desktop fill:#0f0f0f,stroke:#333,color:#f8f8f8
+    style Agents fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Protocol fill:#0f0f0f,stroke:#333,color:#f8f8f8
     style Blockchain fill:#0f0f0f,stroke:#333,color:#f8f8f8
                 </div>
@@ -1169,12 +1380,12 @@ graph TB
 
             <div class="traction-grid">
                 <div class="traction-item">
-                    <div class="number">2</div>
+                    <div class="number">3</div>
                     <div class="label">Complete Projects</div>
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">1,000+</div>
+                    <div class="number">2,000+</div>
                     <div class="label">Lines of Code</div>
                 </div>
 
@@ -1189,13 +1400,13 @@ graph TB
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">2</div>
+                    <div class="number">3+</div>
                     <div class="label">Working Demos</div>
                 </div>
 
                 <div class="traction-item">
-                    <div class="number">100%</div>
-                    <div class="label">Devnet Tested</div>
+                    <div class="number">24/7</div>
+                    <div class="label">Live on Agentverse</div>
                 </div>
             </div>
 
@@ -1209,10 +1420,12 @@ graph TB
                         <ul class="checkmark-list">
                             <li>Working Android app (v1.0.7) with production APK releases</li>
                             <li>Production Node.js toolkit with comprehensive test suite</li>
+                            <li>Live agent-to-agent marketplace deployed 24/7 on Agentverse</li>
                             <li>Successfully tested end-to-end on Solana devnet with Solflare</li>
                             <li>CLI demo with step-by-step payment flows</li>
                             <li>MCP server for Claude Desktop integration</li>
-                            <li>Complete documentation for both projects</li>
+                            <li>Working merchant agent (@x402merchant) serving premium resources</li>
+                            <li>Complete documentation for all three projects</li>
                             <li>Cross-platform x402 payment protocol implementation</li>
                         </ul>
                     </div>
@@ -1227,68 +1440,89 @@ graph TB
     <section id="roadmap" data-section="12">
         <div class="container">
             <h2>Roadmap</h2>
-            <p class="section-subtitle">Next steps to scale the AI agent economy</p>
+            <p class="section-subtitle">Hover over each milestone to see more details</p>
 
-            <div class="roadmap-grid">
-                <div class="card">
-                    <div class="icon">🚀</div>
-                    <h4>Q2 2025 - Mainnet Launch</h4>
-                    <p><strong>Production payments on Solana mainnet</strong></p>
-                    <div class="expandable-content" id="roadmap-q2">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mainnet deployment for SolAIBot</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Real-world payment testing with users</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• SPL token support beyond SOL</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Enhanced security audits</li>
-                        </ul>
+            <div class="roadmap-timeline">
+                <!-- Progress bar with dots -->
+                <div class="timeline-progress-bar">
+                    <div class="timeline-progress-fill"></div>
+                    <div class="timeline-milestones">
+                        <div class="timeline-dot" data-card="0" title="Q1 2026"></div>
+                        <div class="timeline-dot" data-card="1" title="Q2 2026"></div>
+                        <div class="timeline-dot" data-card="2" title="Q3 2026"></div>
+                        <div class="timeline-dot" data-card="3" title="Q4 2026"></div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q2', this)" style="font-size: 0.9rem;">Details</span>
                 </div>
 
-                <div class="card">
-                    <div class="icon">🎨</div>
-                    <h4>Q3 2025 - Enhanced UX</h4>
-                    <p><strong>Multi-model support and voice interface</strong></p>
-                    <div class="expandable-content" id="roadmap-q3">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Support for multiple LLMs simultaneously</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Voice interface for hands-free operation</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Custom plugin marketplace</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Improved model download management</li>
-                        </ul>
+                <!-- Compact cards -->
+                <div class="timeline-cards">
+                    <!-- Card 1 -->
+                    <div class="timeline-card" data-card-index="0">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">01</div>
+                            <h4 class="timeline-card-title">Q1 2026<br>Mainnet Launch</h4>
+                        </div>
+                        <p class="timeline-card-summary">Production payments on Solana mainnet</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Mainnet deployment for SolAIBot</li>
+                                <li>Real-world payment testing with users</li>
+                                <li>SPL token support beyond SOL</li>
+                                <li>Enhanced security audits</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q3', this)" style="font-size: 0.9rem;">Details</span>
-                </div>
 
-                <div class="card">
-                    <div class="icon">🌐</div>
-                    <h4>Q4 2025 - Multi-Platform</h4>
-                    <p><strong>Desktop version and iOS support</strong></p>
-                    <div class="expandable-content" id="roadmap-q4">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Desktop version of SolAIBot (Windows, Mac, Linux)</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• iOS app development</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mobile SDK for native integrations</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• MCP client support in mobile app</li>
-                        </ul>
+                    <!-- Card 2 -->
+                    <div class="timeline-card" data-card-index="1">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">02</div>
+                            <h4 class="timeline-card-title">Q2 2026<br>Agent Marketplace</h4>
+                        </div>
+                        <p class="timeline-card-summary">Service discovery and monetization</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Agent marketplace platform launch</li>
+                                <li>Service discovery protocols</li>
+                                <li>Agent reputation system</li>
+                                <li>API monetization tools for developers</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q4', this)" style="font-size: 0.9rem;">Details</span>
-                </div>
 
-                <div class="card">
-                    <div class="icon">🔗</div>
-                    <h4>2026 - Agent Ecosystem</h4>
-                    <p><strong>Agent marketplace and multi-chain support</strong></p>
-                    <div class="expandable-content" id="roadmap-2026">
-                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent marketplace for service discovery</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Cross-chain payment bridges (EVM chains)</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Payment streaming for subscriptions</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent-to-agent communication protocol</li>
-                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Analytics dashboard for developers</li>
-                        </ul>
+                    <!-- Card 3 -->
+                    <div class="timeline-card" data-card-index="2">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">03</div>
+                            <h4 class="timeline-card-title">Q3 2026<br>Multi-Chain Support</h4>
+                        </div>
+                        <p class="timeline-card-summary">Cross-chain payment bridges</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>EVM chain payment bridges</li>
+                                <li>Payment streaming for subscriptions</li>
+                                <li>Multi-chain routing optimization</li>
+                                <li>Cross-chain settlement automation</li>
+                            </ul>
+                        </div>
                     </div>
-                    <span class="expand-toggle" onclick="toggleExpand('roadmap-2026', this)" style="font-size: 0.9rem;">Details</span>
+
+                    <!-- Card 4 -->
+                    <div class="timeline-card" data-card-index="3">
+                        <div class="timeline-card-header">
+                            <div class="timeline-card-number">04</div>
+                            <h4 class="timeline-card-title">Q4 2026<br>Agent Economy</h4>
+                        </div>
+                        <p class="timeline-card-summary">Complete agent-to-agent ecosystem</p>
+                        <div class="timeline-card-details">
+                            <ul>
+                                <li>Agent-to-agent communication protocol</li>
+                                <li>Developer analytics dashboard</li>
+                                <li>Autonomous agent networks</li>
+                                <li>Enterprise integration solutions</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1303,6 +1537,9 @@ graph TB
             <div class="cta-buttons">
                 <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">
                     📱 Download SolAIBot APK
+                </a>
+                <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" class="btn btn-primary" target="_blank">
+                    🤖 Try Live Agent
                 </a>
                 <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">
                     💻 Clone Agent Kit
@@ -1330,16 +1567,81 @@ graph TB
         </div>
     </section>
 
+    <!-- Team Section -->
+    <section id="team" data-section="14">
+        <div class="container">
+            <h2>The Team</h2>
+            <p class="section-subtitle">Building the future of financially autonomous AI</p>
+
+            <div style="display: flex; gap: 4rem; justify-content: center; align-items: flex-start; flex-wrap: wrap; margin-top: 3rem;">
+                <!-- R - CEO & CTO -->
+                <div style="text-align: center; max-width: 250px;">
+                    <img src="https://github.com/quantaliz/solaibot/blob/main/images/Chihuahua0.png?raw=true"
+                         alt="R - CEO & CTO"
+                         style="width: 200px; height: 200px; border-radius: 50%; border: 3px solid var(--primary-purple); box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3); object-fit: cover;">
+                    <h3 style="margin-top: 1.5rem; color: var(--light-text); font-size: 1.5rem;">R</h3>
+                    <p style="color: var(--primary-orange); font-weight: 600; margin-top: 0.5rem;">CEO & CTO</p>
+                </div>
+
+                <!-- Dylen - COO -->
+                <div style="text-align: center; max-width: 250px;">
+                    <img src="https://github.com/quantaliz/solaibot/blob/main/images/PekigneseBlue.png?raw=true"
+                         alt="Dylen - COO"
+                         style="width: 200px; height: 200px; border-radius: 50%; border: 3px solid var(--primary-purple); box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3); object-fit: cover;">
+                    <h3 style="margin-top: 1.5rem; color: var(--light-text); font-size: 1.5rem;">Dylen</h3>
+                    <p style="color: var(--primary-orange); font-weight: 600; margin-top: 0.5rem;">COO</p>
+                </div>
+            </div>
+
+            <!-- Special Thanks -->
+            <div style="margin-top: 5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="text-align: center; color: var(--gray-text); font-size: 1.2rem; margin-bottom: 2rem;">Special Thanks To</h3>
+                <div style="display: flex; gap: 2rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <!-- Metasal -->
+                    <a href="https://metasal.xyz" target="_blank" style="text-decoration: none; transition: transform 0.3s;">
+                        <div style="text-align: center;">
+                            <svg style="width: 40px; height: 40px; fill: var(--gray-text); transition: fill 0.3s;" viewBox="0 0 24 24" onmouseover="this.style.fill='var(--primary-purple)'" onmouseout="this.style.fill='var(--gray-text)'">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                            </svg>
+                            <p style="color: var(--gray-text); font-size: 0.9rem; margin-top: 0.5rem;">metasal</p>
+                        </div>
+                    </a>
+
+                    <!-- Notorious D.E.V. -->
+                    <a href="https://twitter.com/notorious_d_e_v" target="_blank" style="text-decoration: none; transition: transform 0.3s;">
+                        <div style="text-align: center;">
+                            <svg style="width: 40px; height: 40px; fill: var(--gray-text); transition: fill 0.3s;" viewBox="0 0 24 24" onmouseover="this.style.fill='var(--primary-purple)'" onmouseout="this.style.fill='var(--gray-text)'">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            <p style="color: var(--gray-text); font-size: 0.9rem; margin-top: 0.5rem;">@notorious_d_e_v</p>
+                        </div>
+                    </a>
+
+                    <!-- Darren -->
+                    <a href="https://twitter.com/darrenrogan" target="_blank" style="text-decoration: none; transition: transform 0.3s;">
+                        <div style="text-align: center;">
+                            <svg style="width: 40px; height: 40px; fill: var(--gray-text); transition: fill 0.3s;" viewBox="0 0 24 24" onmouseover="this.style.fill='var(--primary-purple)'" onmouseout="this.style.fill='var(--gray-text)'">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            <p style="color: var(--gray-text); font-size: 0.9rem; margin-top: 0.5rem;">@darrenrogan</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer Section -->
-    <section id="contact" data-section="14">
+    <section id="contact" data-section="15">
         <div class="container" style="text-align: center;">
             <img src="https://github.com/quantaliz/solaibot/blob/main/images/Quantaliz.png?raw=true" alt="Quantaliz Logo" class="logo-footer">
 
-            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
+            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0; flex-wrap: wrap;">
                 <a href="https://www.quantaliz.com" target="_blank">Website</a>
                 <a href="https://github.com/quantaliz" target="_blank">GitHub</a>
                 <a href="https://github.com/quantaliz/solaibot" target="_blank">SolAIBot</a>
                 <a href="https://github.com/quantaliz/solana-agent-kit" target="_blank">Agent Kit</a>
+                <a href="https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile" target="_blank">Live Agent Demo</a>
             </div>
 
             <p style="margin-bottom: 1rem; color: var(--light-text);">
@@ -1348,8 +1650,9 @@ graph TB
             </p>
 
             <p style="font-size: 0.9rem; color: var(--gray-text);">
-                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>
-                & <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>,
+                <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+                & <a href="https://earn.superteam.fun/listing/asi-agents-track/" target="_blank" style="color: var(--primary-purple);">ASI Agents Track</a>
             </p>
 
             <p style="font-size: 0.85rem; margin-top: 2rem; color: var(--gray-text);">
@@ -1421,8 +1724,85 @@ graph TB
             }
         }
 
-        // Make toggleExpand globally available
+        // Timeline expandable toggle
+        function toggleTimelineExpand(contentId, toggleElement) {
+            const content = document.getElementById(contentId);
+            content.classList.toggle('expanded');
+            toggleElement.classList.toggle('expanded');
+        }
+
+        // Make functions globally available
         window.toggleExpand = toggleExpand;
+        window.toggleTimelineExpand = toggleTimelineExpand;
+
+        // Touch support for timeline cards on mobile
+        document.addEventListener('DOMContentLoaded', () => {
+            const timelineCards = document.querySelectorAll('.timeline-card');
+            const timelineDots = document.querySelectorAll('.timeline-dot');
+
+            // Card click/touch interaction
+            timelineCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Toggle active class for mobile touch
+                    if (window.innerWidth <= 1024) {
+                        // Remove active from all other cards
+                        timelineCards.forEach(c => {
+                            if (c !== this) c.classList.remove('active');
+                        });
+                        // Toggle active on clicked card
+                        this.classList.toggle('active');
+                    }
+                });
+            });
+
+            // Timeline dot hover activates corresponding card
+            timelineDots.forEach(dot => {
+                dot.addEventListener('mouseenter', function() {
+                    const cardIndex = this.getAttribute('data-card');
+                    const targetCard = document.querySelector(`[data-card-index="${cardIndex}"]`);
+
+                    if (targetCard) {
+                        // Remove active from all cards
+                        timelineCards.forEach(c => c.classList.remove('active'));
+                        // Add active to target card
+                        targetCard.classList.add('active');
+                    }
+                });
+
+                dot.addEventListener('mouseleave', function() {
+                    // Remove active from all cards when mouse leaves dot
+                    timelineCards.forEach(c => c.classList.remove('active'));
+                });
+            });
+
+            // Lazy-load YouTube videos on click
+            const videoContainers = document.querySelectorAll('.video-container');
+            videoContainers.forEach(container => {
+                container.addEventListener('click', function() {
+                    const videoId = this.getAttribute('data-video-id');
+
+                    // Create iframe
+                    const iframe = document.createElement('iframe');
+                    iframe.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`);
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                    iframe.setAttribute('allowfullscreen', '');
+                    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                    iframe.setAttribute('title', 'YouTube video player');
+                    iframe.style.position = 'absolute';
+                    iframe.style.top = '0';
+                    iframe.style.left = '0';
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = '2px solid var(--primary-purple)';
+                    iframe.style.borderRadius = '12px';
+
+                    // Replace container content with iframe
+                    this.innerHTML = '';
+                    this.appendChild(iframe);
+                });
+            });
+        });
 
         // Section navigation state
         let currentSection = 0;

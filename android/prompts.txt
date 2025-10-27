@@ -221,6 +221,45 @@ Therefore, create a file named @webpage/voice/main.py that:
 Make a new script similar to @demo/voice/main.py that, instead of reading the file @demo/hume-video-script.md it reads "@demo/solaibotDemo.md" and creates voice files according to each section.
 This new script should be named "demo/voice/video-voice.py
 
+My bad, it was @demo/video-script.md instead of solaibotDemo.md. Update the file to match "video-script.md". Also, allow the user to select which sections to recreate in case necessary, like the @demo/voice/demo-voice.py do
+
+
+I ran @main.py and @client-sample.py in two terminals, but it failed. @log.txt has the traces of what happened. From what I read in the logs, it mentioned "Error creating signed transaction: 'solders.transaction.Transaction'" which should show more logs of what's happening, the client should only send a "signed" transaction to the merchant agent if it effectively signed it to then, send to the facilitator. Check the @docs/ClientMerchand.md as the paths to communicate betweeh merchant and client. If necessary, there are other md files in the docs folder.
+What we are doing here is using uagents as the "messaging" platform for the x402 payment.
+If you try to run code, use "cd /proj/uagentdemo && uv run ..." for the command you want to run with the libraries loaded, otherwise, you will enter a loop of failed transactions if you don't load the environment correctly
+
+Now, it seems to remain stuck. @logClient.txt and @logMain.txt show how the merchant did not receive any payment but the client seems to keep waiting for it. Verify it works and that the client makes a payment and the merchant receives it by running these scripts in the background before telling me the code is correct
+
+I ran @main.py and @client-sample.py in two terminals, but it failed. @logClient.txt & @logMain.txt have the traces of what happened.
+First, the client should only run once, then log everything as "payment succeded" or "payment failed", with full addresses for on-chain devnet verification.
+From what I read in the client logs, it mentioned "Error: Payment verification failed", the client "signed" transaction seems to be incomplete, with "..." signaling it could show more of the signature. Showing everything will help to debug it. Something on the merchant agent is not working well with the facilitator.
+If necessary, check the @docs/ClientMerchant.md as the paths to communicate betweeh merchant and client. Also there are other md files in the docs folder.
+What we are doing here is using uagents as the "messaging" platform for the x402 payment.
+Make sure to run code using "uv run ..." for the command you want to run with the libraries loaded, otherwise, you will enter a loop of failed transactions if you don't load the environment correctly.
+Also, before telling me it is resolved, run it yourself to confirm it is working as expected: Client ask -> Merchant requests payment -> Client sends signature -> Merchant verifies and gives access to premium resource
+
+We are about to release the first version of the uagentdemo with x402 support. It consist of multiple files inside "src" (recent change) of which:
+- @src/models.py  messaging classes
+- @src/merchant.py the core sample code that offers the x402 functionality. It works in local mode, receiving messages directly or as a "proxy" from other agents
+- @src/agentverse-proxy.py sample code that runs on agentverse.ai and forwards messages received to the merchant
+Therefore, perform the following tasks:
+- This code needs to be well documented.
+- Make sure @.env.client.example & @.env.merchant.example match the required environment constants and it is well documented
+- The merchant and the agentverse-proxy communicate using the "proxy" communication protocol, make sure documentation reflects that
+- Update the @README.md file to explain how the project works and what needs to be done to replicate its execution in local mode.
+- README.md should mention "this is a project for the hackathon explained here: "https://earn.superteam.fun/listing/asi-agents-track/", therefore, it should have professional language with focus on future work that will enhance the platform's experience and entice users/agents to use it
+- Update @README-Agentverse.md to explain how the "proxy" messaging works and how to replicate the code using the agentverse.ai platform. Similar wording as the normal README.md and this will be published in the webpage platform.
+
+
+There has been a change of plans, there is no need anymore for the @src/agentverse-proxy.py, I was able to deploy the full @src/merchant.py agent in agentverse. Now, make update to the README.md file signaling that the agent is live:
+- https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile
+- Agent Handle @x402merchant
+- There won't be any need for the proxy/mailbox communication as everything will be handled directly by the @src/merchant.py file and the server running it's code
+- Update the code to avoid any confusion with the proxy/mailbox code paths
+- When you finish analyzing the code, remove the @src/agentverse-proxy.py file
+- Add to the README.md file the @src/register.py step as metioned in the documentation here: "https://docs.agentverse.ai/documentation/launch-agents/connect-your-agents-chat-protocol-integration" in the step "You will now have to run the provided registration script. Copy and paste it on your end,"
+- Make sure @src/client.py is aligned with all the changes to README.md or (if anything) to the merchant
+
 I created a video with this @demo/video-script.md now I need the youtube description for that video. Consider the @README.md as reference of what's doing. Place a new file inside "demo/youtubedescription.md" file.
 
 Here is the youtube video link: https://youtu.be/cwwICOWi-qE
@@ -228,3 +267,20 @@ Here is another demo video uploaded earlier: https://youtu.be/ieUBE9uDSwE
 With these two, update the @webpage/hackathon.html webpage to show these links within.
 The first link should be placed as a new section just after the first "Financially Autonomous AI Agents". Name this new section "SolAIBot Video Animation"
 The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"
+
+The current roadmap in the @wepbage/hackathon.html is really boring and not engaging. The content is fine but does not show actual progression at first sight. Change it to something like in this image @images/RoadmapSample.jpg This image is just a sample of how to improve the current content of the roadmap in the webpage. Try it
+
+Add a new section to @webpage/hackathon.html before the Quantaliz logo at the end that gives an overview of the team:
+- R. CEO & CTO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/Chihuahua0.png?raw=true
+- Dylen. COO. Use image: https://github.com/quantaliz/solaibot/blob/main/images/PekigneseBlue.png?raw=true
+Make images the same size and place R & Dylen side by side.
+Also, add "Special Thanks to" referencing people.
+- Metasal Twitter @metalsal
+- Notorious D.E.V. Twitter @notorious_d_e_v
+- Darren Twitter @darrenrogan
+Use the twitter image to jump to their twitter profile. This section should be small compared to the R & D
+
+When the webpage loads, the video animation fails to load telling me "Error 153 Video player configuration error", what can be done about it?
+
+This project now has a new demo, which is inside the uagentdemo folder. The @uagentdemo/README.md provides a general overview of what's happening to that subproject. Make sure to update the @README.md to reference what's been worked there, then forward people interested in knowing more to the @uagentdemo/README.md file. Make sure that wording in both documents feels consistent, considering as priority the one @README.md file and subordinate the one @uagentdemo/README.md
+Along the same line, make sure it follows the patterns for the hackathon explained in @context/PitchReference.md

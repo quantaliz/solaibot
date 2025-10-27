@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="images/IconSolAI_002.png" width="200" alt="SolAI Icon" />
+
 # Financially Autonomous AI Agents with x402 Payments
 ## Privacy-First AI Meets Solana Micropayments
 
@@ -26,12 +28,13 @@ Traditional AI assistants face three critical limitations:
 
 ### Our Solution
 
-Two complementary implementations that work together to enable truly autonomous, privacy-preserving AI agents:
+Three complementary implementations that work together to enable truly autonomous, privacy-preserving AI agents:
 
 1. **🤖 SolAIBot** - Android app with on-device AI with Mobile Wallet Adapter to make x402 payments
 2. **⚡ x402 Payments Plugin** - Node.js toolkit extending Solana Agent Kit with autonomous payments
+3. **🏪 Agent Commerce Platform** - Fetch.ai uAgents marketplace demonstrating autonomous agent-to-agent transactions
 
-Together, they demonstrate that AI agents can be **completely private AND financially autonomous**—no compromises.
+Together, they demonstrate that AI agents can be **completely private AND financially autonomous**—no compromises, with working agent-to-agent commerce.
 
 ---
 
@@ -47,19 +50,26 @@ Together, they demonstrate that AI agents can be **completely private AND financ
 - ✅ **Cypherpunk ethos:** "Privacy is necessary for an open society in the electronic age"
 
 **[Hackaroo 2025](https://www.hackaroo.xyz)** - Solana Micropayments
-- ✅ **Novel x402 integration** - First Android + Node.js implementation for AI (Both)
-- ✅ **AI agent autonomy** - Full blockchain interaction capabilities (Both)
-- ✅ **Solana ecosystem advancement** - MWA, RPC, transaction building, payment flows (Both)
-- ✅ **Real-world utility** - Working demos with live payment endpoints (Both)
-- ✅ **Cross-platform architecture** - Mobile to desktop payment ecosystem (Both)
+- ✅ **Novel x402 integration** - First Android + Node.js implementation for AI (All)
+- ✅ **AI agent autonomy** - Full blockchain interaction capabilities (All)
+- ✅ **Solana ecosystem advancement** - MWA, RPC, transaction building, payment flows (All)
+- ✅ **Real-world utility** - Working demos with live payment endpoints (All)
+- ✅ **Cross-platform architecture** - Mobile to desktop to agent-to-agent payment ecosystem (All)
+
+**[ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)** - Autonomous Agent Commerce
+- ✅ **Fetch.ai uAgents integration** - First x402 implementation for autonomous agents (uAgentDemo)
+- ✅ **Agent-to-agent marketplace** - Fully autonomous commerce without human intervention (uAgentDemo)
+- ✅ **Zero gas fees** - Facilitator settlement with merchant-paid fees (uAgentDemo)
+- ✅ **Sub-second verification** - Instant payment verification and resource delivery (uAgentDemo)
+- ✅ **24/7 availability** - Agentverse deployment for production readiness (uAgentDemo)
 
 ### What Makes This Special
 
-1. **Complete Ecosystem:** Not just a proof-of-concept—full mobile app + server toolkit with working demos
-2. **Production Ready:** Comprehensive testing, error handling, live endpoints, and APK release
-3. **Technical Depth:** Full-stack integration from on-device inference to on-chain settlement
-4. **Open Innovation:** Built on permissive licensing with extensible architecture
-5. **Real Use Case:** Solves the AI micropayment problem without compromising privacy
+1. **Complete Ecosystem:** Full mobile app + server toolkit + autonomous agent marketplace with working demos
+2. **Production Ready:** Comprehensive testing, error handling, live endpoints, APK release, and 24/7 Agentverse deployment
+3. **Technical Depth:** Full-stack integration from on-device inference to agent-to-agent commerce to on-chain settlement
+4. **Open Innovation:** Built on permissive licensing with extensible architecture across three platforms
+5. **Real Use Cases:** Solves AI micropayment problem across privacy-focused mobile, server automation, and agent-to-agent commerce
 
 ---
 
@@ -156,38 +166,86 @@ More details in its [README](solana-agent-kit/README.md)
 
 ---
 
+## 🏪 Part 3: Agent Commerce Platform - Autonomous Agent-to-Agent Marketplace
+
+<div align="center">
+
+### Fetch.ai uAgents with x402 Payment Protocol
+
+[**🌐 Live Demo**](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) | [**📖 Full Documentation**](uagentdemo/README.md)
+
+</div>
+
+### Overview
+
+We've built a fully functional **agent-to-agent marketplace** using Fetch.ai's uAgents framework, where autonomous AI agents discover, purchase, and consume digital resources instantly—without human intervention. This demonstrates the future of autonomous agent commerce with zero-friction blockchain payments.
+
+### ✨ Key Features
+
+**🤖 Autonomous Agent Architecture**
+- **Merchant Agent:** 24/7 Agentverse deployment serving premium resources
+- **Client Agent:** Autonomous discovery, payment, and resource consumption
+- **x402 Protocol Flow:** Payment Required → Transaction → Verification → Delivery
+- **Zero Human Intervention:** Complete automation from discovery to consumption
+- **Live Deployment:** Working merchant at [@x402merchant](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile)
+
+**⚡ Zero-Friction Payments**
+- **Sub-Second Verification:** Instant on-chain payment confirmation
+- **Zero Gas Fees:** Facilitator settlement with merchant-paid fees
+- **Micropayments Viable:** Sub-cent pricing ($0.001) economically feasible
+- **Multiple Networks:** Solana devnet/mainnet support
+- **Payment Tracking:** UUID-based unique identifiers prevent replay attacks
+
+**🛒 Agent Marketplace Demo**
+- **Premium Weather Data:** Real-time weather with forecasts ($0.001)
+- **Premium Analytics:** Business metrics and insights (0.01 USDC)
+- **Premium API Access:** API keys with rate limits ($0.005)
+- **Extensible Catalog:** Easy addition of new premium resources
+- **Resource Discovery:** Agents autonomously find and evaluate offerings
+
+**🔒 Production-Ready Security**
+- **Cryptographic Verification:** All payments verified on-chain
+- **Requester Validation:** Only original requester submits payment proof
+- **Resource Matching:** Proof must match requested resource
+- **Payment Expiration:** Time-based cleanup prevents stale requests
+
+More details in its [README](uagentdemo/README.md)
+
+---
+
 ## 🌐 Complete Ecosystem Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI Agents Ecosystem                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  📱 MOBILE                          💻 DESKTOP/SERVER        │
-│  ┌─────────────────┐                ┌─────────────────┐     │
-│  │   SolAIBot      │                │  Solana Agent   │     │
-│  │                 │                │      Kit        │     │
-│  │ • On-device LLM │                │ • Node.js       │     │
-│  │ • Kotlin        │                │ • TypeScript    │     │
-│  │ • MWA payments  │                │ • Any LLM       │     │
-│  │ • Android 12+   │                │ • Multi-chain   │     │
-│  └────────┬────────┘                └────────┬────────┘     │
-│           │                                  │              │
-│           └────────┬─────────────────────────┘              │
-│                    │                                        │
-│         ┌──────────▼──────────┐                            │
-│         │  x402 Protocol      │                            │
-│         │  HTTP 402 Payments  │                            │
-│         └──────────┬──────────┘                            │
-│                    │                                        │
-│         ┌──────────▼──────────┐                            │
-│         │  Solana Blockchain  │                            │
-│         │  • 400ms finality   │                            │
-│         │  • Low fees         │                            │
-│         │  • MWA security     │                            │
-│         └─────────────────────┘                            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        AI Agents Ecosystem                             │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│      📱 MOBILE           💻 DESKTOP/SERVER       🤖 AGENT-TO-AGENT     │
+│      ┌─────────────┐    ┌─────────────────┐     ┌─────────────────┐    │
+│      │  SolAIBot   │    │ Solana Agent    │     │   Fetch.ai      │    │
+│      │             │    │     Kit         │     │   uAgents       │    │
+│      │ • On-device │    │ • Node.js       │     │ • Merchant Agent│    │
+│      │   LLM       │    │ • TypeScript    │     │ • Client Agent  │    │
+│      │ • Kotlin    │    │ • Any LLM       │     │ • Agentverse    │    │
+│      │ • MWA       │    │ • Multi-chain   │     │ • 24/7 Deploy   │    │
+│      └──────┬──────┘    └────────┬────────┘     └────────┬────────┘    │
+│             │                    │                       │             │
+│             └────────────────┬───┴───────────────────────┘             │
+│                              │                                         │
+│                   ┌──────────▼──────────┐                              │
+│                   │   x402 Protocol     │                              │
+│                   │  HTTP 402 Payments  │                              │
+│                   └──────────┬──────────┘                              │
+│                              │                                         │
+│                   ┌──────────▼──────────┐                              │
+│                   │  Solana Blockchain  │                              │
+│                   │  • 400ms finality   │                              │
+│                   │  • Zero gas fees    │                              │
+│                   │  • MWA security     │                              │
+│                   │  • Micropayments    │                              │
+│                   └─────────────────────┘                              │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -207,9 +265,11 @@ More details in its [README](solana-agent-kit/README.md)
 - **Open Source:** Apache 2.0 license, extensible architecture
 
 ### For the Ecosystem
-- **Agent-to-Agent Commerce:** AI agents can purchase services from other agents
+- **Agent-to-Agent Commerce:** Fully autonomous marketplace with working demos on Agentverse
 - **Instant Micropayments:** Solana's 400ms blocks make per-request payments viable
 - **API Monetization:** Service providers can easily paywall endpoints with x402
+- **Zero Gas Fees:** Facilitator settlement makes micropayments economically feasible
+- **Multi-Platform:** Works across mobile, server, and autonomous agent deployments
 - **Future-Proof:** Extensible design ready for multi-chain expansion
 
 ---
@@ -235,6 +295,15 @@ More details in its [README](solana-agent-kit/README.md)
 │   ├── docs/x402.md                # Payment flow guide
 │   ├── README.md                   # Full toolkit documentation
 │   └── AGENTS.md                   # Developer guidelines
+│
+├── uagentdemo/                      # Agent Commerce Platform
+│   ├── src/
+│   │   ├── merchant.py             # Merchant agent implementation
+│   │   ├── client.py               # Client agent implementation
+│   │   ├── models.py               # x402 message models
+│   │   └── register.py             # Agentverse registration
+│   ├── README.md                   # Full marketplace documentation
+│   └── .env.example                # Environment configuration
 │
 ├── images/                          # Screenshots and branding
 │   ├── SolAIBot1-Result.png        # App interface
@@ -264,12 +333,23 @@ More details in its [README](solana-agent-kit/README.md)
 - [ ] Agent marketplace discovery platform
 - [ ] Analytics dashboard for payment tracking
 
+**Agent Commerce Platform:**
+- [ ] Persistent storage (PostgreSQL/Redis) for payment tracking
+- [ ] Payment expiration with time-based cleanup (15-min TTL)
+- [ ] Rate limiting and abuse protection
+- [ ] Multi-currency support (USDC, USDT, SOL)
+- [ ] Dynamic pricing algorithms based on supply/demand
+- [ ] Subscription models (daily/monthly/yearly access)
+- [ ] Reputation system for merchants and clients
+- [ ] Real-time analytics dashboard
+
 **Ecosystem Integration:**
 - [ ] Desktop version of SolAIBot
 - [ ] Mobile SDK for native agent integration
 - [ ] MCP client support in SolAIBot
 - [ ] Cross-chain payment bridges
 - [ ] Agent-to-agent communication protocol
+- [ ] Unified marketplace across all three platforms
 
 ---
 
@@ -283,11 +363,17 @@ More details in its [README](solana-agent-kit/README.md)
 - **[solana-agent-kit/README.md](solana-agent-kit/README.md)** - Full toolkit documentation
 - **[solana-agent-kit/docs/x402.md](solana-agent-kit/docs/x402.md)** - Complete payment flow guide
 
+### Agent Commerce Platform (Fetch.ai uAgents)
+- **[uagentdemo/README.md](uagentdemo/README.md)** - Full marketplace documentation and deployment guide
+- **[uagentdemo/README-Agentverse.md](uagentdemo/README-Agentverse.md)** - Agentverse proxy deployment details
+
 ### External Resources
 - **[Cypherpunk 2025](https://www.colosseum.com/cypherpunk)** - Hackathon homepage
 - **[Hackaroo 2025](https://www.hackaroo.xyz)** - Hackathon homepage
+- **[ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)** - ASI Agents hackathon
 - **[Solana Docs](https://docs.solana.com)** - Solana developer documentation
 - **[x402 Protocol](https://github.com/coinbase/x402)** - Coinbase x402 specification
+- **[Fetch.ai uAgents](https://fetch.ai/docs/agents)** - uAgents framework documentation
 
 
 ---
@@ -314,14 +400,15 @@ Licensed under the **Apache License 2.0** - See [LICENSE](LICENSE) for details.
 
 - **SolAIBot:** Built upon [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) under permissive open-source licensing
 - **Solana Agent Kit:** Extended from [sendaifun/solana-agent-kit](https://github.com/sendaifun/solana-agent-kit)
-
+- **Agent Commerce Platform:** Built with [Fetch.ai uAgents](https://fetch.ai) framework and [PayAI x402](https://payai.network) protocol
+- **metalsal.xyz:** Providing support, an android device and his mentorship
 ---
 
 <div align="center">
 
 ## 🚀 Where Privacy-First AI Meets Solana Speed
 
-**Built for Cypherpunk 2025 & Hackaroo 2025**
+**Built for Cypherpunk 2025, Hackaroo 2025 & ASI Agents Track**
 
 *Demonstrating that AI agents can respect privacy and become financially autonomous*
 
@@ -330,7 +417,8 @@ Licensed under the **Apache License 2.0** - See [LICENSE](LICENSE) for details.
 
 [![Cypherpunk](https://img.shields.io/badge/Cypherpunk-2025-purple.svg)](https://www.colosseum.com/cypherpunk)
 [![Hackaroo](https://img.shields.io/badge/Hackaroo-2025-orange.svg)](https://www.hackaroo.xyz)
+[![ASI Agents Track](https://img.shields.io/badge/Hackathon-ASI_Agents_Track-blue)](https://earn.superteam.fun/listing/asi-agents-track/)
 
-⭐ Star the repos | 📱 Download the app | 💻 Try the examples | 💬 Join the discussion
+⭐ Star the repos | 📱 Download the app | 🤖 Try the live agent | 💻 Run the examples | 💬 Join the discussion
 
 </div>
