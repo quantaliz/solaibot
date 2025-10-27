@@ -251,6 +251,7 @@ Therefore, perform the following tasks:
 - Update @README-Agentverse.md to explain how the "proxy" messaging works and how to replicate the code using the agentverse.ai platform. Similar wording as the normal README.md and this will be published in the webpage platform.
 
 
+
 There has been a change of plans, there is no need anymore for the @src/agentverse-proxy.py, I was able to deploy the full @src/merchant.py agent in agentverse. Now, make update to the README.md file signaling that the agent is live:
 - https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile
 - Agent Handle @x402merchant
@@ -284,3 +285,5 @@ When the webpage loads, the video animation fails to load telling me "Error 153 
 
 This project now has a new demo, which is inside the uagentdemo folder. The @uagentdemo/README.md provides a general overview of what's happening to that subproject. Make sure to update the @README.md to reference what's been worked there, then forward people interested in knowing more to the @uagentdemo/README.md file. Make sure that wording in both documents feels consistent, considering as priority the one @README.md file and subordinate the one @uagentdemo/README.md
 Along the same line, make sure it follows the patterns for the hackathon explained in @context/PitchReference.md
+
+We need to update the app icon with the file "android/IconSolAIBot.png" as the app system icon, OS icon and launch animation. Make sure it complies with the required sizes. Use python if necessary to resize the image. Do not try to compile the app, I will do it in another computer

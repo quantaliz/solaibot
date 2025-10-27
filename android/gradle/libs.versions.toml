@@ -31,8 +31,6 @@ hilt = "2.57"
 hiltNavigation = "1.2.0"
 ossLicenses = "0.10.6"
 playServicesOssLicenses = "17.1.0"
-googleService = "4.4.3"
-firebaseBom = "33.16.0"
 exifinterface = "1.4.1"
 securityCrypto = "1.1.0"
 okhttp = "4.12.0"
@@ -78,9 +76,6 @@ hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", ve
 hilt-android-testing = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 play-services-oss-licenses = { module = "com.google.android.gms:play-services-oss-licenses", version.ref = "playServicesOssLicenses"}
-# When using the Firebase BoM, you don't specify versions in Firebase
-# library dependencies.
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
@@ -92,4 +87,3 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 protobuf = {id = "com.google.protobuf", version.ref = "protobuf"}
 hilt-application = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 oss-licenses = {id = "com.google.android.gms.oss-licenses-plugin", version.ref = "ossLicenses"}
-google-services = { id = "com.google.gms.google-services", version.ref = "googleService" }
