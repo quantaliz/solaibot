@@ -45,8 +45,9 @@ google-services.json
 .externalNativeBuild
 .cxx
 local.properties
-*claude*
+.claude
 *litertlm
 
 *pnpm-store
 *.env
+*uv.lock

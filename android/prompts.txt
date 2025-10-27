@@ -150,3 +150,81 @@ File @app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt has 
 Identify if there are other places where functions like "get weather" and similar are called, then remove the code (and even commented one). Also remove the code related to "connect_solana", the app connects to the MWA when the user authorizes it
 
 Add an extra "message bubble" for the "solana_payment" function with the response from the x402 service with its response details when the operation is successful. The user needs to see the hash of the transaction and the "premium" content
+
+Project SolAIBot has @android/README.md & @android/AGENTS.md files as reference. Improve the README.md to be more enticing for Judges in a hackathon evaluating what has been done for the project so far, its characteristics and the fact that will be submitted for two hackathons (Cypherpunk & Hackaroo).
+
+I made changes to the @android/README.md file. Now, adapt similar changes to the @solana-agent-kit/README.md although, yesterday we were doing most of it, just confirm the language remains similar between documents
+
+This repository is the full submission for two hackathons (Cypherpunk & Hackaroo). Inside there two projects. The first project, SolAIBot has @android/README.md file as reference. The second project, solana-agent-kit, has @solana-agent-kit/README.md file explaining what has been done in these projects by Quantaliz. With that in mind, update @README.md to reflect the hard work made from both projects into a full hackathon submission.
+Webpage for the Hackathon (webpage in https://Hackaroo.xyz) and Cyphepunk (webpage in https://www.colosseum.com/cypherpunk).
+
+Using the context from
+- @README.md
+- @android/README.md
+- @solana-agent-kit/README.md
+Create a webpage that must follow the easthetic from @quantaliz.github.io
+This page will be an static page be placed under github.io pages type.
+This page, following the ideas from @context/PitchReference.md, should reflect all the hard work made for the hackathon.
+Place this page inside the webpage folder.
+
+We are working on improving the webpage inside @webpage/index.html which is an static page that promotes this repository.
+Check @README.md for a refresher on the objectives to reach and why it matters.
+Also, the @context/PitchReference.md has tips on how to make a good pitch for the hackathon.
+There are some updates needed to the webpage:
+- Make it more responsive, in particular if the user is watching it from a mobile phone. For example, when the browser is smaller, the images showing the app do not resize appropriately.
+- Instead of having the screenshots at the top, move them into its own "Features/UX" section
+- Sections like "Our Solution" or "What We've Built" have too many words, make setences more "engaging" and leave the details behind an "expandable" view if the user decides to get more details about it.
+- The "Technology Stack" section is not necessary, remove it.
+- Remove the "static" header on top and replace it a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
+- The "Complete Ecosystem Architecture" has a "AI Agents Ecosystem" map in markdown, but does not align with the webpage design, use something like "mermaid" or another text-based tool to improve the visuals of this graph.
+- This presentation needs a market model: search the internet for the expected economic market of agents and payments
+- This presentation needs a business model: SolAIBot as app will be free, but wallet transactions can be charged a fee as a x402 facilitator.
+- This presentation needs a roadmap model: Define what can be done next for SolAIBot
+Consider that any image referenced within this page should point to the "https://github.com/quantaliz/solaibot" repository instead of considering it is local.
+
+Break down the "Features & User Experience" in two, first the "Features" with the squares like "privacy first, instant finality". Then another section named "User Experience" with the screenshots.
+
+Break down the "Business Model" in two sections: One for the app, another for the fees
+Place the "Roadmap" squares from "left -> right" instead top -> bottom
+
+Remove the "static" header on top and replace it with a "sandwitch" button at the top left persistent section that, once pressed, it shows all the sections in the page.
+
+Create a "video script" based on the contents of @webpage/hackathon.html and the @README.md file that is engaging, with simple words and would make the SolAIBot project shine, while the solana-agent-kit extensions a tool to extend the capacities of autonomous AI agents. Place the script in file "webpage/video-script.md" file.
+
+Read the documentation within this URLs:
+https://platform.openai.com/docs/guides/text-to-speech
+And store that documentation inside a single reference file in "webpage/voice/closedAI.md".
+
+I am trying to create the voice for the "video script" @webpage/hume-video-script.md
+Read the documentation @webpage/voice/closedAITTS.md
+Explain there code samples as the documentation will focus on scripting.
+The main focus should be on how to execute python script to make sections of text to a voice.
+
+Now that you know how the hume service works and how to annotate an script, make a new document in the file "webpage/hume-video-script.md" file that uses those annotations for the video script @webpage/video-script.md
+This new document should apply spaces, inflexions or emphasis on the key ideas to share with the SolAIBot video.
+
+The file in "webpage/hume-video-script.md" should be a plug&play blob of text that will be fed into the playground of "hume.ai". It does not need to have the script structure. Consider what you wrote @webpage/humedocs/hume.md to annotate sentences instead of using the what every screen section does.
+
+I am trying to create the voice for the "video script" @webpage/hume-video-script.md
+The documentation for the service is @webpage/humedocs/hume.md
+Currently, running the script at @webpage/voice/main.py fails to execute correctly with errors at @webpage/voice/log.txt
+Make sure the script generates a "wav" or "mp3" in the "webpage/voice/output" folder. As is right now, it is not generating that file, it is just wasting tokens
+
+I am trying to generate voice for the "video script" @webpage/hume-video-script.md
+Read the documentation @webpage/voice/closedAITTS.md which has details that explains how the TTS service works
+Therefore, create a file named @webpage/voice/main.py that:
+- It reads the @webpage/hume-video-script.md
+- The user can select the "SEGMENT" to create the speech
+- Places the audio file in the /webpage/voice/output folder with the name "Segment_X" in "mp3" format
+- Use "ballad" as the voice option
+
+Make a new script similar to @demo/voice/main.py that, instead of reading the file @demo/hume-video-script.md it reads "@demo/solaibotDemo.md" and creates voice files according to each section.
+This new script should be named "demo/voice/video-voice.py
+
+I created a video with this @demo/video-script.md now I need the youtube description for that video. Consider the @README.md as reference of what's doing. Place a new file inside "demo/youtubedescription.md" file.
+
+Here is the youtube video link: https://youtu.be/cwwICOWi-qE
+Here is another demo video uploaded earlier: https://youtu.be/ieUBE9uDSwE
+With these two, update the @webpage/hackathon.html webpage to show these links within.
+The first link should be placed as a new section just after the first "Financially Autonomous AI Agents". Name this new section "SolAIBot Video Animation"
+The second demo, should have a new section between "User Experience" & "Complete Ecosystem Architecture". Name this new section "Vide Demonstrations"

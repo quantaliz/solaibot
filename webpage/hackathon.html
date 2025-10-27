@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Agents with Autonomous x402 Payments - Privacy-First AI meets Solana Micropayments. Cypherpunk & Hackaroo 2025 Hackathon Submission by Quantaliz.">
+    <meta name="keywords" content="AI, Solana, blockchain, x402, payments, privacy, on-device AI, mobile wallet adapter, MWA, LLM">
+    <meta name="author" content="Quantaliz PTY LTD">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Financially Autonomous AI Agents | Quantaliz">
+    <meta property="og:description" content="Privacy-first AI agents that make autonomous blockchain payments using Solana">
+
+    <title>Financially Autonomous AI Agents | Quantaliz Hackathon 2025</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Color Palette */
+            --primary-purple: #7c3aed;
+            --primary-orange: #f97316;
+            --dark-bg: #0f0f0f;
+            --darker-bg: #1a1a1a;
+            --light-text: #f8f8f8;
+            --gray-text: #888;
+            --border-color: #333;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Hind', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark-bg);
+            color: var(--light-text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hamburger Menu Button - Always Visible */
+        .hamburger {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            gap: 6px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            border: 2px solid var(--primary-purple);
+            transition: all 0.3s;
+        }
+
+        .hamburger:hover {
+            border-color: var(--primary-orange);
+            transform: scale(1.05);
+        }
+
+        .hamburger span {
+            width: 28px;
+            height: 3px;
+            background: var(--primary-purple);
+            transition: all 0.3s;
+            border-radius: 2px;
+        }
+
+        .hamburger.active span {
+            background: var(--primary-orange);
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(9px, 9px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(8px, -8px);
+        }
+
+        /* Navigation Menu - Slide-in from Left */
+        .nav-menu {
+            position: fixed;
+            top: 0;
+            left: -350px;
+            width: 350px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+            border-right: 2px solid var(--primary-purple);
+            padding: 6rem 0 2rem 0;
+        }
+
+        .nav-menu.active {
+            left: 0;
+        }
+
+        .nav-menu .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 0 2rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-links li {
+            margin: 0;
+        }
+
+        .nav-links a {
+            display: block;
+            color: var(--light-text);
+            text-decoration: none;
+            padding: 1.2rem 2rem;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            font-size: 1.1rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-orange);
+            background: rgba(124, 58, 237, 0.1);
+            border-left-color: var(--primary-orange);
+            padding-left: 2.5rem;
+        }
+
+        /* Overlay for menu */
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .nav-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                width: 280px;
+                left: -280px;
+            }
+
+            .hamburger {
+                top: 1.5rem;
+                left: 1.5rem;
+            }
+        }
+
+        /* Navigation indicator */
+        .nav-indicator {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(124, 58, 237, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot.active {
+            background: var(--primary-purple);
+            width: 16px;
+            height: 16px;
+        }
+
+        .nav-dot:hover {
+            background: var(--primary-orange);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Sections - Full viewport height for presentation mode */
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6rem 0;
+            position: relative;
+            scroll-snap-align: start;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+        }
+
+        /* Enable scroll snapping */
+        html {
+            scroll-snap-type: y mandatory;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .hero .subtitle {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            color: var(--light-text);
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero .tagline {
+            font-size: 1.1rem;
+            color: var(--gray-text);
+            margin-bottom: 3rem;
+            font-weight: 500;
+        }
+
+        .badges {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .badge {
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 2px solid var(--primary-purple);
+            color: var(--primary-purple);
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        /* CTA Buttons */
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--light-text);
+            border: 2px solid var(--primary-purple);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Screenshots */
+        .screenshots {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-top: 4rem;
+            flex-wrap: wrap;
+        }
+
+        .screenshot {
+            max-width: 280px;
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--primary-purple);
+            transition: transform 0.3s;
+        }
+
+        .screenshot:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 50px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Section Headings */
+        section h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        section .section-subtitle {
+            text-align: center;
+            color: var(--gray-text);
+            font-size: 1.2rem;
+            margin-bottom: 4rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Problem/Features Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .card {
+            background: var(--darker-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-purple);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
+        }
+
+        .card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            color: var(--light-text);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .card h4 {
+            color: var(--light-text);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .card p {
+            color: var(--gray-text);
+            line-height: 1.8;
+        }
+
+        /* Solution Cards */
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .solution-card {
+            background: var(--darker-bg);
+            padding: 3rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .solution-card:hover {
+            border-color: var(--primary-purple);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
+        }
+
+        .solution-card h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--light-text);
+        }
+
+        .solution-card .tech-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .solution-card ul {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .solution-card li {
+            padding: 0.8rem 0;
+            color: var(--gray-text);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .solution-card li::before {
+            content: '✓';
+            color: var(--primary-purple);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .solution-card p {
+            color: var(--gray-text);
+        }
+
+        /* Architecture */
+        .architecture {
+            background: var(--darker-bg);
+            padding: 3rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        .architecture pre {
+            color: var(--primary-purple);
+            overflow-x: auto;
+            padding: 2rem;
+            background: var(--dark-bg);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        /* Traction Grid */
+        .traction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .traction-item {
+            text-align: center;
+            padding: 2rem;
+            background: var(--darker-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .traction-item:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-5px);
+        }
+
+        .traction-item .number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .traction-item .label {
+            color: var(--gray-text);
+            font-size: 0.9rem;
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+
+        .tech-tag {
+            padding: 0.8rem 1.5rem;
+            background: var(--darker-bg);
+            border-radius: 30px;
+            border: 2px solid var(--border-color);
+            color: var(--light-text);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .tech-tag:hover {
+            border-color: var(--primary-purple);
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange));
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Checkmark list */
+        .checkmark-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .checkmark-list li {
+            padding: 0.8rem 0;
+            padding-left: 2rem;
+            position: relative;
+            color: var(--light-text);
+        }
+
+        .checkmark-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+
+        /* Social links styling */
+        .social-links a {
+            color: var(--light-text);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .social-links a:hover {
+            color: var(--primary-orange);
+        }
+
+        .logo-footer {
+            max-width: 150px;
+            margin: 2rem auto;
+        }
+
+        /* Keyboard navigation hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--light-text);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid var(--primary-purple);
+            font-size: 0.9rem;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        .keyboard-hint.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Expandable content */
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .expandable-content.expanded {
+            max-height: 2000px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        .expand-toggle {
+            color: var(--primary-purple);
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 1rem;
+            display: inline-block;
+            transition: color 0.3s;
+        }
+
+        .expand-toggle:hover {
+            color: var(--primary-orange);
+        }
+
+        .expand-toggle::after {
+            content: ' ▼';
+            font-size: 0.8em;
+        }
+
+        .expand-toggle.expanded::after {
+            content: ' ▲';
+        }
+
+        /* Mermaid diagram styling */
+        .mermaid {
+            background: transparent !important;
+        }
+
+        /* Roadmap horizontal layout */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 1200px) {
+            .roadmap-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .roadmap-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .solution-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-indicator {
+                display: none;
+            }
+
+            .screenshots {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .screenshot {
+                max-width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            section {
+                padding: 4rem 0;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hamburger Button -->
+    <div class="hamburger" id="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <!-- Navigation Overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- Slide-in Navigation Menu -->
+    <nav class="nav-menu" id="navMenu">
+        <div class="logo">Quantaliz</div>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#hero">Home</a></li>
+            <li><a href="#video-animation">Video Animation</a></li>
+            <li><a href="#problem">Problem</a></li>
+            <li><a href="#solution">Solution</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#ux">User Experience</a></li>
+            <li><a href="#video-demos">Video Demo</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#market">Market</a></li>
+            <li><a href="#business">Free App</a></li>
+            <li><a href="#revenue">Revenue Model</a></li>
+            <li><a href="#traction">Traction</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+
+    <!-- Navigation Indicator -->
+    <div class="nav-indicator">
+        <div class="nav-dot active" data-section="0"></div>
+        <div class="nav-dot" data-section="1"></div>
+        <div class="nav-dot" data-section="2"></div>
+        <div class="nav-dot" data-section="3"></div>
+        <div class="nav-dot" data-section="4"></div>
+        <div class="nav-dot" data-section="5"></div>
+        <div class="nav-dot" data-section="6"></div>
+        <div class="nav-dot" data-section="7"></div>
+        <div class="nav-dot" data-section="8"></div>
+        <div class="nav-dot" data-section="9"></div>
+        <div class="nav-dot" data-section="10"></div>
+        <div class="nav-dot" data-section="11"></div>
+        <div class="nav-dot" data-section="12"></div>
+        <div class="nav-dot" data-section="13"></div>
+        <div class="nav-dot" data-section="14"></div>
+    </div>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint" id="keyboardHint">
+        ← → Navigate with arrow keys
+    </div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero" data-section="0">
+        <div class="container">
+            <div class="fade-in">
+                <h1>Financially Autonomous<br>AI Agents</h1>
+                <p class="subtitle">Privacy-First AI Meets Solana Micropayments</p>
+                <p class="tagline">AI agents can't pay for anything. They're brilliant, but broke. We fixed that.</p>
+
+                <div class="badges">
+                    <span class="badge">🏆 Cypherpunk 2025</span>
+                    <span class="badge">🏆 Hackaroo 2025</span>
+                </div>
+
+                <div class="cta-buttons">
+                    <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">📱 Download SolAIBot</a>
+                    <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">💻 View Code</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Animation Section -->
+    <section id="video-animation" data-section="1">
+        <div class="container">
+            <h2>SolAIBot Video Animation</h2>
+            <p class="section-subtitle">Watch how AI agents become financially autonomous</p>
+
+            <div style="max-width: 900px; margin: 0 auto;">
+                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
+                    <iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
+                        src="https://www.youtube.com/embed/cwwICOWi-qE"
+                        title="SolAIBot Video Animation"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <a href="https://youtu.be/cwwICOWi-qE" class="btn btn-secondary" target="_blank">
+                        📺 Watch on YouTube
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section id="problem" data-section="2">
+        <div class="container">
+            <h2>The Problem</h2>
+            <p class="section-subtitle">Traditional AI assistants face critical limitations that prevent true autonomy</p>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="icon">☁️</div>
+                    <h3>Cloud Dependency</h3>
+                    <p>Require constant internet connectivity and expose user data to third parties. Your conversations, prompts, and personal information leave your device.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">💸</div>
+                    <h3>Payment Barriers</h3>
+                    <p>Can't autonomously access paid APIs without breaking agent autonomy. Every transaction requires manual human intervention.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🔐</div>
+                    <h3>User Control</h3>
+                    <p>Either too restrictive (no autonomy) or too permissive (security risks). There's no middle ground for safe, autonomous operations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section id="solution" data-section="3">
+        <div class="container">
+            <h2>Our Solution</h2>
+            <p class="section-subtitle">Two powerful implementations enabling private, financially autonomous AI agents</p>
+
+            <div class="solution-grid">
+                <!-- SolAIBot -->
+                <div class="solution-card">
+                    <h3>📱 SolAIBot</h3>
+                    <span class="tech-badge">Android • Kotlin • On-Device AI</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        Your phone runs a 1.5B parameter LLM completely offline. The AI agent autonomously pays for protected content using Solana—all while keeping your private keys secure.
+                    </p>
+
+                    <div class="expandable-content" id="solaibot-details">
+                        <ul>
+                            <li>100% offline AI inference using Google AI Edge (LiteRT)</li>
+                            <li>First Android implementation of x402 payment protocol</li>
+                            <li>Mobile Wallet Adapter integration (Solflare compatible)</li>
+                            <li>Zero trust architecture - app never sees private keys</li>
+                            <li>Function calling for autonomous payments</li>
+                            <li>Working APK v1.0.7 in releases</li>
+                        </ul>
+                    </div>
+
+                    <span class="expand-toggle" onclick="toggleExpand('solaibot-details', this)">Show technical details</span>
+
+                    <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">Download APK</a>
+                </div>
+
+                <!-- Solana Agent Kit -->
+                <div class="solution-card">
+                    <h3>⚡ x402 Payments Plugin</h3>
+                    <span class="tech-badge">Node.js • TypeScript • AI Frameworks</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        Extend any AI framework with autonomous Solana payments. Works with LangChain, Vercel AI SDK, OpenAI, and Claude Desktop via MCP.
+                    </p>
+
+                    <div class="expandable-content" id="plugin-details">
+                        <ul>
+                            <li>Fully autonomous payment flow - zero human intervention</li>
+                            <li>Smart signer caching for high-performance operations</li>
+                            <li>Works with LangChain, Vercel AI SDK, OpenAI, MCP</li>
+                            <li>Comprehensive end-to-end test suite</li>
+                            <li>CLI demo + MCP server for Claude Desktop</li>
+                            <li>1,000+ lines of production code</li>
+                        </ul>
+                    </div>
+
+                    <span class="expand-toggle" onclick="toggleExpand('plugin-details', this)">Show technical details</span>
+
+                    <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-primary" target="_blank" style="display: inline-block; margin-top: 1rem;">View Repository</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" data-section="4">
+        <div class="container">
+            <h2>Key Features</h2>
+            <p class="section-subtitle">Complete technical innovation across the stack</p>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="icon">🔒</div>
+                    <h4>Privacy-First</h4>
+                    <p>On-device AI means conversations never leave your phone. Zero data exposure.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">⚡</div>
+                    <h4>Instant Finality</h4>
+                    <p>Solana's 400ms blocks make per-request micropayments viable.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🎯</div>
+                    <h4>Full Control</h4>
+                    <p>Every payment requires explicit approval via your trusted wallet app.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🔗</div>
+                    <h4>Cross-Platform</h4>
+                    <p>Same x402 protocol works on mobile (Android) and desktop (Node.js/MCP).</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🧪</div>
+                    <h4>Production Ready</h4>
+                    <p>Comprehensive testing, error handling, and working demos on live endpoints.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🚀</div>
+                    <h4>Agent Economy</h4>
+                    <p>Enable agent-to-agent commerce and API monetization at scale.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- User Experience Section -->
+    <section id="ux" data-section="5">
+        <div class="container">
+            <h2>User Experience</h2>
+            <p class="section-subtitle">See how AI agents autonomously access paid content</p>
+
+            <div class="screenshots">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot1-Result.png?raw=true" alt="SolAIBot Interface" class="screenshot">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot2-Sign.png?raw=true" alt="Payment Signing" class="screenshot">
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Demonstrations Section -->
+    <section id="video-demos" data-section="6">
+        <div class="container">
+            <h2>Video Demonstrations</h2>
+            <p class="section-subtitle">See SolAIBot in action with live payment flows</p>
+
+            <div style="max-width: 900px; margin: 0 auto;">
+                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
+                    <iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--primary-purple); border-radius: 12px;"
+                        src="https://www.youtube.com/embed/ieUBE9uDSwE"
+                        title="SolAIBot Demo"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                    Watch the complete demo showing on-device AI processing and autonomous Solana payments
+                </p>
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <a href="https://youtu.be/ieUBE9uDSwE" class="btn btn-secondary" target="_blank">
+                        📺 Watch on YouTube
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" data-section="7">
+        <div class="container">
+            <h2>Complete Ecosystem Architecture</h2>
+            <p class="section-subtitle">Mobile to desktop, unified by x402 + Solana</p>
+
+            <div class="architecture">
+                <div class="mermaid">
+graph TB
+    subgraph Mobile["📱 MOBILE"]
+        A[SolAIBot<br/>On-device LLM<br/>Kotlin<br/>MWA Payments<br/>Android 12+]
+    end
+
+    subgraph Desktop["💻 DESKTOP/SERVER"]
+        B[Solana Agent Kit<br/>Node.js<br/>TypeScript<br/>Any LLM<br/>Multi-chain]
+    end
+
+    subgraph Protocol["x402 Protocol"]
+        C[HTTP 402 Payments<br/>Payment Challenges<br/>Transaction Building]
+    end
+
+    subgraph Blockchain["⛓️ Solana Blockchain"]
+        D[400ms Finality<br/>Low Fees<br/>MWA Security<br/>On-chain Settlement]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+
+    style A fill:#7c3aed,stroke:#f97316,color:#fff
+    style B fill:#7c3aed,stroke:#f97316,color:#fff
+    style C fill:#1a1a1a,stroke:#7c3aed,color:#f8f8f8
+    style D fill:#1a1a1a,stroke:#f97316,color:#f8f8f8
+    style Mobile fill:#0f0f0f,stroke:#333,color:#f8f8f8
+    style Desktop fill:#0f0f0f,stroke:#333,color:#f8f8f8
+    style Protocol fill:#0f0f0f,stroke:#333,color:#f8f8f8
+    style Blockchain fill:#0f0f0f,stroke:#333,color:#f8f8f8
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Market Section -->
+    <section id="market" data-section="8">
+        <div class="container">
+            <h2>Market Opportunity</h2>
+            <p class="section-subtitle">Explosive growth in AI agents and blockchain payments</p>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="icon">🤖</div>
+                    <h4>AI Agent Economy</h4>
+                    <p><strong>$7.8B in 2025 → $52.6B by 2030</strong><br/>CAGR of 46.3% as enterprises adopt autonomous AI agents for workflow automation and intelligent decision-making.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">💰</div>
+                    <h4>Agent Marketplaces</h4>
+                    <p><strong>$750B SMB IT Spending</strong><br/>AI agents as services will dominate how businesses interact, with agent-to-agent commerce creating entirely new economic models.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">⚡</div>
+                    <h4>Blockchain Micropayments</h4>
+                    <p><strong>$20B+ blockchain market</strong><br/>Solana processes 65,000 TPS at $0.00025 per transaction—making AI micropayments economically viable for the first time.</p>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🌐</div>
+                    <h4>Cross-Border Payments</h4>
+                    <p><strong>$600B+ annual remittances</strong><br/>Over 90% of Solana DeFi apps enable sub-$1 microtransactions, perfect for real-time agent payments and API access.</p>
+                </div>
+            </div>
+
+            <div class="expandable-content" id="market-details" style="margin-top: 2rem;">
+                <div style="background: var(--darker-bg); padding: 2rem; border-radius: 12px; border: 2px solid var(--border-color);">
+                    <h3 style="color: var(--light-text); margin-bottom: 1rem;">Why Now?</h3>
+                    <ul style="list-style: none; margin: 0; padding: 0;">
+                        <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                            ✓ <strong>Agentic AI adoption:</strong> 99% of organizations plan to deploy agentic AI, creating massive demand for autonomous payment capabilities
+                        </li>
+                        <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                            ✓ <strong>Solana's maturity:</strong> With $10B+ TVL and 2.2M daily active wallets, the infrastructure is production-ready
+                        </li>
+                        <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                            ✓ <strong>Privacy concerns:</strong> Growing demand for on-device AI processing that respects user data sovereignty
+                        </li>
+                        <li style="padding: 0.8rem 0; color: var(--gray-text);">
+                            ✓ <strong>API monetization:</strong> Developers need better ways to paywall services for AI agents without breaking workflows
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <span class="expand-toggle" onclick="toggleExpand('market-details', this)">Show market analysis</span>
+        </div>
+    </section>
+
+    <!-- Business Model - App Section -->
+    <section id="business" data-section="9">
+        <div class="container">
+            <h2>Business Model: Free App</h2>
+            <p class="section-subtitle">SolAIBot is completely free and open-source</p>
+
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="solution-card">
+                    <h3>📱 SolAIBot App</h3>
+                    <span class="tech-badge">Free Download</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        The Android app is completely free. No subscriptions, no in-app purchases, no ads.
+                    </p>
+                    <ul>
+                        <li>Free APK downloads from GitHub releases</li>
+                        <li>Open-source under Apache 2.0 license</li>
+                        <li>Users only pay for blockchain transactions via their wallet</li>
+                        <li>No vendor lock-in or data collection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Business Model - Revenue Section -->
+    <section id="revenue" data-section="10">
+        <div class="container">
+            <h2>Business Model: Revenue</h2>
+            <p class="section-subtitle">Sustainable revenue through facilitation fees</p>
+
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="solution-card">
+                    <h3>💰 x402 Facilitator Fees</h3>
+                    <span class="tech-badge">Revenue Model</span>
+                    <p style="margin-bottom: 1.5rem;">
+                        Quantaliz operates x402 facilitator infrastructure, earning micro-fees on payment settlements.
+                    </p>
+                    <ul>
+                        <li>Small percentage fee on each x402 payment transaction</li>
+                        <li>Merchant-paid fees (like credit card processing)</li>
+                        <li>Scales with agent-to-agent commerce volume</li>
+                        <li>Infrastructure-as-a-service for payment routing</li>
+                    </ul>
+                </div>
+
+                <div class="expandable-content" id="business-details" style="margin-top: 2rem;">
+                    <div style="background: var(--darker-bg); padding: 2rem; border-radius: 12px; border: 2px solid var(--border-color);">
+                        <h3 style="color: var(--light-text); margin-bottom: 1rem;">Future Revenue Streams</h3>
+                        <ul style="list-style: none; margin: 0; padding: 0;">
+                            <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                                💼 <strong>Enterprise SDK licensing:</strong> Premium support and custom integrations for businesses
+                            </li>
+                            <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                                🏪 <strong>Agent marketplace commission:</strong> Platform fees for agent-to-agent service discovery
+                            </li>
+                            <li style="padding: 0.8rem 0; color: var(--gray-text); border-bottom: 1px solid var(--border-color);">
+                                🔐 <strong>Privacy-preserving analytics:</strong> Aggregate payment insights for API providers (no PII)
+                            </li>
+                            <li style="padding: 0.8rem 0; color: var(--gray-text);">
+                                🌐 <strong>Multi-chain expansion:</strong> Facilitator infrastructure for other blockchain networks
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <span class="expand-toggle" onclick="toggleExpand('business-details', this)">Show future revenue streams</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Traction Section -->
+    <section id="traction" data-section="11">
+        <div class="container">
+            <h2>Proven Traction</h2>
+            <p class="section-subtitle">Production-ready implementations with working demos</p>
+
+            <div class="traction-grid">
+                <div class="traction-item">
+                    <div class="number">2</div>
+                    <div class="label">Complete Projects</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">1,000+</div>
+                    <div class="label">Lines of Code</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">121</div>
+                    <div class="label">Kotlin Files</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">v1.0.7</div>
+                    <div class="label">Production APK</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">2</div>
+                    <div class="label">Working Demos</div>
+                </div>
+
+                <div class="traction-item">
+                    <div class="number">100%</div>
+                    <div class="label">Devnet Tested</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem;">
+                <h3 style="text-align: center; margin-bottom: 2rem; background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">✅ What We've Built</h3>
+
+                <div style="max-width: 700px; margin: 0 auto;">
+                    <p style="color: var(--light-text); margin-bottom: 1rem;">Production-ready implementations with comprehensive testing:</p>
+
+                    <div class="expandable-content" id="traction-details">
+                        <ul class="checkmark-list">
+                            <li>Working Android app (v1.0.7) with production APK releases</li>
+                            <li>Production Node.js toolkit with comprehensive test suite</li>
+                            <li>Successfully tested end-to-end on Solana devnet with Solflare</li>
+                            <li>CLI demo with step-by-step payment flows</li>
+                            <li>MCP server for Claude Desktop integration</li>
+                            <li>Complete documentation for both projects</li>
+                            <li>Cross-platform x402 payment protocol implementation</li>
+                        </ul>
+                    </div>
+
+                    <span class="expand-toggle" onclick="toggleExpand('traction-details', this)">Show all achievements</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" data-section="12">
+        <div class="container">
+            <h2>Roadmap</h2>
+            <p class="section-subtitle">Next steps to scale the AI agent economy</p>
+
+            <div class="roadmap-grid">
+                <div class="card">
+                    <div class="icon">🚀</div>
+                    <h4>Q2 2025 - Mainnet Launch</h4>
+                    <p><strong>Production payments on Solana mainnet</strong></p>
+                    <div class="expandable-content" id="roadmap-q2">
+                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mainnet deployment for SolAIBot</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Real-world payment testing with users</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• SPL token support beyond SOL</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Enhanced security audits</li>
+                        </ul>
+                    </div>
+                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q2', this)" style="font-size: 0.9rem;">Details</span>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🎨</div>
+                    <h4>Q3 2025 - Enhanced UX</h4>
+                    <p><strong>Multi-model support and voice interface</strong></p>
+                    <div class="expandable-content" id="roadmap-q3">
+                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Support for multiple LLMs simultaneously</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Voice interface for hands-free operation</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Custom plugin marketplace</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Improved model download management</li>
+                        </ul>
+                    </div>
+                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q3', this)" style="font-size: 0.9rem;">Details</span>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🌐</div>
+                    <h4>Q4 2025 - Multi-Platform</h4>
+                    <p><strong>Desktop version and iOS support</strong></p>
+                    <div class="expandable-content" id="roadmap-q4">
+                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Desktop version of SolAIBot (Windows, Mac, Linux)</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• iOS app development</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Mobile SDK for native integrations</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• MCP client support in mobile app</li>
+                        </ul>
+                    </div>
+                    <span class="expand-toggle" onclick="toggleExpand('roadmap-q4', this)" style="font-size: 0.9rem;">Details</span>
+                </div>
+
+                <div class="card">
+                    <div class="icon">🔗</div>
+                    <h4>2026 - Agent Ecosystem</h4>
+                    <p><strong>Agent marketplace and multi-chain support</strong></p>
+                    <div class="expandable-content" id="roadmap-2026">
+                        <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent marketplace for service discovery</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Cross-chain payment bridges (EVM chains)</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Payment streaming for subscriptions</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Agent-to-agent communication protocol</li>
+                            <li style="padding: 0.3rem 0; color: var(--gray-text);">• Analytics dashboard for developers</li>
+                        </ul>
+                    </div>
+                    <span class="expand-toggle" onclick="toggleExpand('roadmap-2026', this)" style="font-size: 0.9rem;">Details</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo/CTA Section -->
+    <section data-section="13">
+        <div class="container" style="text-align: center;">
+            <h2>Try It Yourself</h2>
+            <p class="section-subtitle">Experience the future of AI agent payments today</p>
+
+            <div class="cta-buttons">
+                <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">
+                    📱 Download SolAIBot APK
+                </a>
+                <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">
+                    💻 Clone Agent Kit
+                </a>
+            </div>
+
+            <div style="margin-top: 3rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-purple), var(--primary-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Quick Start:</h3>
+                <p style="margin-bottom: 0.5rem; color: var(--light-text);"><strong>SolAIBot (Android):</strong></p>
+                <ol style="padding-left: 2rem; margin-bottom: 1.5rem; color: var(--gray-text);">
+                    <li>Download APK and install on Android 12+</li>
+                    <li>Install Solflare or MWA-compatible wallet</li>
+                    <li>Let the app download Hammer 2.1 model (~1.3GB)</li>
+                    <li>Ask AI to access paid content and approve payments</li>
+                </ol>
+
+                <p style="margin-bottom: 0.5rem; color: var(--light-text);"><strong>Agent Kit (Node.js):</strong></p>
+                <ol style="padding-left: 2rem; color: var(--gray-text);">
+                    <li>Clone repository and run <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--primary-purple);">pnpm install</code></li>
+                    <li>Build with <code style="background: var(--darker-bg); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--primary-purple);">pnpm build</code></li>
+                    <li>Configure wallet in examples/.env</li>
+                    <li>Run CLI demo or MCP server</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <section id="contact" data-section="14">
+        <div class="container" style="text-align: center;">
+            <img src="https://github.com/quantaliz/solaibot/blob/main/images/Quantaliz.png?raw=true" alt="Quantaliz Logo" class="logo-footer">
+
+            <div class="social-links" style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
+                <a href="https://www.quantaliz.com" target="_blank">Website</a>
+                <a href="https://github.com/quantaliz" target="_blank">GitHub</a>
+                <a href="https://github.com/quantaliz/solaibot" target="_blank">SolAIBot</a>
+                <a href="https://github.com/quantaliz/solana-agent-kit" target="_blank">Agent Kit</a>
+            </div>
+
+            <p style="margin-bottom: 1rem; color: var(--light-text);">
+                <strong>Quantaliz PTY LTD</strong><br>
+                Pioneering the intersection of privacy-preserving AI and decentralized technologies
+            </p>
+
+            <p style="font-size: 0.9rem; color: var(--gray-text);">
+                Built for <a href="https://www.colosseum.com/cypherpunk" target="_blank" style="color: var(--primary-purple);">Cypherpunk 2025</a>
+                & <a href="https://www.hackaroo.xyz" target="_blank" style="color: var(--primary-orange);">Hackaroo 2025</a>
+            </p>
+
+            <p style="font-size: 0.85rem; margin-top: 2rem; color: var(--gray-text);">
+                Licensed under Apache License 2.0 • Built on permissive open-source foundations
+            </p>
+        </div>
+    </section>
+
+    <!-- Mermaid.js for diagrams -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#7c3aed',
+                primaryTextColor: '#f8f8f8',
+                primaryBorderColor: '#f97316',
+                lineColor: '#7c3aed',
+                secondaryColor: '#1a1a1a',
+                tertiaryColor: '#0f0f0f',
+                background: '#0f0f0f',
+                mainBkg: '#1a1a1a',
+                secondBkg: '#0f0f0f'
+            }
+        });
+    </script>
+
+    <script>
+        // Hamburger menu toggle
+        const hamburger = document.getElementById('hamburger');
+        const navMenu = document.getElementById('navMenu');
+        const navOverlay = document.getElementById('navOverlay');
+        const navLinks = document.getElementById('navLinks');
+
+        // Toggle menu open/close
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+            navOverlay.classList.toggle('active');
+        });
+
+        // Close menu when clicking overlay
+        navOverlay.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+            navOverlay.classList.remove('active');
+        });
+
+        // Close menu when clicking a link
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+                navOverlay.classList.remove('active');
+            });
+        });
+
+        // Expandable content toggle
+        function toggleExpand(contentId, toggleElement) {
+            const content = document.getElementById(contentId);
+            content.classList.toggle('expanded');
+            toggleElement.classList.toggle('expanded');
+
+            if (content.classList.contains('expanded')) {
+                toggleElement.textContent = toggleElement.textContent.replace('Show', 'Hide');
+            } else {
+                toggleElement.textContent = toggleElement.textContent.replace('Hide', 'Show');
+            }
+        }
+
+        // Make toggleExpand globally available
+        window.toggleExpand = toggleExpand;
+
+        // Section navigation state
+        let currentSection = 0;
+        const sections = document.querySelectorAll('section[data-section]');
+        const totalSections = sections.length;
+        const navDots = document.querySelectorAll('.nav-dot');
+        const keyboardHint = document.getElementById('keyboardHint');
+
+        // Hide keyboard hint after 5 seconds
+        setTimeout(() => {
+            keyboardHint.classList.add('hidden');
+        }, 5000);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateToSection(currentSection + 1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateToSection(currentSection - 1);
+            }
+        });
+
+        // Navigate to specific section
+        function navigateToSection(index) {
+            if (index < 0 || index >= totalSections) return;
+
+            currentSection = index;
+            sections[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            updateNavIndicator();
+        }
+
+        // Update navigation indicator
+        function updateNavIndicator() {
+            navDots.forEach((dot, index) => {
+                if (index === currentSection) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        // Click navigation dots
+        navDots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                navigateToSection(index);
+            });
+        });
+
+        // Update current section on scroll
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                let scrollPosition = window.scrollY + window.innerHeight / 2;
+
+                sections.forEach((section, index) => {
+                    const sectionTop = section.offsetTop;
+                    const sectionBottom = sectionTop + section.offsetHeight;
+
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                        currentSection = index;
+                        updateNavIndicator();
+                    }
+                });
+            }, 100);
+        });
+
+        // Smooth scroll with offset for anchors
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const sectionIndex = parseInt(target.getAttribute('data-section'));
+                    if (!isNaN(sectionIndex)) {
+                        navigateToSection(sectionIndex);
+                    }
+                }
+            });
+        });
+
+        // Fade-in animation on load
+        window.addEventListener('load', () => {
+            document.querySelector('.hero .fade-in').style.opacity = '1';
+        });
+    </script>
+</body>
+</html>
