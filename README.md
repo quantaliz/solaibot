@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="images/IconSolAI_002.png" width="200" alt="SolAI Icon" />
+
 # Financially Autonomous AI Agents with x402 Payments
 ## Privacy-First AI Meets Solana Micropayments
 
@@ -314,7 +316,7 @@ Licensed under the **Apache License 2.0** - See [LICENSE](LICENSE) for details.
 
 - **SolAIBot:** Built upon [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) under permissive open-source licensing
 - **Solana Agent Kit:** Extended from [sendaifun/solana-agent-kit](https://github.com/sendaifun/solana-agent-kit)
-
+- **metalsal.xyz:** Providing support, an android device and his mentorship
 ---
 
 <div align="center">
