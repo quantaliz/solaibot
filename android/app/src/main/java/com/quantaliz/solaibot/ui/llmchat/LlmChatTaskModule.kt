@@ -18,7 +18,6 @@ package com.quantaliz.solaibot.ui.llmchat
 
 import android.content.Context
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mms
 import androidx.compose.runtime.Composable
@@ -27,7 +26,9 @@ import com.quantaliz.solaibot.customtasks.common.CustomTask
 import com.quantaliz.solaibot.customtasks.common.CustomTaskDataForBuiltinTask
 import com.quantaliz.solaibot.data.BuiltInTaskId
 import com.quantaliz.solaibot.data.Category
-import com.quantaliz.solaibot.data.MODEL_HAMMER_2_1_1_5B
+import com.quantaliz.solaibot.data.MODEL_GEMINI_3N_E2B
+import com.quantaliz.solaibot.data.MODEL_GEMINI_3N_E4B
+import com.quantaliz.solaibot.data.PHI4_MINI_INSTRUCT
 import com.quantaliz.solaibot.data.Model
 import com.quantaliz.solaibot.data.Task
 import com.quantaliz.solaibot.ui.llmchat.LlmFunctionCallingModelHelper
@@ -48,8 +49,8 @@ class LlmChatTask @Inject constructor() : CustomTask {
       id = BuiltInTaskId.LLM_CHAT,
       label = "SolAIBot",
       category = Category.LLM,
-      icon = Icons.Outlined.Forum,
-      models = mutableListOf(MODEL_HAMMER_2_1_1_5B),
+      iconVectorResourceId = R.drawable.ic_robot,
+      models = mutableListOf(MODEL_GEMINI_3N_E2B, MODEL_GEMINI_3N_E4B, PHI4_MINI_INSTRUCT),
       description = "On-device Large Language Model that can make x402 payments. Developed for Hackaroo & Cypherpunk",
       docUrl = "https://quantaliz.com/hackaroo",
       sourceCodeUrl =

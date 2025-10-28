@@ -45,7 +45,7 @@ fun LlmChatScreen(
     taskId = BuiltInTaskId.LLM_CHAT,
     navigateUp = navigateUp,
     modifier = modifier,
-    activityResultSender = activityResultSender,
+    activityResultSender = activityResultSender
   )
 }
 
@@ -93,7 +93,7 @@ fun ChatViewWrapper(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
-  onWalletConnectClicked: (() -> Unit)? = null,
+  onWalletConnectClicked: (() -> Unit)? = null
 ) {
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
@@ -202,6 +202,6 @@ fun ChatViewWrapper(
     modifier = modifier,
     walletViewModel = walletViewModel,
     activityResultSender = activityResultSender,
-    onWalletConnectClicked = effectiveOnWalletConnect,
+    onWalletConnectClicked = effectiveOnWalletConnect
   )
 }

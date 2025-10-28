@@ -20,7 +20,7 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Robot icon for app logo -->
+    <!-- Simplified robot head with better visibility at small sizes -->
 
     <!-- Main robot head - rounded rectangle -->
     <path

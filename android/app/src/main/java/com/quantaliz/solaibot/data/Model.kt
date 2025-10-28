@@ -446,20 +446,50 @@ val EMPTY_MODEL: Model =
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // LLM models for chat.
 
-val MODEL_HAMMER_2_1_1_5B: Model =
-   Model(
-     name = "Hammer-2.1-1.5B",
-     displayName = "Hammer 2.1 1.5B",
-     info = "Hammer 2.1 1.5B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
-     configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
-     url = "https://huggingface.co/litert-community/Hammer2.1-1.5b/resolve/main/Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
-     downloadFileName = "Hammer2.1-1.5b_multi-prefill-seq_q8_ekv4096.litertlm",
-     sizeInBytes = 1610612736L, // 1.5 GB
-     showBenchmarkButton = true,
-     showRunAgainButton = true,
-     learnMoreUrl = "https://huggingface.co/litert-community/Hammer2.1-1.5b",
-     llmSupportFunctionCalling = true,
-   )
+val MODEL_GEMINI_3N_E2B: Model =
+  Model(
+    name = "gemma-3n-E2B-it-int4",
+    displayName = "Gemma 3N E2B",
+    info = "Gemma 3N E2B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
+    configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
+    url = "https://huggingface.co/teleke/OpenGemma3N/resolve/main/gemma-3n-E2B-it-int4.litertlm?download=true",
+    downloadFileName = "gemma-3n-E2B-it-int4.litertlm",
+    sizeInBytes = 3388604416, // 3.3 GB
+    showBenchmarkButton = true,
+    showRunAgainButton = true,
+    learnMoreUrl = "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm",
+    llmSupportFunctionCalling = true,
+  )
+
+val MODEL_GEMINI_3N_E4B: Model =
+  Model(
+    name = "gemma-3n-E4B-it-int4",
+    displayName = "Gemma 4N E2B",
+    info = "Gemma 3N E4B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration.",
+    configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
+    url = "https://huggingface.co/teleke/OpenGemma3N/resolve/main/gemma-3n-E4B-it-int4.litertlm?download=true",
+    downloadFileName = "gemma-3n-E4B-it-int4.litertlm",
+    sizeInBytes = 4652318720, // 4.6 GB
+    showBenchmarkButton = true,
+    showRunAgainButton = true,
+    learnMoreUrl = "https://huggingface.co/google/gemma-3n-E4B-it-litert-lm",
+    llmSupportFunctionCalling = true,
+  )
+
+val PHI4_MINI_INSTRUCT: Model =
+    Model(
+    name = "Phi-4-mini-instruct",
+    displayName = "Phi-4-mini-instruct 4B",
+    info = "Phi-4-mini-instruct 4B quantized model optimized for on-device inference with function calling capabilities. Supports GPU and CPU acceleration. Needs device with 12GB RAM",
+    configs = createLlmChatConfigs(accelerators = listOf(Accelerator.GPU, Accelerator.CPU)),
+    url = "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
+    downloadFileName = "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm",
+    sizeInBytes = 3900000000L, // 1.5 GB
+    showBenchmarkButton = true,
+    showRunAgainButton = true,
+    learnMoreUrl = "https://huggingface.co/litert-community/Phi-4-mini-instruct",
+    llmSupportFunctionCalling = true,
+    )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Model collections for different tasks.

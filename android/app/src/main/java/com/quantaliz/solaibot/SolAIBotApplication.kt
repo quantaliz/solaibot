@@ -19,7 +19,6 @@ package com.quantaliz.solaibot
 import android.app.Application
 import com.quantaliz.solaibot.data.DataStoreRepository
 import com.quantaliz.solaibot.ui.theme.ThemeSettings
-import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -33,7 +32,5 @@ class SolAIBotApplication : Application() {
 
     // Load saved theme.
     ThemeSettings.themeOverride.value = dataStoreRepository.readTheme()
-
-    FirebaseApp.initializeApp(this)
   }
 }
