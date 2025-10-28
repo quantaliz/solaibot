@@ -75,11 +75,14 @@ Users can now say:
 ### Error: "401 Unauthorized"
 **Fix**: Invalid API key. Check you copied it correctly
 
-### Error: "Wallet not connected"
-**Fix**: Connect wallet first via app UI
+### Message: "ERROR:WALLET_NOT_CONNECTED:..."
+**This is normal**: User needs to connect wallet first via app UI. This message is displayed directly to prevent redundant function calls.
 
-### Error: "No internet connection"
-**Fix**: Check device network connectivity
+### Message: "ERROR:NO_INTERNET:..."
+**Fix**: Check device network connectivity. This message is displayed directly.
+
+### Message: "INFO:NO_TOKENS:..."
+**This is informational**: Wallet is empty or only contains NFTs. Not an error.
 
 ### Response: "Falling back to RPC"
 **Note**: Zerion API failed, using RPC as fallback (still works!)
@@ -106,6 +109,13 @@ Bot: "You have:
      ✓ USDC: 100 ($100.00)
      ✓ RAY: 15.5 ($12.40)
      Total: $357.40"
+```
+
+### Smart Error Handling:
+```
+User: "What's my balance?" (wallet not connected)
+Bot: "Wallet not connected. Please connect your Solana wallet first to view your token balances."
+(No redundant function calls, direct actionable message)
 ```
 
 ## 🔐 Security Note

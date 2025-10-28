@@ -188,7 +188,10 @@ User sees result
 
 - Network errors gracefully handled
 - Fallback to RPC if Zerion unavailable
-- User-friendly error messages
+- Structured error/info messages with automatic detection
+- Direct display of actionable errors (no LLM interpretation)
+- Error codes: WALLET_NOT_CONNECTED, NO_INTERNET
+- Info codes: NO_TOKENS
 - Detailed logs for debugging
 
 ## 🧪 Testing
@@ -213,12 +216,13 @@ Use known Solana addresses for testing:
 ### Error Scenarios
 
 Test these cases:
-- ❌ No internet connection
-- ❌ Invalid API key
-- ❌ Wallet not connected
-- ❌ Invalid wallet address
-- ❌ Rate limit exceeded
-- ✅ All should show user-friendly errors
+- ❌ No internet connection → ERROR:NO_INTERNET message displayed directly
+- ❌ Invalid API key → Error message with details
+- ❌ Wallet not connected → ERROR:WALLET_NOT_CONNECTED message displayed directly
+- ❌ Invalid wallet address → Error message with details
+- ❌ Rate limit exceeded → Error message with details
+- ℹ️ Empty wallet → INFO:NO_TOKENS message displayed directly
+- ✅ All errors prevent additional function calls and display directly to user
 
 ## 📈 Performance
 
@@ -251,6 +255,15 @@ Typical response times:
 
 **Issue**: 401 Unauthorized
 **Fix**: Verify API key is valid and has required scopes
+
+**Issue**: ERROR:WALLET_NOT_CONNECTED displayed
+**Fix**: This is expected - user needs to connect wallet via UI first
+
+**Issue**: INFO:NO_TOKENS displayed
+**Fix**: This is informational - wallet is empty or only contains NFTs
+
+**Issue**: ERROR:NO_INTERNET displayed
+**Fix**: Check device network connectivity
 
 **Issue**: Empty positions returned
 **Fix**: Check wallet has tokens on Solscan/explorer
@@ -308,6 +321,14 @@ When adding new Zerion features:
 8. Test end-to-end with LLM
 
 ## 📝 Changelog
+
+### v1.0.8+ (2025-10-28)
+- ✅ Fixed error handling to prevent redundant function calls
+- ✅ Added structured error/info message system (ERROR:CODE:message, INFO:CODE:message)
+- ✅ Automatic detection and direct display of actionable errors
+- ✅ Error codes: WALLET_NOT_CONNECTED, NO_INTERNET
+- ✅ Info codes: NO_TOKENS
+- ✅ Updated system prompt with error handling guidance
 
 ### v1.0.8 (2025-01-15)
 - ✅ Initial Zerion integration (Phase 1)
