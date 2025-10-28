@@ -319,38 +319,51 @@ object LlmFunctionCallingModelHelper {
 
                                 Log.d(TAG, "Function result: $functionResult")
 
-                                // Add function result to history
-                                instance.conversationHistory.add(ConversationTurn("function", functionResult))
+                                // Check if the result is an actionable error that should be displayed directly
+                                val errorInfo = parseErrorOrInfoMessage(functionResult)
+                                if (errorInfo != null) {
+                                    Log.d(TAG, "Detected ${errorInfo.type} message, displaying directly to user")
 
-                                // Build new prompt with function result
-                                val followUpPrompt = buildPrompt(instance)
+                                    // Add the error to conversation history
+                                    instance.conversationHistory.add(ConversationTurn("function", functionResult))
+                                    instance.conversationHistory.add(ConversationTurn("assistant", errorInfo.userMessage))
 
-                                // Generate follow-up response
-                                val followUpBuilder = StringBuilder()
-                                session.generateContentStream(
-                                    listOf(InputData.Text(followUpPrompt)),
-                                    object : ResponseObserver {
-                                        override fun onNext(response: String) {
-                                            followUpBuilder.append(response)
-                                            resultListener(response, false)
+                                    // Display directly to user without LLM interpretation
+                                    resultListener(errorInfo.userMessage, true)
+                                } else {
+                                    // Add function result to history
+                                    instance.conversationHistory.add(ConversationTurn("function", functionResult))
+
+                                    // Build new prompt with function result
+                                    val followUpPrompt = buildPrompt(instance)
+
+                                    // Generate follow-up response
+                                    val followUpBuilder = StringBuilder()
+                                    session.generateContentStream(
+                                        listOf(InputData.Text(followUpPrompt)),
+                                        object : ResponseObserver {
+                                            override fun onNext(response: String) {
+                                                followUpBuilder.append(response)
+                                                resultListener(response, false)
+                                            }
+
+                                            override fun onDone() {
+                                                val followUpResponse = followUpBuilder.toString()
+                                                Log.d(TAG, "Follow-up response: $followUpResponse")
+
+                                                // Add follow-up to history
+                                                instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
+
+                                                resultListener("", true)
+                                            }
+
+                                            override fun onError(throwable: Throwable) {
+                                                Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
+                                                resultListener("Error generating follow-up: ${throwable.message}", true)
+                                            }
                                         }
-
-                                        override fun onDone() {
-                                            val followUpResponse = followUpBuilder.toString()
-                                            Log.d(TAG, "Follow-up response: $followUpResponse")
-
-                                            // Add follow-up to history
-                                            instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
-
-                                            resultListener("", true)
-                                        }
-
-                                        override fun onError(throwable: Throwable) {
-                                            Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
-                                            resultListener("Error generating follow-up: ${throwable.message}", true)
-                                        }
-                                    }
-                                )
+                                    )
+                                }
                             } else {
                                 // For wallet functions, we need special handling since they might involve user interaction
                                 // Add the wallet processing message directly to conversation history so it shows up
@@ -365,48 +378,61 @@ object LlmFunctionCallingModelHelper {
                                     val actualResult = executeFunction(context, functionCall.first, functionCall.second, activityResultSender)
                                     Log.d(TAG, "Wallet function actual result: $actualResult")
 
-                                    // Add function result to history
-                                    instance.conversationHistory.add(ConversationTurn("function", actualResult))
+                                    // Check if the result is an actionable error that should be displayed directly
+                                    val errorInfo = parseErrorOrInfoMessage(actualResult)
+                                    if (errorInfo != null) {
+                                        Log.d(TAG, "Detected ${errorInfo.type} message, displaying directly to user")
 
-                                    // Check if this is a solana_payment function and extract x402 details
-                                    val x402Details = if (functionCall.first.startsWith("solana_payment")) {
-                                        extractX402SettlementInfo(actualResult)
-                                    } else null
+                                        // Add the error to conversation history
+                                        instance.conversationHistory.add(ConversationTurn("function", actualResult))
+                                        instance.conversationHistory.add(ConversationTurn("assistant", errorInfo.userMessage))
 
-                                    // Create a new prompt with the updated conversation history to have the LLM process the actual result
-                                    val updatedPrompt = buildPrompt(instance)
-                                    val updatedResponseBuilder = StringBuilder()
+                                        // Display directly to user without LLM interpretation
+                                        resultListener(errorInfo.userMessage, true)
+                                    } else {
+                                        // Add function result to history
+                                        instance.conversationHistory.add(ConversationTurn("function", actualResult))
 
-                                    session.generateContentStream(
-                                        listOf(InputData.Text(updatedPrompt)),
-                                        object : ResponseObserver {
-                                            override fun onNext(response: String) {
-                                                updatedResponseBuilder.append(response)
-                                                resultListener(response, false)
-                                            }
+                                        // Check if this is a solana_payment function and extract x402 details
+                                        val x402Details = if (functionCall.first.startsWith("solana_payment")) {
+                                            extractX402SettlementInfo(actualResult)
+                                        } else null
 
-                                            override fun onDone() {
-                                                val finalResponse = updatedResponseBuilder.toString()
-                                                Log.d(TAG, "Final response after wallet function: $finalResponse")
+                                        // Create a new prompt with the updated conversation history to have the LLM process the actual result
+                                        val updatedPrompt = buildPrompt(instance)
+                                        val updatedResponseBuilder = StringBuilder()
 
-                                                // Add final response to history
-                                                instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
-
-                                                // If we have x402 details, send them as a separate message bubble
-                                                if (x402Details != null) {
-                                                    Log.d(TAG, "Sending x402 settlement details as separate message")
-                                                    resultListener(x402Details, false)
+                                        session.generateContentStream(
+                                            listOf(InputData.Text(updatedPrompt)),
+                                            object : ResponseObserver {
+                                                override fun onNext(response: String) {
+                                                    updatedResponseBuilder.append(response)
+                                                    resultListener(response, false)
                                                 }
 
-                                                resultListener("", true)
-                                            }
+                                                override fun onDone() {
+                                                    val finalResponse = updatedResponseBuilder.toString()
+                                                    Log.d(TAG, "Final response after wallet function: $finalResponse")
 
-                                            override fun onError(throwable: Throwable) {
-                                                Log.e(TAG, "Final response error after wallet function: ${throwable.message}", throwable)
-                                                resultListener("Error processing wallet function result: ${throwable.message}", true)
+                                                    // Add final response to history
+                                                    instance.conversationHistory.add(ConversationTurn("assistant", finalResponse))
+
+                                                    // If we have x402 details, send them as a separate message bubble
+                                                    if (x402Details != null) {
+                                                        Log.d(TAG, "Sending x402 settlement details as separate message")
+                                                        resultListener(x402Details, false)
+                                                    }
+
+                                                    resultListener("", true)
+                                                }
+
+                                                override fun onError(throwable: Throwable) {
+                                                    Log.e(TAG, "Final response error after wallet function: ${throwable.message}", throwable)
+                                                    resultListener("Error processing wallet function result: ${throwable.message}", true)
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                         } else {
@@ -453,6 +479,40 @@ object LlmFunctionCallingModelHelper {
         val stream = java.io.ByteArrayOutputStream()
         this.compress(Bitmap.CompressFormat.PNG, 100, stream)
         return stream.toByteArray()
+    }
+
+    /**
+     * Data class to hold parsed error/info message details.
+     */
+    private data class ErrorOrInfoMessage(
+        val type: String, // "ERROR" or "INFO"
+        val code: String, // e.g., "WALLET_NOT_CONNECTED", "NO_TOKENS"
+        val userMessage: String // The message to display to the user
+    )
+
+    /**
+     * Parses error or info messages from function results.
+     * Format: "ERROR:CODE:message" or "INFO:CODE:message"
+     * Returns ErrorOrInfoMessage if found, null otherwise.
+     */
+    private fun parseErrorOrInfoMessage(functionResult: String): ErrorOrInfoMessage? {
+        try {
+            val pattern = """^(ERROR|INFO):([A-Z_]+):(.+)$""".toRegex()
+            val match = pattern.find(functionResult.trim())
+
+            if (match != null) {
+                val type = match.groupValues[1]
+                val code = match.groupValues[2]
+                val message = match.groupValues[3]
+
+                return ErrorOrInfoMessage(type, code, message)
+            }
+
+            return null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing error/info message: ${e.message}", e)
+            return null
+        }
     }
 
     /**

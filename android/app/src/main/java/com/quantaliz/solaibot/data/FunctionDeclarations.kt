@@ -44,65 +44,47 @@ val availableFunctions = getSolanaWalletFunctions()
  */
 fun generateFunctionCallingSystemPrompt(): String {
     val sb = StringBuilder()
-    sb.append("You are a helpful assistant with access to the following functions:\n\n")
+    sb.append("You have access to the following functions. Use them when needed:\n\n")
 
     for (func in availableFunctions) {
-        sb.append("Function: ${func.name}\n")
-        sb.append("Description: ${func.description}\n")
-        sb.append("Parameters:\n")
-        for (param in func.parameters) {
-            sb.append("  - ${param.name} (${param.type}): ${param.description}")
-            if (param.required) sb.append(" [REQUIRED]")
-            sb.append("\n")
+        sb.append("${func.name}\n")
+        sb.append("${func.description}\n")
+        if (func.parameters.isNotEmpty()) {
+            sb.append("Parameters:\n")
+            for (param in func.parameters) {
+                sb.append("  - ${param.name} (${param.type}): ${param.description}")
+                if (param.required) sb.append(" [REQUIRED]")
+                sb.append("\n")
+            }
         }
         sb.append("\n")
     }
 
     sb.append("""
-To call a function, respond EXACTLY in this format:
-FUNCTION_CALL: function_name(param1="value1", param2="value2")
+To call a function, you MUST use this JSON format:
+{"name": "function_name", "parameters": {"param1": "value1", "param2": "value2"}}
 
 Examples:
-FUNCTION_CALL: get_solana_balance()
-FUNCTION_CALL: send_solana(recipient="7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", amount="0.1")
-FUNCTION_CALL: solana_payment(url="https://api.example.com/premium-data")
+{"name": "get_portfolio", "parameters": {}}
+{"name": "get_balance", "parameters": {"token": "SOL"}}
+{"name": "get_transactions", "parameters": {"limit": "5"}}
+{"name": "solana_payment", "parameters": {"url": "https://api.example.com/premium-data"}}
+{"name": "verify_transaction", "parameters": {"hash": "abc123..."}}
 
-Important:
-- Only call functions when the user explicitly asks for information that requires them
-- Use exact function names and parameter names as defined above
-- Always put string values in double quotes
-- If you don't need a function, respond normally with natural language
-- When responding to users after a function call, speak naturally without using markdown code blocks (no ``` syntax)
-- Keep responses conversational and friendly
-- IMPORTANT: When presenting function results (especially payment transactions), include ALL relevant details from the function result such as:
-  * Transaction hashes/signatures
-  * Payment amounts and networks
-  * Wallet addresses
-  * Balance information
-  * Premium content or data received
-  * Any confirmation details or receipts
-  * Format these details clearly for the user to see
+Rules:
+- Use functions only when needed to answer the user's question
+- Use exact function names and parameter names
+- For functions with no parameters, use empty object: "parameters": {}
+- Respond naturally in text when not calling functions
+- When showing function results, include all important details (transaction hashes, amounts, addresses, etc.)
+- IMPORTANT: If a function returns an error or info message (starting with ERROR: or INFO:), DO NOT make additional function calls. The error/info will be displayed directly to the user.
+- If you see "ERROR:WALLET_NOT_CONNECTED" in function results, the user needs to connect their wallet first before any wallet operations can succeed.
 
-Solana Wallet Usage Notes:
-- For portfolio overview with total value, use get_portfolio() - shows complete wallet value and distribution
-- For token balance queries, use get_balance(token="SYMBOL") - e.g., get_balance(token="SOL") or get_balance(token="USDC")
-- For all token balances, use get_balance() without parameters - shows all tokens with USD values and prices
-- For transaction history, use get_transactions(limit="5") - shows recent wallet activity
-- To verify a payment, use verify_transaction(hash="...") - confirms transaction status and details
-- The solana_payment() function uses the x402 protocol for micropayments to access paid APIs and resources
-- All Solana addresses should be valid Base58-encoded public keys
-- SOL amounts should be specified as decimal values (e.g., "0.1" for 0.1 SOL)
-
-Zerion-Powered Wallet Functions:
-- get_portfolio(): Complete wallet overview with total USD value and asset distribution by type and chain
-- get_balance(token?): All token balances with current prices and USD values. Optionally filter by token symbol
-- get_transactions(limit?): Recent transaction history with full transfer details, fees, and timestamps
-- verify_transaction(hash): Verify specific transactions by hash - essential for confirming x402 payments
-
-Important:
-- Balance and transaction queries automatically connect wallet if needed
-- All functions return rich data with USD values and verified token status
-- Use verify_transaction() after solana_payment() to confirm payment completion
+get_portfolio: Shows total wallet value and asset distribution
+get_balance: Shows token balances with USD values (optional token filter)
+get_transactions: Shows recent transaction history (optional limit)
+verify_transaction: Confirms transaction by hash
+solana_payment: Makes x402 micropayments for paid resources
 """.trimIndent())
 
     return sb.toString()
@@ -124,9 +106,36 @@ suspend fun executeFunction(
 /**
  * Parse function call from model response.
  * Returns Pair(functionName, arguments) or null if no function call detected.
+ *
+ * Supports both JSON format (preferred for Gemma) and legacy format for backwards compatibility.
  */
 fun parseFunctionCall(response: String): Pair<String, Map<String, String>>? {
-    // Look for pattern: FUNCTION_CALL: function_name(arg1="value1", arg2="value2")
+    // Try JSON format first (Gemma 3 preferred format)
+    // Look for: {"name": "function_name", "parameters": {"param1": "value1"}}
+    try {
+        val jsonRegex = Regex("""\{[^}]*"name"\s*:\s*"([^"]+)"[^}]*"parameters"\s*:\s*\{([^}]*)\}[^}]*\}""")
+        val jsonMatch = jsonRegex.find(response)
+
+        if (jsonMatch != null) {
+            val functionName = jsonMatch.groupValues[1]
+            val paramsString = jsonMatch.groupValues[2]
+
+            // Parse parameters from JSON
+            val args = mutableMapOf<String, String>()
+            val paramRegex = Regex(""""(\w+)"\s*:\s*"([^"]*)"""")
+            for (paramMatch in paramRegex.findAll(paramsString)) {
+                val key = paramMatch.groupValues[1]
+                val value = paramMatch.groupValues[2]
+                args[key] = value
+            }
+
+            return Pair(functionName, args)
+        }
+    } catch (e: Exception) {
+        // Fall through to legacy format
+    }
+
+    // Fall back to legacy format: FUNCTION_CALL: function_name(arg1="value1")
     val functionCallRegex = Regex("""FUNCTION_CALL:\s*(\w+)\((.*?)\)""")
     val match = functionCallRegex.find(response) ?: return null
 

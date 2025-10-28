@@ -70,13 +70,13 @@ suspend fun getZerionPortfolio(context: Context): String {
     // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
-        return "Cannot retrieve portfolio: No internet connection. ($networkStatus)"
+        return "ERROR:NO_INTERNET:Cannot retrieve portfolio. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
     // Check if wallet is connected
     val connectionState = WalletConnectionManager.getConnectionState()
     if (!connectionState.isConnected || connectionState.address == null) {
-        return "Wallet not connected. Please connect your wallet first to view portfolio."
+        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view your portfolio."
     }
 
     val address = connectionState.address
@@ -125,13 +125,13 @@ suspend fun getZerionBalance(context: Context, args: Map<String, String> = empty
     // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
-        return "Cannot retrieve balance: No internet connection. ($networkStatus)"
+        return "ERROR:NO_INTERNET:Cannot retrieve balance. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
     // Check if wallet is connected
     val connectionState = WalletConnectionManager.getConnectionState()
     if (!connectionState.isConnected || connectionState.address == null) {
-        return "Wallet not connected. Please connect your wallet first to view balance."
+        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view your token balances."
     }
 
     val address = connectionState.address
@@ -151,7 +151,7 @@ suspend fun getZerionBalance(context: Context, args: Map<String, String> = empty
             ?: return "Error: Empty positions response"
 
         if (positions.data.isEmpty()) {
-            return "No token positions found for this wallet."
+            return "INFO:NO_TOKENS:This wallet currently has no token positions. The wallet may be empty or only contain NFTs which are not displayed in token balances."
         }
 
         // If specific token requested, filter for it
@@ -211,13 +211,13 @@ suspend fun getZerionTransactions(context: Context, args: Map<String, String> = 
     // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
-        return "Cannot retrieve transactions: No internet connection. ($networkStatus)"
+        return "ERROR:NO_INTERNET:Cannot retrieve transactions. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
     // Check if wallet is connected
     val connectionState = WalletConnectionManager.getConnectionState()
     if (!connectionState.isConnected || connectionState.address == null) {
-        return "Wallet not connected. Please connect your wallet first to view transactions."
+        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view transaction history."
     }
 
     val address = connectionState.address
@@ -289,13 +289,13 @@ suspend fun verifyZerionTransaction(context: Context, args: Map<String, String>)
     // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
-        return "Cannot verify transaction: No internet connection. ($networkStatus)"
+        return "ERROR:NO_INTERNET:Cannot verify transaction. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
     // Check if wallet is connected
     val connectionState = WalletConnectionManager.getConnectionState()
     if (!connectionState.isConnected || connectionState.address == null) {
-        return "Wallet not connected. Please connect your wallet first."
+        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to verify transactions."
     }
 
     val address = connectionState.address

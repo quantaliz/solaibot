@@ -290,8 +290,16 @@ We need to update the app icon with the file "android/IconSolAIBot.png" as the a
 
 The first view is @android/app/src/main/java/com/quantaliz/solaibot/ui/llmchat/LlmChatTaskModule.kt which shows an icon above "SolAIBot". Replace that icon with the new app icon. Also, by default the app shows a navigation bar at the top, which is not needed in this view, can it be hidden?
 
-I have made minor updates to the zerion documentation (in particular its names):
+To update your context on what we are working:
 - Check the @Zerion-QuickStart.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md
 - The "val key = apiKey ?: "YOUR_ZERION_API_KEY_HERE" should instead use the "@app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionConfig.kt" as the place where users compiling this app should update their API key, instead of code in the @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt
 - The line "const val API_KEY = "YOUR_ZERION_API_KEY_HERE" should make the app fail to compile and give a compilation error on why the user needs to replace the key.
 - The file "@app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt" should remove "get_solana_balance" & "send_solana" function calls, keep only "solana_payment". The removed functions now will use the Zerion function calls.
+
+What's my solana balance
+
+To update your context on what we are working:
+- Check the @Zerion-QuickStart.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md
+- File @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt returns "Function result: Wallet not connected." which is fine
+- But then, the LLM seems to try to make another function call like `{"name": "get_balance", "parameters": {"token": "SOL"}}Calling... get_balance{"name": "get_balance", "parameters": {}}` which is wrong, The app should trigger a message tell the user to connect its solana wallet instead.
+- Something similar is happening when the function call returns "return No token positions found for this wallet.", which tries to continue making function calls. Resolve this issue
