@@ -287,3 +287,5 @@ This project now has a new demo, which is inside the uagentdemo folder. The @uag
 Along the same line, make sure it follows the patterns for the hackathon explained in @context/PitchReference.md
 
 We need to update the app icon with the file "android/IconSolAIBot.png" as the app system icon, OS icon and launch animation. Make sure it complies with the required sizes. Use python if necessary to resize the image. Do not try to compile the app, I will do it in another computer
+
+The first view is @android/app/src/main/java/com/quantaliz/solaibot/ui/llmchat/LlmChatTaskModule.kt which shows an icon above "SolAIBot". Replace that icon with the new app icon. Also, by default the app shows a navigation bar at the top, which is not needed in this view, can it be hidden?

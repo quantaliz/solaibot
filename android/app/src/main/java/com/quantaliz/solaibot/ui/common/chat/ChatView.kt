@@ -93,8 +93,7 @@ fun ChatView(
   showStopButtonInInputWhenInProgress: Boolean = false,
   walletViewModel: com.quantaliz.solaibot.ui.wallet.WalletViewModel? = null,
   activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
-  onWalletConnectClicked: (() -> Unit)? = null,
-  showTopAppBar: Boolean = true,
+  onWalletConnectClicked: (() -> Unit)? = null
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -146,34 +145,32 @@ fun ChatView(
   Scaffold(
     modifier = modifier,
     topBar = {
-      if (showTopAppBar) {
         ModelPageAppBar(
-          task = task,
-          model = selectedModel,
-          modelManagerViewModel = modelManagerViewModel,
-          canShowResetSessionButton = true,
-          isResettingSession = uiState.isResettingSession,
-          inProgress = uiState.inProgress,
-          modelPreparing = uiState.preparing,
-          onResetSessionClicked = onResetSessionClicked,
-          onConfigChanged = { old, new ->
+            task = task,
+            model = selectedModel,
+            modelManagerViewModel = modelManagerViewModel,
+            canShowResetSessionButton = true,
+            isResettingSession = uiState.isResettingSession,
+            inProgress = uiState.inProgress,
+            modelPreparing = uiState.preparing,
+            onResetSessionClicked = onResetSessionClicked,
+            onConfigChanged = { old, new ->
             viewModel.addConfigChangedMessage(
-              oldConfigValues = old,
-              newConfigValues = new,
-              model = selectedModel,
+                oldConfigValues = old,
+                newConfigValues = new,
+                model = selectedModel,
             )
-          },
-          onBackClicked = { handleNavigateUp() },
-          onModelSelected = { prevModel, curModel ->
+            },
+            onBackClicked = { handleNavigateUp() },
+            onModelSelected = { prevModel, curModel ->
             if (prevModel.name != curModel.name) {
-              modelManagerViewModel.cleanupModel(context = context, task = task, model = prevModel)
+                modelManagerViewModel.cleanupModel(context = context, task = task, model = prevModel)
             }
             modelManagerViewModel.selectModel(model = curModel)
-          },
-          walletViewModel = walletViewModel,
-          onWalletConnectClicked = onWalletConnectClicked,
+            },
+            walletViewModel = walletViewModel,
+            onWalletConnectClicked = onWalletConnectClicked,
         )
-      }
     },
   ) { innerPadding ->
     Box {
