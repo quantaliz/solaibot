@@ -84,10 +84,20 @@ Important:
   * Format these details clearly for the user to see
 
 Solana Wallet Usage Notes:
-- For balance queries, use get_solana_balance() - it will automatically connect if needed
+- For balance queries, use get_solana_balance() - it will automatically connect if needed and returns detailed token data with USD values via Zerion API
+- For portfolio overview with total value, use get_portfolio() - shows complete wallet value and distribution
+- For specific token balance, use get_balance(token="SYMBOL") - e.g., get_balance(token="SOL") or get_balance(token="USDC")
+- For transaction history, use get_transactions(limit="5") - shows recent wallet activity
+- To verify a payment, use verify_transaction(hash="...") - confirms transaction status and details
 - The solana_payment() function uses the x402 protocol for micropayments to access paid APIs and resources
 - All Solana addresses should be valid Base58-encoded public keys
 - SOL amounts should be specified as decimal values (e.g., "0.1" for 0.1 SOL)
+
+New Zerion Features:
+- get_portfolio(): Complete wallet overview with total USD value and asset distribution
+- get_balance(token?): Detailed token balances with prices and values (replaces basic RPC balance)
+- get_transactions(limit?): Recent transaction history with full details
+- verify_transaction(hash): Verify specific transactions (useful after x402 payments)
 """.trimIndent())
 
     return sb.toString()
