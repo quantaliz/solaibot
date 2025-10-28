@@ -37,21 +37,28 @@ import com.quantaliz.solaibot.data.WalletConnectionManager
 private const val TAG = "ZerionWalletFunctions"
 
 // Singleton Zerion API client
-// TODO: Replace with actual API key from secure storage
+// API key is configured in ZerionConfig.kt
 object ZerionClientHolder {
     private var _client: ZerionApiClient? = null
 
     fun getClient(apiKey: String? = null): ZerionApiClient {
         if (_client == null) {
-            // TODO: Retrieve API key from DataStore or secure storage
-            val key = apiKey ?: "YOUR_ZERION_API_KEY_HERE"
-            _client = ZerionApiClient(apiKey = key)
+            // Use API key from ZerionConfig (will fail if not configured)
+            // Or use provided apiKey parameter (for testing/override)
+            val key = apiKey ?: ZerionConfig.API_KEY
+            _client = ZerionApiClient(
+                apiKey = key,
+                baseUrl = ZerionConfig.BASE_URL
+            )
         }
         return _client!!
     }
 
     fun setApiKey(apiKey: String) {
-        _client = ZerionApiClient(apiKey = apiKey)
+        _client = ZerionApiClient(
+            apiKey = apiKey,
+            baseUrl = ZerionConfig.BASE_URL
+        )
     }
 }
 

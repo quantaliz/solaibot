@@ -310,33 +310,13 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
 
 /**
  * Gets the list of available Solana wallet functions for LLM function calling.
- * Includes both original MWA functions and new Zerion API functions.
+ *
+ * Note: Balance and transaction queries now use Zerion API functions.
+ * This only includes the x402 payment function, as wallet data functions
+ * are provided by Zerion integration.
  */
 fun getSolanaWalletFunctions(): List<FunctionDefinition> {
-    val baseFunctions = listOf(
-        FunctionDefinition(
-            name = "get_solana_balance",
-            description = "Get the current balance of the Solana wallet with detailed token information, prices, and USD values via Zerion API. Automatically connects to the wallet if not already connected. Shows all tokens with verified status and current market data.",
-            parameters = listOf()
-        ),
-        FunctionDefinition(
-            name = "send_solana",
-            description = "Send Solana (SOL) to another address. This prompts the user to authorize the transaction through their wallet.",
-            parameters = listOf(
-                FunctionParameter(
-                    name = "recipient",
-                    type = "string",
-                    description = "The recipient's Solana address (Base58 encoded)",
-                    required = true
-                ),
-                FunctionParameter(
-                    name = "amount",
-                    type = "string",
-                    description = "The amount of SOL to send (e.g., '0.1' for 0.1 SOL)",
-                    required = true
-                )
-            )
-        ),
+    val mwaFunctions = listOf(
         FunctionDefinition(
             name = "solana_payment",
             description = "Make a payment to access a paid API or resource using the x402 protocol. It handles the full payment flow: requesting the resource, receiving payment requirements, signing the payment transaction through the wallet, and retrieving the paid content. When you receive a response, provide as much information as possible to the user, like: Transaction hashes/signatures Payment amounts and networks, Wallet addresses, Premium content or data received",
@@ -351,10 +331,10 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
         )
     )
 
-    // Add Zerion-specific functions
+    // Add Zerion wallet data functions (portfolio, balance, transactions, verification)
     val zerionFunctions = com.quantaliz.solaibot.data.zerion.getZerionWalletFunctions()
 
-    return baseFunctions + zerionFunctions
+    return mwaFunctions + zerionFunctions
 }
 
 /**

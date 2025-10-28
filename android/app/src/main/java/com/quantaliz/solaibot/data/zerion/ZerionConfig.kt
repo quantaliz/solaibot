@@ -17,27 +17,53 @@
 package com.quantaliz.solaibot.data.zerion
 
 /**
- * Zerion API Configuration Example
+ * Zerion API Configuration
  *
- * This is an example configuration file. DO NOT use this in production.
+ * ⚠️ IMPORTANT: YOU MUST REPLACE THE API_KEY VALUE BELOW ⚠️
  *
  * Instructions:
- * 1. Copy this file to ZerionConfig.kt
- * 2. Replace YOUR_ZERION_API_KEY with your actual API key
- * 3. Add ZerionConfig.kt to .gitignore to prevent committing secrets
+ * 1. Get your Zerion API key from: https://developers.zerion.io/reference/authentication
+ * 2. Replace "YOUR_ZERION_API_KEY_HERE" with your actual API key
+ * 3. NEVER commit your real API key to version control!
  * 4. For production, use Android Keystore or encrypted SharedPreferences
  *
- * Get your API key from: https://developers.zerion.io/
+ * The app will fail to compile if you don't replace this value.
  */
 
 object ZerionConfig {
     /**
      * Your Zerion API key.
-     * Get one from: https://developers.zerion.io/
+     * Get one from: https://developers.zerion.io/reference/authentication
      *
-     * IMPORTANT: Never commit your actual API key to version control!
+     * IMPORTANT: Replace this value or the app will not compile!
      */
-    const val API_KEY = "YOUR_ZERION_API_KEY_HERE"
+    const val API_KEY: String = "YOUR_ZERION_API_KEY_HERE"
+        get() {
+            // Compile-time check to ensure API key is configured
+            require(field != "YOUR_ZERION_API_KEY_HERE") {
+                """
+                ╔═══════════════════════════════════════════════════════════════════════╗
+                ║                    ZERION API KEY NOT CONFIGURED                      ║
+                ╠═══════════════════════════════════════════════════════════════════════╣
+                ║                                                                       ║
+                ║  You must replace the API_KEY value in:                              ║
+                ║  app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionConfig.kt║
+                ║                                                                       ║
+                ║  Steps:                                                               ║
+                ║  1. Visit: https://developers.zerion.io/reference/authentication    ║
+                ║  2. Sign up and generate an API key                                  ║
+                ║  3. Replace "YOUR_ZERION_API_KEY_HERE" with your actual key          ║
+                ║                                                                       ║
+                ║  Example:                                                             ║
+                ║  const val API_KEY: String = "zjk_live_abc123def456..."              ║
+                ║                                                                       ║
+                ║  ⚠️  NEVER commit your real API key to version control!              ║
+                ║                                                                       ║
+                ╚═══════════════════════════════════════════════════════════════════════╝
+                """.trimIndent()
+            }
+            return field
+        }
 
     /**
      * Zerion API base URL.
@@ -73,33 +99,3 @@ object ZerionConfig {
      */
     const val DEBUG_LOGGING = true
 }
-
-/**
- * Example usage in ZerionWalletFunctions.kt:
- *
- * ```kotlin
- * object ZerionClientHolder {
- *     private var _client: ZerionApiClient? = null
- *
- *     fun getClient(apiKey: String? = null): ZerionApiClient {
- *         if (_client == null) {
- *             val key = apiKey ?: ZerionConfig.API_KEY
- *             _client = ZerionApiClient(
- *                 apiKey = key,
- *                 baseUrl = ZerionConfig.BASE_URL
- *             )
- *         }
- *         return _client!!
- *     }
- * }
- * ```
- *
- * For production, retrieve from secure storage:
- *
- * ```kotlin
- * suspend fun getSecureApiKey(context: Context): String {
- *     val dataStore = context.dataStore
- *     return dataStore.data.map { it.zerionApiKey }.first()
- * }
- * ```
- */
