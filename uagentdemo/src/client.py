@@ -63,9 +63,12 @@ from models import (
 # Client agent configuration
 CLIENT_NAME = os.getenv("CLIENT_NAME", "premium_client")
 CLIENT_PORT = os.getenv("CLIENT_PORT", 8001)
-CLIENT_ENDPOINT=os.getenv("CLIENT_ENDPOINT", "http://localhost:8001/submit")
+CLIENT_ENDPOINT = os.getenv("CLIENT_ENDPOINT", "http://localhost:8001/submit")
 CLIENT_SEED = os.getenv("CLIENT_SEED", "client_seed_phrase_secure_random_input")
 CLIENT_NETWORK = os.getenv("CLIENT_NETWORK", "testnet")
+CLIENT_AGENTVERSE = os.getenv("CLIENT_AGENTVERSE", "false").lower() == "true"
+MAILBOX_CHECK_INTERVAL = float(os.getenv("CLIENT_MAILBOX_CHECK_INTERVAL", "2"))
+MAILBOX_READY_GRACE = float(os.getenv("CLIENT_MAILBOX_READY_GRACE", "60"))
 
 # Merchant configuration - IMPORTANT: Two different addresses!
 # 1. MERCHANT_UAGENT_ADDRESS: For sending uAgent messages (agent1q...)
@@ -113,13 +116,24 @@ TARGET_RESOURCE = os.getenv("TARGET_RESOURCE", "premium_weather")
 # Client Agent Setup
 # ============================================================================
 
-client = Agent(
-    name=CLIENT_NAME,
-    seed=CLIENT_SEED,
-    port=CLIENT_PORT,
-    endpoint=[CLIENT_ENDPOINT],
-    network=CLIENT_NETWORK
-)
+mailbox_ready_event = asyncio.Event()
+
+if CLIENT_AGENTVERSE:
+    client = Agent(
+        name=CLIENT_NAME,
+        seed=CLIENT_SEED,
+        port=CLIENT_PORT,
+        mailbox=True,
+        network=CLIENT_NETWORK
+    )
+else:
+    client = Agent(
+        name=CLIENT_NAME,
+        seed=CLIENT_SEED,
+        port=CLIENT_PORT,
+        endpoint=[CLIENT_ENDPOINT],
+        network=CLIENT_NETWORK
+    )
 
 print("=" * 60)
 print("🛒 Premium Client Agent - x402 Payment Demo")
@@ -130,6 +144,10 @@ print(f"Client Wallet: {CLIENT_WALLET_ADDRESS[:20] if len(CLIENT_WALLET_ADDRESS)
 print(f"uAgent Network: {CLIENT_NETWORK}")
 print(f"Payment Network: {PAYMENT_NETWORK}")
 print(f"Target Resource: {TARGET_RESOURCE}")
+if CLIENT_AGENTVERSE:
+    print("Client Mode: Agentverse Mailbox (proxy)")
+else:
+    print(f"Client Endpoint: {CLIENT_ENDPOINT}")
 print(f"Merchant uAgent Address: {MERCHANT_UAGENT_ADDRESS[:30]}...")
 print(f"Merchant Wallet Address: {MERCHANT_WALLET_ADDRESS[:30]}...")
 print("=" * 60)
@@ -189,6 +207,48 @@ async def check_solana_balance(wallet_address: str, network: str = "solana-devne
 
     except Exception as e:
         return (False, 0.0, f"Error checking balance: {str(e)}")
+
+
+async def ensure_mailbox_ready(ctx: Context) -> None:
+    """Wait until the Agentverse mailbox is provisioned before sending requests."""
+
+    if not CLIENT_AGENTVERSE:
+        ctx.storage.set("mailbox_ready", True)
+        mailbox_ready_event.set()
+        return
+
+    ctx.storage.set("mailbox_ready", False)
+    ctx.logger.info("📬 Waiting for Agentverse mailbox registration...")
+    warning_logged = False
+    elapsed = 0.0
+
+    while True:
+        mailbox_client = getattr(client, "_mailbox_client", None)
+        access_token = None
+        if mailbox_client is not None:
+            access_token = getattr(mailbox_client, "_access_token", None)
+            if getattr(mailbox_client, "_missing_mailbox_warning_logged", False) and not warning_logged:
+                ctx.logger.warning(
+                    "Mailbox server reports no inbox for this agent. Open the Agentverse inspector and create a mailbox if you haven't already."
+                )
+                warning_logged = True
+
+        if access_token:
+            ctx.logger.info("📬 Mailbox registration confirmed; ready to receive replies.")
+            ctx.storage.set("mailbox_ready", True)
+            ctx.storage.set("mailbox_wait_logged", False)
+            mailbox_ready_event.set()
+            return
+
+        if elapsed >= MAILBOX_READY_GRACE:
+            ctx.logger.warning(
+                "Mailbox not ready after %.0f seconds. Ensure the mailbox exists or increase CLIENT_MAILBOX_READY_GRACE.",
+                MAILBOX_READY_GRACE,
+            )
+            elapsed = 0.0  # avoid repeated warnings without progress
+
+        await asyncio.sleep(MAILBOX_CHECK_INTERVAL)
+        elapsed += MAILBOX_CHECK_INTERVAL
 
 async def create_signed_solana_transaction(
     from_address: str,
@@ -303,12 +363,21 @@ async def startup(ctx: Context):
     ctx.logger.info(f"🏪 Merchant uAgent Address: {MERCHANT_UAGENT_ADDRESS}")
     ctx.logger.info(f"💰 Merchant Wallet Address: {MERCHANT_WALLET_ADDRESS}")
     ctx.logger.info(f"🎯 Target Resource: {TARGET_RESOURCE}")
+    if CLIENT_AGENTVERSE:
+        ctx.logger.info("📬 Mode: Agentverse Mailbox (proxy)")
+    else:
+        ctx.logger.info(f"🌐 Client Endpoint: {CLIENT_ENDPOINT}")
     ctx.logger.info("=" * 60)
 
     # Initialize request counter and clear any stale pending payments
     ctx.storage.set("request_count", 0)
     ctx.storage.set("resource_received", False)
     ctx.storage.set("pending_payment", None)  # Clear stale pending payments from previous runs
+    ctx.storage.set("mailbox_ready", not CLIENT_AGENTVERSE)
+    if not CLIENT_AGENTVERSE:
+        mailbox_ready_event.set()
+    else:
+        asyncio.create_task(ensure_mailbox_ready(ctx))
 
     ctx.logger.info("")
     ctx.logger.info("💰 Checking Solana wallet balance...")
@@ -338,6 +407,14 @@ async def startup(ctx: Context):
 @client.on_interval(period=10.0)
 async def request_premium_resource(ctx: Context):
     """Periodically request a premium resource (only once)"""
+
+    if CLIENT_AGENTVERSE and not ctx.storage.get("mailbox_ready"):
+        if not ctx.storage.get("mailbox_wait_logged"):
+            ctx.logger.info(
+                "⌛ Waiting for Agentverse mailbox registration before sending resource requests..."
+            )
+            ctx.storage.set("mailbox_wait_logged", True)
+        return
 
     # Only request once
     resource_received = ctx.storage.get("resource_received")

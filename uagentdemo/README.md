@@ -543,6 +543,8 @@ git push origin feature/your-feature
 - [PayAI Documentation](https://docs.payai.network/x402/introduction)
 - [Fetch.ai uAgents Framework](https://fetch.ai/docs/agents)
 - [Solana Developer Docs](https://docs.solana.com/)
+- **![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)**
+- **![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)**
 
 ## 🏆 Hackathon Submission
 

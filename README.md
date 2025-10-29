@@ -389,7 +389,8 @@ More details in its [README](uagentdemo/README.md)
 - **[Solana Docs](https://docs.solana.com)** - Solana developer documentation
 - **[x402 Protocol](https://github.com/coinbase/x402)** - Coinbase x402 specification
 - **[Fetch.ai uAgents](https://fetch.ai/docs/agents)** - uAgents framework documentation
-
+- **![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)**
+- **![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)**
 
 ---
 
