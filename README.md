@@ -10,7 +10,7 @@
 ### Hackathon Submissions
 - [Cypherpunk 2025](https://www.colosseum.com/cypherpunk)
 - [Hackaroo 2025](https://www.hackaroo.xyz)
-- [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+- [Zerion App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
 - [ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)
 
 <img src="images/SolAIBot1-Result.png" width="250" alt="SolAIBot Interface" /> <img src="images/SolAIBot2-Sign.png" width="250" alt="Payment Signing" />

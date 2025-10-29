@@ -14,7 +14,7 @@ Part of the **Financially Autonomous AI Agents with x402 Payments** suite—alon
 ### Hackathon Submissions
 - [Cypherpunk 2025](https://www.colosseum.com/cypherpunk)
 - [Hackaroo 2025](https://www.hackaroo.xyz)
-- [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+- [Zerion App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
 - [ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)
 
 This Agent Commerce Platform showcases the ASI Agents Track entry focused on autonomous agent-to-agent commerce.
@@ -590,7 +590,7 @@ If you find this project valuable, please ⭐ star the repository and share with
 
 ## 🚀 Give Your AI Agents Financial Autonomy
 
-**Built for Cypherpunk 2025, Hackaroo 2025, Superteam Zerion Consumer App Challenge, and ASI Agents Track**
+**Built for Cypherpunk 2025, Hackaroo 2025, Zerion App Challenge, and ASI Agents Track**
 
 *Demonstrating that AI agents can respect privacy and become financially autonomous*
 

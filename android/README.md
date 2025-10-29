@@ -12,7 +12,7 @@ Part of the **Financially Autonomous AI Agents with x402 Payments** suite, along
 ### Hackathon Submissions
 - [Cypherpunk 2025](https://www.colosseum.com/cypherpunk)
 - [Hackaroo 2025](https://www.hackaroo.xyz)
-- [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+- [Zerion App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
 - [ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)
 
 ## 🎯 The Innovation
@@ -78,7 +78,7 @@ This deep dive expands on the SolAIBot overview in the root [`README.md`](../REA
 - ✅ Solana ecosystem advancement (MWA, RPC, transaction building)
 - ✅ Real-world utility: Micropayments for AI-accessed content
 
-**[Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)** - Solana + Zerion Spotlight
+**[Zerion App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)** - Solana + Zerion Spotlight
 - ✅ Uses Zerion API for balances, portfolios, transactions, and verification
 - ✅ Supports wallet overrides and devnet testing required by the brief
 - ✅ Demonstrates consumer-grade UX with actionable messaging and privacy-first AI
@@ -305,7 +305,7 @@ This project builds upon [Google AI Edge Gallery](https://github.com/google-ai-e
 
 ## 🚀 Where Privacy-First AI Meets Solana Speed
 
-**Built for Cypherpunk 2025, Hackaroo 2025, Superteam Zerion Consumer App Challenge, and ASI Agents Track**
+**Built for Cypherpunk 2025, Hackaroo 2025, Zerion App Challenge, and ASI Agents Track**
 
 *Demonstrating that AI agents can respect privacy and become financially autonomous*
 
