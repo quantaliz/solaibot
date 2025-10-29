@@ -296,12 +296,6 @@ To update your context on what we are working:
 - The line "const val API_KEY = "YOUR_ZERION_API_KEY_HERE" should make the app fail to compile and give a compilation error on why the user needs to replace the key.
 - The file "@app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt" should remove "get_solana_balance" & "send_solana" function calls, keep only "solana_payment". The removed functions now will use the Zerion function calls.
 
-What's my solana balance
-Can you make a payment to "https://x402.payai.network/api/solana-devnet/paid-content"
-Tell me which transactions I have made in solana-devnet
-Tell me which transactions this wallet uZ1N4C9dc71Euu4GLYt5UURpFtg1WWSwo3F4Rn46Fr3 has on solana
-Get the porfolio of uZ1N4C9dc71Euu4GLYt5UURpFtg1WWSwo3F4Rn46Fr3
-
 To update your context on what we are working:
 - Check the @Zerion-QuickStart.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md
 - File @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt returns "Function result: Wallet not connected." which is fine
@@ -323,3 +317,12 @@ Something similar might be happening to other zerion functions, that are not "ge
 
 If necessary, you can try to call @docs/zerion/zerion.sh with the correct.
 
+I tried now "Get the porfolio of ", then the response was incorrect: "Calling... get_portfolioError fetching portfolio: Unexpected JSON token at offset 378: Expected start of the object '{', but had '3' instead at path: $.data.attributes.positions_distribution_by_type['wallet'] JSON input: .....: { "wallet": 328.38235663737044, .....". @log.txt has the traces of what happened. Resolve this request
+
+
+What's my solana balance
+Can you make a payment to "https://x402.payai.network/api/solana-devnet/paid-content"
+Tell me which transactions I have made in solana-devnet
+Tell me which transactions this wallet  has on solana
+Get the porfolio of
+What's the balance of
