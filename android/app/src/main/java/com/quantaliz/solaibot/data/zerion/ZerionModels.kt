@@ -18,6 +18,22 @@ package com.quantaliz.solaibot.data.zerion
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.element
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Zerion API data models based on JSON:API specification.
@@ -46,11 +62,50 @@ data class ZerionPortfolioAttributes(
     @SerialName("positions_distribution_by_chain") val positionsDistributionByChain: Map<String, ZerionAssetValue>? = null
 )
 
-@Serializable
+@Serializable(with = ZerionAssetValueSerializer::class)
 data class ZerionAssetValue(
     @SerialName("quantity") val quantity: String? = null,
     @SerialName("value") val value: Double? = null
 )
+
+object ZerionAssetValueSerializer : KSerializer<ZerionAssetValue> {
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ZerionAssetValue") {
+        element<String?>("quantity", isOptional = true)
+        element<Double?>("value", isOptional = true)
+    }
+
+    override fun deserialize(decoder: Decoder): ZerionAssetValue {
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: error("ZerionAssetValueSerializer can only be used with Json format")
+
+        val element: JsonElement = jsonDecoder.decodeJsonElement()
+        return when (element) {
+            is JsonObject -> {
+                val quantity = element["quantity"]?.jsonPrimitive?.content
+                val value = element["value"]?.jsonPrimitive?.doubleOrNull
+                ZerionAssetValue(quantity = quantity, value = value)
+            }
+            is JsonPrimitive -> {
+                val value = element.doubleOrNull ?: element.content.toDoubleOrNull()
+                ZerionAssetValue(quantity = null, value = value)
+            }
+            JsonNull -> ZerionAssetValue()
+            else -> ZerionAssetValue()
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ZerionAssetValue) {
+        val jsonEncoder = encoder as? JsonEncoder
+            ?: error("ZerionAssetValueSerializer can only be used with Json format")
+
+        val jsonObject = buildJsonObject {
+            value.quantity?.let { put("quantity", JsonPrimitive(it)) }
+            value.value?.let { put("value", JsonPrimitive(it)) }
+        }
+
+        jsonEncoder.encodeJsonElement(jsonObject)
+    }
+}
 
 // ===== Positions Models =====
 

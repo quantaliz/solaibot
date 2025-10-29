@@ -300,6 +300,7 @@ What's my solana balance
 Can you make a payment to "https://x402.payai.network/api/solana-devnet/paid-content"
 Tell me which transactions I have made in solana-devnet
 Tell me which transactions this wallet uZ1N4C9dc71Euu4GLYt5UURpFtg1WWSwo3F4Rn46Fr3 has on solana
+Get the porfolio of uZ1N4C9dc71Euu4GLYt5UURpFtg1WWSwo3F4Rn46Fr3
 
 To update your context on what we are working:
 - Check the @Zerion-QuickStart.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md
@@ -317,4 +318,8 @@ With these, confirm that the list of "functionCall" listed in both "@app/src/mai
 Fortunatelly, the first JSON is not shown to the user anymore, however, it showed like this: "Calling... get_transactions{"name": "get_transactions", "parameters": {"limit": "5"}}". In the logs it mentions there is "No transactions found for this wallet", which the LLM did not catch as finish this flow.
 Also, make sure to remove references to "FUNCTION_CALL" previous way to call functions, now it is using json responses directly. You can find staled documentation in @README.md
 
-The @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md provides a summary of the zerion API. Or @docs/zerion/llms.txt provides references to all documentation. In theory, zerion supports solana mainnet and devnet. I am sure the solana wallet has transactions, but the API result tells me it does not, which is wrong. If necessary, you can try to call @docs/zerion/zerion.sh with the correct
+The @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md provides a summary of the zerion API. Or @docs/zerion/llms.txt provides references to all documentation. I am sure the solana wallet has transactions, but the API result tells me it does not, which is wrong, because it is calling the connected wallet and not the one on the prompt. See the @log.txt for it
+Something similar might be happening to other zerion functions, that are not "generic" enough if the user makes a call and they don't fill the request accordingly. So, check that functions listed in @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt are correctly aligned. The only hardcoded requirement is to use "solana" as the blockchain to request
+
+If necessary, you can try to call @docs/zerion/zerion.sh with the correct.
+

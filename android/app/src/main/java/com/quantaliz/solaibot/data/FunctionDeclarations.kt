@@ -66,11 +66,11 @@ To call a function, you MUST use this JSON format:
 {"name": "function_name", "parameters": {"param1": "value1", "param2": "value2"}}
 
 Examples:
-{"name": "get_portfolio", "parameters": {}}
-{"name": "get_balance", "parameters": {"token": "SOL"}}
-{"name": "get_transactions", "parameters": {"limit": "5"}}
+{"name": "get_portfolio", "parameters": {"network": "solana-devnet"}}
+{"name": "get_balance", "parameters": {"address": "wallet_address_base58", "token": "SOL"}}
+{"name": "get_transactions", "parameters": {"limit": "5", "network": "solana-devnet"}}
 {"name": "solana_payment", "parameters": {"url": "https://api.example.com/premium-data"}}
-{"name": "verify_transaction", "parameters": {"hash": "abc123..."}}
+{"name": "verify_transaction", "parameters": {"hash": "abc123...", "address": "wallet_address_base58"}}
 
 Rules:
 - Use functions only when needed to answer the user's question
@@ -80,11 +80,13 @@ Rules:
 - When showing function results, include all important details (transaction hashes, amounts, addresses, etc.)
 - IMPORTANT: If a function returns an error or info message (starting with ERROR: or INFO:), DO NOT make additional function calls. The error/info will be displayed directly to the user.
 - If you see "ERROR:WALLET_NOT_CONNECTED" in function results, the user needs to connect their wallet first before any wallet operations can succeed.
+- Provide the "address" parameter when the user asks about a specific wallet (use base58 Solana addresses). If omitted, the connected wallet is used.
+- Use the "network" parameter to target devnet (\"solana-devnet\") or mainnet (\"solana\"). Default is Solana mainnet.
 
 get_portfolio: Shows total wallet value and asset distribution
-get_balance: Shows token balances with USD values (optional token filter)
-get_transactions: Shows recent transaction history (optional limit)
-verify_transaction: Confirms transaction by hash
+get_balance: Shows token balances with USD values (optional token filter, address, or network)
+get_transactions: Shows recent transaction history (optional address, network, limit)
+verify_transaction: Confirms transaction by hash (optional address, network)
 solana_payment: Makes x402 micropayments for paid resources
 """.trimIndent())
 

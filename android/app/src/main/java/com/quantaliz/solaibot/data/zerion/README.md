@@ -55,16 +55,18 @@ HTTP client for Zerion API endpoints:
 - JSON deserialization with Kotlinx Serialization
 - Comprehensive error handling and logging
 - Automatic spam/trash filtering
+- Adds required `filter[chain_ids]=solana` to every request (with optional `filter[network]` for devnet)
+- Sets the `X-Env: testnet` header automatically when querying Solana devnet
 
 ### ZerionWalletFunctions.kt
 
 LLM-callable functions wrapping Zerion API:
 
 **Functions:**
-1. `getZerionPortfolio()` - Portfolio overview
-2. `getZerionBalance(token?)` - Token balances
-3. `getZerionTransactions(limit?)` - Transaction history
-4. `verifyZerionTransaction(hash)` - Transaction verification
+1. `getZerionPortfolio(address?, network?)` - Portfolio overview
+2. `getZerionBalance(token?, address?, network?)` - Token balances
+3. `getZerionTransactions(limit?, address?, network?)` - Transaction history
+4. `verifyZerionTransaction(hash, address?, network?)` - Transaction verification
 
 **Integration:**
 - Network connectivity checks
@@ -159,6 +161,8 @@ The LLM can call these functions directly:
   "parameters": { "hash": "abc123..." }
 }
 ```
+
+All Zerion functions also accept optional `address` and `network` parameters. If you omit them, Sol-AI-Bot will use the connected wallet on Solana mainnet. Provide `address` to query another wallet, and set `network` to `"solana-devnet"` when working with devnet data.
 
 ## 📊 Data Flow
 

@@ -47,6 +47,9 @@ class ZerionApiClient(
     companion object {
         private const val TAG = "ZerionApiClient"
         private const val DEFAULT_TIMEOUT_SECONDS = 30L
+        private const val SOLANA_CHAIN_ID = "solana"
+        private const val HEADER_ENV = "X-Env"
+        private const val TESTNET_ENV_VALUE = "testnet"
     }
 
     private val json = Json {
@@ -70,17 +73,23 @@ class ZerionApiClient(
      */
     suspend fun getWalletPortfolio(
         address: String,
-        currency: String = "usd"
+        currency: String = "usd",
+        chainId: String = SOLANA_CHAIN_ID,
+        network: String? = null
     ): Result<ZerionPortfolioResponse> = withContext(Dispatchers.IO) {
         try {
-            val url = "$baseUrl/wallets/$address/portfolio/?currency=$currency"
+            val params = mutableListOf("currency=$currency", "filter[chain_ids]=$chainId")
+            network?.let { params.add("filter[network]=$it") }
+            val queryString = params.joinToString("&")
+            val url = "$baseUrl/wallets/$address/portfolio/?$queryString"
 
-            Log.d(TAG, "Fetching portfolio for address: $address")
+            Log.d(TAG, "Fetching portfolio for address: $address (network=${network ?: "default"})")
 
             val request = Request.Builder()
                 .url(url)
                 .header("Authorization", "Basic $apiKey")
                 .header("Accept", "application/json")
+                .applyTestnetHeaderIfNeeded(network)
                 .get()
                 .build()
 
@@ -122,27 +131,32 @@ class ZerionApiClient(
         address: String,
         currency: String = "usd",
         filterTrash: Boolean = true,
-        sort: String = "value"
+        sort: String = "value",
+        chainId: String = SOLANA_CHAIN_ID,
+        network: String? = null
     ): Result<ZerionPositionsResponse> = withContext(Dispatchers.IO) {
         try {
             val params = mutableListOf(
                 "currency=$currency",
-                "sort=$sort"
+                "sort=$sort",
+                "filter[chain_ids]=$chainId"
             )
 
             if (filterTrash) {
                 params.add("filter[trash]=only_non_trash")
             }
+            network?.let { params.add("filter[network]=$it") }
 
             val queryString = params.joinToString("&")
             val url = "$baseUrl/wallets/$address/positions/?$queryString"
 
-            Log.d(TAG, "Fetching positions for address: $address")
+            Log.d(TAG, "Fetching positions for address: $address (network=${network ?: "default"})")
 
             val request = Request.Builder()
                 .url(url)
                 .header("Authorization", "Basic $apiKey")
                 .header("Accept", "application/json")
+                .applyTestnetHeaderIfNeeded(network)
                 .get()
                 .build()
 
@@ -184,27 +198,32 @@ class ZerionApiClient(
         address: String,
         currency: String = "usd",
         filterTrash: Boolean = true,
-        pageSize: Int = 10
+        pageSize: Int = 10,
+        chainId: String = SOLANA_CHAIN_ID,
+        network: String? = null
     ): Result<ZerionTransactionsResponse> = withContext(Dispatchers.IO) {
         try {
             val params = mutableListOf(
                 "currency=$currency",
-                "page[size]=$pageSize"
+                "page[size]=$pageSize",
+                "filter[chain_ids]=$chainId"
             )
 
             if (filterTrash) {
                 params.add("filter[trash]=only_non_trash")
             }
+            network?.let { params.add("filter[network]=$it") }
 
             val queryString = params.joinToString("&")
             val url = "$baseUrl/wallets/$address/transactions/?$queryString"
 
-            Log.d(TAG, "Fetching transactions for address: $address")
+            Log.d(TAG, "Fetching transactions for address: $address (network=${network ?: "default"})")
 
             val request = Request.Builder()
                 .url(url)
                 .header("Authorization", "Basic $apiKey")
                 .header("Accept", "application/json")
+                .applyTestnetHeaderIfNeeded(network)
                 .get()
                 .build()
 
@@ -243,13 +262,17 @@ class ZerionApiClient(
      */
     suspend fun verifyTransaction(
         address: String,
-        txHash: String
+        txHash: String,
+        chainId: String = SOLANA_CHAIN_ID,
+        network: String? = null
     ): Result<ZerionTransactionData?> = withContext(Dispatchers.IO) {
         try {
             // Fetch recent transactions and search for the hash
             val transactionsResult = getWalletTransactions(
                 address = address,
-                pageSize = 20
+                pageSize = 20,
+                chainId = chainId,
+                network = network
             )
 
             if (transactionsResult.isFailure) {
@@ -265,5 +288,11 @@ class ZerionApiClient(
             Log.e(TAG, "Error verifying transaction", e)
             Result.failure(e)
         }
+    }
+    private fun Request.Builder.applyTestnetHeaderIfNeeded(network: String?): Request.Builder {
+        if (network != null && network.contains("devnet", ignoreCase = true)) {
+            this.header(HEADER_ENV, TESTNET_ENV_VALUE)
+        }
+        return this
     }
 }

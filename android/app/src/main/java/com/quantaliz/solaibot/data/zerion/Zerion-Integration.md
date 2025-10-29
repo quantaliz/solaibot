@@ -141,7 +141,7 @@ User: "What's my SOL balance?"
     ↓
 LLM detects wallet query
     ↓
-{"name": "get_balance", "parameters": {"token": "SOL"}}
+{"name": "get_balance", "parameters": {"token": "SOL", "network": "solana"}}
     ↓
 executeSolanaWalletFunction()
     ↓
@@ -157,6 +157,8 @@ Format for LLM
     ↓
 "You have 2.5 SOL worth $245.00"
 ```
+
+> Tip: Provide a base58 `address` and a `network` value when you want to query a specific wallet or Solana devnet. If omitted, the connected wallet on Solana mainnet is used by default.
 
 ## 📊 Endpoints Used
 

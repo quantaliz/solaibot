@@ -472,7 +472,7 @@ suspend fun executeSolanaWalletFunction(
         "solana_payment" -> makeSolanaPayment(context, args, activityResultSender)
 
         // Zerion API functions
-        "get_portfolio" -> com.quantaliz.solaibot.data.zerion.getZerionPortfolio(context)
+        "get_portfolio" -> com.quantaliz.solaibot.data.zerion.getZerionPortfolio(context, args)
         "get_balance" -> com.quantaliz.solaibot.data.zerion.getZerionBalance(context, args)
         "get_transactions" -> com.quantaliz.solaibot.data.zerion.getZerionTransactions(context, args)
         "verify_transaction" -> com.quantaliz.solaibot.data.zerion.verifyZerionTransaction(context, args)

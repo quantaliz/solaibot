@@ -22,6 +22,7 @@ import com.quantaliz.solaibot.data.FunctionDefinition
 import com.quantaliz.solaibot.data.FunctionParameter
 import com.quantaliz.solaibot.data.NetworkConnectivityHelper
 import com.quantaliz.solaibot.data.WalletConnectionManager
+import com.quantaliz.solaibot.data.getSolanaBalanceViaRpc
 
 /**
  * Zerion wallet functions for LLM function calling.
@@ -35,6 +36,9 @@ import com.quantaliz.solaibot.data.WalletConnectionManager
  */
 
 private const val TAG = "ZerionWalletFunctions"
+private const val SOLANA_CHAIN_ID = "solana"
+private const val DEFAULT_TRANSACTION_LIMIT = ZerionConfig.DEFAULT_TX_PAGE_SIZE
+private const val MAX_TRANSACTION_LIMIT = 50
 
 // Singleton Zerion API client
 // API key is configured in ZerionConfig.kt
@@ -62,58 +66,113 @@ object ZerionClientHolder {
     }
 }
 
+private sealed class WalletContextResult {
+    data class Success(
+        val address: String,
+        val usedConnectedWallet: Boolean
+    ) : WalletContextResult()
+
+    data class Error(val message: String) : WalletContextResult()
+}
+
+private fun resolveWalletContext(args: Map<String, String>): WalletContextResult {
+    val addressOverride = args["address"]?.trim()?.takeIf { it.isNotEmpty() }
+    val connectionState = WalletConnectionManager.getConnectionState()
+    val resolvedAddress = addressOverride ?: connectionState.address
+
+    if (resolvedAddress.isNullOrBlank()) {
+        return WalletContextResult.Error(
+            "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Connect your wallet or provide an 'address' parameter."
+        )
+    }
+
+    return WalletContextResult.Success(
+        address = resolvedAddress,
+        usedConnectedWallet = addressOverride == null
+    )
+}
+
+private fun normalizeNetwork(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+
+    val value = raw.trim().lowercase()
+    return when (value) {
+        "sol", "solana", "mainnet", "mainnet-beta", "solana-mainnet" -> "solana"
+        "devnet", "solana-devnet", "solana_devnet", "solana devnet" -> "solana-devnet"
+        else -> null
+    }
+}
+
+private fun formatNetworkLabel(network: String?): String? {
+    return when (network) {
+        "solana" -> "Solana (mainnet-beta)"
+        "solana-devnet" -> "Solana Devnet"
+        else -> null
+    }
+}
+
+private fun shortAddress(address: String): String {
+    return if (address.length <= 12) address else "${address.take(8)}...${address.takeLast(6)}"
+}
+
 /**
  * Get wallet portfolio overview using Zerion API.
  * Shows total balance, asset distribution by type and chain.
  */
-suspend fun getZerionPortfolio(context: Context): String {
-    // Check network connectivity
+suspend fun getZerionPortfolio(context: Context, args: Map<String, String> = emptyMap()): String {
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
         return "ERROR:NO_INTERNET:Cannot retrieve portfolio. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
-    // Check if wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view your portfolio."
-    }
+    when (val walletContext = resolveWalletContext(args)) {
+        is WalletContextResult.Error -> return walletContext.message
+        is WalletContextResult.Success -> {
+            val network = normalizeNetwork(args["network"])
+            val client = ZerionClientHolder.getClient()
 
-    val address = connectionState.address
+            return try {
+                val result = client.getWalletPortfolio(
+                    address = walletContext.address,
+                    chainId = SOLANA_CHAIN_ID,
+                    network = network
+                )
 
-    return try {
-        val client = ZerionClientHolder.getClient()
-        val result = client.getWalletPortfolio(address)
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull()
+                    Log.e(TAG, "Failed to fetch portfolio", error)
+                    return "Error fetching portfolio: ${error?.message ?: "Unknown error"}"
+                }
 
-        if (result.isFailure) {
-            val error = result.exceptionOrNull()
-            Log.e(TAG, "Failed to fetch portfolio", error)
-            return "Error fetching portfolio: ${error?.message ?: "Unknown error"}"
+                val portfolio = result.getOrNull()
+                    ?: return "Error: Empty portfolio response"
+
+                val total = portfolio.data.attributes.total
+                val totalValue = total.value?.let { String.format("$%.2f", it) } ?: "N/A"
+
+                val distribution = portfolio.data.attributes.positionsDistributionByType
+                val distributionText = distribution?.entries?.joinToString("\n") { (type, value) ->
+                    val typeValue = value.value?.let { String.format("$%.2f", it) } ?: "N/A"
+                    "  - $type: $typeValue"
+                } ?: "No distribution data"
+
+                val addressLabel = shortAddress(walletContext.address)
+                val networkLabel = formatNetworkLabel(network)
+
+                buildString {
+                    append("Portfolio for $addressLabel")
+                    networkLabel?.let { append(" on $it") }
+                    append(":\n")
+                    append("Total Value: $totalValue\n\n")
+                    append("Distribution by Type:\n")
+                    append(distributionText)
+                }.trim()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception getting portfolio", e)
+                "Error getting portfolio: ${e.message}"
+            }
         }
-
-        val portfolio = result.getOrNull()
-            ?: return "Error: Empty portfolio response"
-
-        val total = portfolio.data.attributes.total
-        val totalValue = total.value?.let { String.format("$%.2f", it) } ?: "N/A"
-
-        val distribution = portfolio.data.attributes.positionsDistributionByType
-        val distributionText = distribution?.entries?.joinToString("\n") { (type, value) ->
-            val typeValue = value.value?.let { String.format("$%.2f", it) } ?: "N/A"
-            "  - $type: $typeValue"
-        } ?: "No distribution data"
-
-        """
-        Portfolio for ${address.take(8)}...${address.takeLast(6)}:
-        Total Value: $totalValue
-
-        Distribution by Type:
-        $distributionText
-        """.trimIndent()
-
-    } catch (e: Exception) {
-        Log.e(TAG, "Exception getting portfolio", e)
-        "Error getting portfolio: ${e.message}"
     }
 }
 
@@ -122,84 +181,92 @@ suspend fun getZerionPortfolio(context: Context): String {
  * This replaces the direct RPC balance call with Zerion's enriched data.
  */
 suspend fun getZerionBalance(context: Context, args: Map<String, String> = emptyMap()): String {
-    // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
         return "ERROR:NO_INTERNET:Cannot retrieve balance. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
-    // Check if wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view your token balances."
-    }
-
-    val address = connectionState.address
     val tokenSymbol = args["token"]?.uppercase()
+    when (val walletContext = resolveWalletContext(args)) {
+        is WalletContextResult.Error -> return walletContext.message
+        is WalletContextResult.Success -> {
+            val network = normalizeNetwork(args["network"])
+            val client = ZerionClientHolder.getClient()
 
-    return try {
-        val client = ZerionClientHolder.getClient()
-        val result = client.getWalletPositions(address)
+            return try {
+                val result = client.getWalletPositions(
+                    address = walletContext.address,
+                    chainId = SOLANA_CHAIN_ID,
+                    network = network
+                )
 
-        if (result.isFailure) {
-            val error = result.exceptionOrNull()
-            Log.e(TAG, "Failed to fetch positions", error)
-            return "Error fetching balance: ${error?.message ?: "Unknown error"}"
-        }
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull()
+                    Log.e(TAG, "Failed to fetch positions", error)
 
-        val positions = result.getOrNull()
-            ?: return "Error: Empty positions response"
+                    return try {
+                        getSolanaBalanceViaRpc(context, walletContext.address)
+                    } catch (fallbackError: Exception) {
+                        "Error fetching balance: ${error?.message ?: fallbackError.message ?: "Unknown error"}"
+                    }
+                }
 
-        if (positions.data.isEmpty()) {
-            return "INFO:NO_TOKENS:This wallet currently has no token positions. The wallet may be empty or only contain NFTs which are not displayed in token balances."
-        }
+                val positions = result.getOrNull()
+                    ?: return "Error: Empty positions response"
 
-        // If specific token requested, filter for it
-        if (tokenSymbol != null) {
-            val matchingPosition = positions.data.find { position ->
-                position.attributes.fungibleInfo?.symbol?.uppercase() == tokenSymbol
+                if (positions.data.isEmpty()) {
+                    return "INFO:NO_TOKENS:No fungible token positions found for this wallet on the requested network."
+                }
+
+                val addressLabel = shortAddress(walletContext.address)
+                val networkLabel = formatNetworkLabel(network)
+
+                // If specific token requested, filter for it
+                if (tokenSymbol != null) {
+                    val matchingPosition = positions.data.find { position ->
+                        position.attributes.fungibleInfo?.symbol?.uppercase() == tokenSymbol
+                    } ?: return "Token $tokenSymbol not found for wallet $addressLabel."
+
+                    val attrs = matchingPosition.attributes
+                    val symbol = attrs.fungibleInfo?.symbol ?: "Unknown"
+                    val quantity = attrs.quantity.float
+                    val value = attrs.value?.let { String.format("$%.2f", it) } ?: "N/A"
+
+                    return buildString {
+                        append("$symbol Balance for $addressLabel")
+                        networkLabel?.let { append(" on $it") }
+                        append(":\n")
+                        append("Amount: ${String.format("%.6f", quantity)} $symbol\n")
+                        append("Value: $value")
+                    }.trim()
+                }
+
+                val positionsText = positions.data.take(10).joinToString("\n") { position ->
+                    val attrs = position.attributes
+                    val symbol = attrs.fungibleInfo?.symbol ?: "Unknown"
+                    val quantity = attrs.quantity.float
+                    val value = attrs.value?.let { String.format("$%.2f", it) } ?: "N/A"
+                    val verified = if (attrs.fungibleInfo?.flags?.verified == true) "✓" else ""
+
+                    "  $verified $symbol: ${String.format("%.6f", quantity)} ($value)"
+                }
+
+                val totalCount = positions.data.size
+                val showingText = if (totalCount > 10) "\n\n(Showing top 10 of $totalCount tokens)" else ""
+
+                buildString {
+                    append("Wallet: $addressLabel")
+                    networkLabel?.let { append(" on $it") }
+                    append("\n\nToken Balances:\n")
+                    append(positionsText)
+                    append(showingText)
+                }.trim()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception getting balance", e)
+                "Error getting balance: ${e.message}"
             }
-
-            if (matchingPosition == null) {
-                return "Token $tokenSymbol not found in wallet."
-            }
-
-            val attrs = matchingPosition.attributes
-            val symbol = attrs.fungibleInfo?.symbol ?: "Unknown"
-            val quantity = attrs.quantity.float
-            val value = attrs.value?.let { String.format("$%.2f", it) } ?: "N/A"
-
-            return """
-            $symbol Balance:
-            Amount: ${String.format("%.6f", quantity)} $symbol
-            Value: $value
-            """.trimIndent()
         }
-
-        // Otherwise, show all positions
-        val positionsText = positions.data.take(10).joinToString("\n") { position ->
-            val attrs = position.attributes
-            val symbol = attrs.fungibleInfo?.symbol ?: "Unknown"
-            val quantity = attrs.quantity.float
-            val value = attrs.value?.let { String.format("$%.2f", it) } ?: "N/A"
-            val verified = if (attrs.fungibleInfo?.flags?.verified == true) "✓" else ""
-
-            "  $verified $symbol: ${String.format("%.6f", quantity)} ($value)"
-        }
-
-        val totalCount = positions.data.size
-        val showingText = if (totalCount > 10) "\n\n(Showing top 10 of $totalCount tokens)" else ""
-
-        """
-        Wallet: ${address.take(8)}...${address.takeLast(6)}
-
-        Token Balances:
-        $positionsText$showingText
-        """.trimIndent()
-
-    } catch (e: Exception) {
-        Log.e(TAG, "Exception getting balance", e)
-        "Error getting balance: ${e.message}"
     }
 }
 
@@ -208,74 +275,89 @@ suspend fun getZerionBalance(context: Context, args: Map<String, String> = empty
  * Shows recent transactions with details.
  */
 suspend fun getZerionTransactions(context: Context, args: Map<String, String> = emptyMap()): String {
-    // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
         return "ERROR:NO_INTERNET:Cannot retrieve transactions. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
-    // Check if wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to view transaction history."
-    }
+    val rawLimit = args["limit"]?.toIntOrNull()
+    val pageSize = rawLimit?.coerceIn(1, MAX_TRANSACTION_LIMIT) ?: DEFAULT_TRANSACTION_LIMIT
 
-    val address = connectionState.address
-    val limit = args["limit"]?.toIntOrNull() ?: 5
+    when (val walletContext = resolveWalletContext(args)) {
+        is WalletContextResult.Error -> return walletContext.message
+        is WalletContextResult.Success -> {
+            val network = normalizeNetwork(args["network"])
+            val client = ZerionClientHolder.getClient()
 
-    return try {
-        val client = ZerionClientHolder.getClient()
-        val result = client.getWalletTransactions(address, pageSize = limit)
+            return try {
+                val result = client.getWalletTransactions(
+                    address = walletContext.address,
+                    pageSize = pageSize,
+                    chainId = SOLANA_CHAIN_ID,
+                    network = network
+                )
 
-        if (result.isFailure) {
-            val error = result.exceptionOrNull()
-            Log.e(TAG, "Failed to fetch transactions", error)
-            return "Error fetching transactions: ${error?.message ?: "Unknown error"}"
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull()
+                    Log.e(TAG, "Failed to fetch transactions", error)
+                    return "Error fetching transactions: ${error?.message ?: "Unknown error"}"
+                }
+
+                val transactions = result.getOrNull()
+                    ?: return "Error: Empty transactions response"
+
+                if (transactions.data.isEmpty()) {
+                    val networkLabel = formatNetworkLabel(network)
+                    val addressLabel = shortAddress(walletContext.address)
+                    return buildString {
+                        append("No transactions found for $addressLabel")
+                        networkLabel?.let { append(" on $it") }
+                        append(".")
+                    }
+                }
+
+                val txText = transactions.data.joinToString("\n\n") { tx ->
+                    val attrs = tx.attributes
+                    val hashShort = shortAddress(attrs.hash)
+                    val type = attrs.operationType
+                    val status = attrs.status
+                    val timestamp = attrs.minedAt
+
+                    val transferInfo = attrs.transfers?.firstOrNull()?.let { transfer ->
+                        val symbol = transfer.fungibleInfo?.symbol ?: "Unknown"
+                        val amount = transfer.quantity.float
+                        val direction = transfer.direction
+                        "\n  ${direction.uppercase()}: ${String.format("%.6f", amount)} $symbol"
+                    } ?: ""
+
+                    val feeInfo = attrs.fee?.let { fee ->
+                        val feeAmount = fee.quantity.float
+                        val feeSymbol = fee.fungibleInfo?.symbol ?: "SOL"
+                        "\n  Fee: ${String.format("%.6f", feeAmount)} $feeSymbol"
+                    } ?: ""
+
+                    """
+                    [$status] $type
+                    Hash: $hashShort
+                    Time: $timestamp$transferInfo$feeInfo
+                    """.trimIndent()
+                }
+
+                val addressLabel = shortAddress(walletContext.address)
+                val networkLabel = formatNetworkLabel(network)
+
+                buildString {
+                    append("Recent Transactions for $addressLabel")
+                    networkLabel?.let { append(" on $it") }
+                    append(":\n\n")
+                    append(txText)
+                }.trim()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception getting transactions", e)
+                "Error getting transactions: ${e.message}"
+            }
         }
-
-        val transactions = result.getOrNull()
-            ?: return "Error: Empty transactions response"
-
-        if (transactions.data.isEmpty()) {
-            return "No transactions found for this wallet."
-        }
-
-        val txText = transactions.data.joinToString("\n\n") { tx ->
-            val attrs = tx.attributes
-            val hash = attrs.hash.take(12) + "..."
-            val type = attrs.operationType
-            val status = attrs.status
-            val timestamp = attrs.minedAt
-
-            val transferInfo = attrs.transfers?.firstOrNull()?.let { transfer ->
-                val symbol = transfer.fungibleInfo?.symbol ?: "Unknown"
-                val amount = transfer.quantity.float
-                val direction = transfer.direction
-                "\n  ${direction.uppercase()}: ${String.format("%.6f", amount)} $symbol"
-            } ?: ""
-
-            val feeInfo = attrs.fee?.let { fee ->
-                val feeAmount = fee.quantity.float
-                val feeSymbol = fee.fungibleInfo?.symbol ?: "SOL"
-                "\n  Fee: ${String.format("%.6f", feeAmount)} $feeSymbol"
-            } ?: ""
-
-            """
-            [$status] $type
-            Hash: $hash
-            Time: $timestamp$transferInfo$feeInfo
-            """.trimIndent()
-        }
-
-        """
-        Recent Transactions for ${address.take(8)}...${address.takeLast(6)}:
-
-        $txText
-        """.trimIndent()
-
-    } catch (e: Exception) {
-        Log.e(TAG, "Exception getting transactions", e)
-        "Error getting transactions: ${e.message}"
     }
 }
 
@@ -284,61 +366,67 @@ suspend fun getZerionTransactions(context: Context, args: Map<String, String> = 
  * Useful for confirming x402 payments.
  */
 suspend fun verifyZerionTransaction(context: Context, args: Map<String, String>): String {
-    val txHash = args["hash"] ?: return "Error: Missing transaction hash"
+    val txHash = args["hash"]?.trim()?.takeIf { it.isNotEmpty() }
+        ?: return "Error: Missing transaction hash"
 
-    // Check network connectivity
     if (!NetworkConnectivityHelper.isInternetAvailable(context)) {
         val networkStatus = NetworkConnectivityHelper.getNetworkStatusDescription(context)
         return "ERROR:NO_INTERNET:Cannot verify transaction. No internet connection available. Please check your network settings and try again. ($networkStatus)"
     }
 
-    // Check if wallet is connected
-    val connectionState = WalletConnectionManager.getConnectionState()
-    if (!connectionState.isConnected || connectionState.address == null) {
-        return "ERROR:WALLET_NOT_CONNECTED:Wallet not connected. Please connect your Solana wallet first to verify transactions."
-    }
+    when (val walletContext = resolveWalletContext(args)) {
+        is WalletContextResult.Error -> return walletContext.message
+        is WalletContextResult.Success -> {
+            val network = normalizeNetwork(args["network"])
+            val client = ZerionClientHolder.getClient()
 
-    val address = connectionState.address
+            return try {
+                val result = client.verifyTransaction(
+                    address = walletContext.address,
+                    txHash = txHash,
+                    chainId = SOLANA_CHAIN_ID,
+                    network = network
+                )
 
-    return try {
-        val client = ZerionClientHolder.getClient()
-        val result = client.verifyTransaction(address, txHash)
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull()
+                    Log.e(TAG, "Failed to verify transaction", error)
+                    return "Error verifying transaction: ${error?.message ?: "Unknown error"}"
+                }
 
-        if (result.isFailure) {
-            val error = result.exceptionOrNull()
-            Log.e(TAG, "Failed to verify transaction", error)
-            return "Error verifying transaction: ${error?.message ?: "Unknown error"}"
+                val tx = result.getOrNull()
+                    ?: return "Transaction not found: $txHash"
+
+                val attrs = tx.attributes
+                val status = attrs.status
+                val type = attrs.operationType
+                val timestamp = attrs.minedAt
+
+                val transferInfo = attrs.transfers?.joinToString("\n") { transfer ->
+                    val symbol = transfer.fungibleInfo?.symbol ?: "Unknown"
+                    val amount = transfer.quantity.float
+                    val direction = transfer.direction
+                    "  ${direction.uppercase()}: ${String.format("%.6f", amount)} $symbol"
+                } ?: "No transfers"
+
+                val networkLabel = formatNetworkLabel(network)
+
+                buildString {
+                    append("Transaction Verified ✓\n")
+                    networkLabel?.let { append("Network: $it\n") }
+                    append("Hash: ${attrs.hash}\n")
+                    append("Status: $status\n")
+                    append("Type: $type\n")
+                    append("Time: $timestamp\n\n")
+                    append("Transfers:\n")
+                    append(transferInfo)
+                }.trim()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception verifying transaction", e)
+                "Error verifying transaction: ${e.message}"
+            }
         }
-
-        val tx = result.getOrNull()
-            ?: return "Transaction not found: $txHash"
-
-        val attrs = tx.attributes
-        val status = attrs.status
-        val type = attrs.operationType
-        val timestamp = attrs.minedAt
-
-        val transferInfo = attrs.transfers?.joinToString("\n") { transfer ->
-            val symbol = transfer.fungibleInfo?.symbol ?: "Unknown"
-            val amount = transfer.quantity.float
-            val direction = transfer.direction
-            "  ${direction.uppercase()}: ${String.format("%.6f", amount)} $symbol"
-        } ?: "No transfers"
-
-        """
-        Transaction Verified ✓
-        Hash: ${attrs.hash}
-        Status: $status
-        Type: $type
-        Time: $timestamp
-
-        Transfers:
-        $transferInfo
-        """.trimIndent()
-
-    } catch (e: Exception) {
-        Log.e(TAG, "Exception verifying transaction", e)
-        "Error verifying transaction: ${e.message}"
     }
 }
 
@@ -351,12 +439,37 @@ fun getZerionWalletFunctions(): List<FunctionDefinition> {
         FunctionDefinition(
             name = "get_portfolio",
             description = "Get complete wallet portfolio overview including total value and asset distribution across different chains and types. Shows USD values for all holdings.",
-            parameters = listOf()
+            parameters = listOf(
+                FunctionParameter(
+                    name = "address",
+                    type = "string",
+                    description = "Optional Solana wallet address. If omitted, uses the connected wallet.",
+                    required = false
+                ),
+                FunctionParameter(
+                    name = "network",
+                    type = "string",
+                    description = "Optional Solana network to target ('solana' or 'solana-devnet'). Defaults to mainnet.",
+                    required = false
+                )
+            )
         ),
         FunctionDefinition(
             name = "get_balance",
             description = "Get wallet token balances with current prices and USD values. Can fetch all tokens or filter by specific token symbol (e.g., SOL, USDC). Replaces get_solana_balance with richer data.",
             parameters = listOf(
+                FunctionParameter(
+                    name = "address",
+                    type = "string",
+                    description = "Optional Solana wallet address. If omitted, uses the connected wallet.",
+                    required = false
+                ),
+                FunctionParameter(
+                    name = "network",
+                    type = "string",
+                    description = "Optional Solana network to target ('solana' or 'solana-devnet'). Defaults to mainnet.",
+                    required = false
+                ),
                 FunctionParameter(
                     name = "token",
                     type = "string",
@@ -370,9 +483,21 @@ fun getZerionWalletFunctions(): List<FunctionDefinition> {
             description = "Get recent transaction history with details including transfers, fees, and timestamps. Useful for tracking payments and wallet activity.",
             parameters = listOf(
                 FunctionParameter(
+                    name = "address",
+                    type = "string",
+                    description = "Optional Solana wallet address. If omitted, uses the connected wallet.",
+                    required = false
+                ),
+                FunctionParameter(
+                    name = "network",
+                    type = "string",
+                    description = "Optional Solana network to target ('solana' or 'solana-devnet'). Defaults to mainnet.",
+                    required = false
+                ),
+                FunctionParameter(
                     name = "limit",
                     type = "string",
-                    description = "Number of transactions to fetch (1-20). Default is 5.",
+                    description = "Number of transactions to fetch (1-50). Defaults to 10.",
                     required = false
                 )
             )
@@ -386,6 +511,18 @@ fun getZerionWalletFunctions(): List<FunctionDefinition> {
                     type = "string",
                     description = "Transaction hash/signature to verify",
                     required = true
+                ),
+                FunctionParameter(
+                    name = "address",
+                    type = "string",
+                    description = "Optional Solana wallet address. If omitted, uses the connected wallet.",
+                    required = false
+                ),
+                FunctionParameter(
+                    name = "network",
+                    type = "string",
+                    description = "Optional Solana network to target ('solana' or 'solana-devnet'). Defaults to mainnet.",
+                    required = false
                 )
             )
         )
@@ -402,7 +539,7 @@ suspend fun executeZerionWalletFunction(
     args: Map<String, String>
 ): String {
     return when (functionName) {
-        "get_portfolio" -> getZerionPortfolio(context)
+        "get_portfolio" -> getZerionPortfolio(context, args)
         "get_balance" -> getZerionBalance(context, args)
         "get_transactions" -> getZerionTransactions(context, args)
         "verify_transaction" -> verifyZerionTransaction(context, args)
