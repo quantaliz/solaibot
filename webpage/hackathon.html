@@ -591,6 +591,10 @@
             margin: 2rem auto;
         }
 
+        .video-hidden {
+            display: none;
+        }
+
         /* Keyboard navigation hint */
         .keyboard-hint {
             position: fixed;
@@ -1183,7 +1187,7 @@
             <p class="section-subtitle">See SolAIBot in action with live payment flows</p>
 
             <div style="max-width: 900px; margin: 0 auto;">
-                <div class="video-container" data-video-id="ieUBE9uDSwE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                <div class="video-container" id="mainDemoVideo" data-video-id="ieUBE9uDSwE" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
                     <img
                         src="https://img.youtube.com/vi/ieUBE9uDSwE/hqdefault.jpg"
                         alt="SolAIBot Demo"
@@ -1195,13 +1199,36 @@
                         </svg>
                     </div>
                 </div>
-                <p style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                <div class="video-container video-hidden" id="zerionDemoVideo" data-video-id="CFZjXdrlStw" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/CFZjXdrlStw/hqdefault.jpg"
+                        alt="Zerion API Demo"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <p id="mainDemoDescription" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
                     Watch the complete demo showing on-device AI processing and autonomous Solana payments
                 </p>
+                <p id="zerionDemoDescription" class="video-hidden" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                    Watch the Zerion API flow demonstrating wallet intelligence and granular overrides
+                </p>
                 <div style="text-align: center; margin-top: 1.5rem;">
-                    <a href="https://youtu.be/ieUBE9uDSwE" class="btn btn-secondary" target="_blank">
-                        📺 Watch on YouTube
-                    </a>
+                    <button type="button" class="btn btn-secondary" id="toggleZerionDemo" style="margin-bottom: 1rem;">
+                        Zerion API demo
+                    </button>
+                    <!--<div>
+                        <a id="mainDemoLink" href="https://youtu.be/ieUBE9uDSwE" class="btn btn-secondary" target="_blank">
+                            📺 Watch on YouTube
+                        </a>
+                        <a id="zerionDemoLink" href="https://youtube.com/shorts/CFZjXdrlStw" class="btn btn-secondary video-hidden" target="_blank" style="margin-left: 0.5rem;">
+                            📺 Watch on YouTube
+                        </a>
+                    </div>-->
                 </div>
             </div>
         </div>
@@ -1911,6 +1938,39 @@ graph TB
                 }
             });
         });
+
+        // Toggle between main demo and Zerion API demo videos
+        const toggleZerionDemoButton = document.getElementById('toggleZerionDemo');
+        const mainDemoVideo = document.getElementById('mainDemoVideo');
+        const zerionDemoVideo = document.getElementById('zerionDemoVideo');
+        const mainDemoDescription = document.getElementById('mainDemoDescription');
+        const zerionDemoDescription = document.getElementById('zerionDemoDescription');
+        const mainDemoLink = document.getElementById('mainDemoLink');
+        const zerionDemoLink = document.getElementById('zerionDemoLink');
+
+        if (toggleZerionDemoButton && mainDemoVideo && zerionDemoVideo) {
+            toggleZerionDemoButton.addEventListener('click', () => {
+                const showingZerion = !zerionDemoVideo.classList.contains('video-hidden');
+
+                if (showingZerion) {
+                    zerionDemoVideo.classList.add('video-hidden');
+                    mainDemoVideo.classList.remove('video-hidden');
+                    if (zerionDemoDescription) zerionDemoDescription.classList.add('video-hidden');
+                    if (mainDemoDescription) mainDemoDescription.classList.remove('video-hidden');
+                    if (zerionDemoLink) zerionDemoLink.classList.add('video-hidden');
+                    if (mainDemoLink) mainDemoLink.classList.remove('video-hidden');
+                    toggleZerionDemoButton.textContent = 'Zerion API demo';
+                } else {
+                    mainDemoVideo.classList.add('video-hidden');
+                    zerionDemoVideo.classList.remove('video-hidden');
+                    if (mainDemoDescription) mainDemoDescription.classList.add('video-hidden');
+                    if (zerionDemoDescription) zerionDemoDescription.classList.remove('video-hidden');
+                    if (mainDemoLink) mainDemoLink.classList.add('video-hidden');
+                    if (zerionDemoLink) zerionDemoLink.classList.remove('video-hidden');
+                    toggleZerionDemoButton.textContent = 'Main demo';
+                }
+            });
+        }
 
         // Fade-in animation on load
         window.addEventListener('load', () => {
