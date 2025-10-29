@@ -40,6 +40,13 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 *   **Solana RPC Integration:** Custom RPC client supporting devnet and mainnet-beta
 *   **Transaction Builder:** Precise account ordering for Solana program compatibility
 
+### 📊 Zerion Wallet Intelligence
+*   **Zerion API Integration:** Rich portfolio, balance, transaction, and verification data with RPC fallback
+*   **Wallet Overrides:** Optional `address` parameter lets the LLM query any Solana account, even without connecting it
+*   **Network Awareness:** `network="solana"` automatically scopes requests with `filter[chain_ids]=solana`
+*   **Resilient Parsing:** Custom serializers handle Zerion's numeric scalar totals without crashing the chat flow
+*   **Actionable Errors:** Structured `ERROR:CODE:message` responses prevent redundant calls and surface next steps to users
+
 ### 🎨 User Experience
 *   **Modern Jetpack Compose UI:** Reactive, declarative interface built with Material3
 *   **MVVM Architecture:** Clean separation with Hilt dependency injection
@@ -64,6 +71,12 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 - ✅ Solana ecosystem advancement (MWA, RPC, transaction building)
 - ✅ Real-world utility: Micropayments for AI-accessed content
 
+**[Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)** - Solana + Zerion Spotlight
+- ✅ Uses Zerion API for balances, portfolios, transactions, and verification
+- ✅ Supports wallet overrides and devnet testing required by the brief
+- ✅ Demonstrates consumer-grade UX with actionable messaging and privacy-first AI
+- ✅ Integrates Zerion data directly into on-device LLM conversations
+
 ### What Makes This Special
 
 1. **Technical Depth:** Full-stack integration from LiteRT inference to on-chain settlement
@@ -78,13 +91,21 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 - **Memory:** 6GB+ RAM recommended
 - **Wallet:** Solflare or any MWA-compatible wallet (for payment features)
 - **Network:** Solana devnet or mainnet-beta access
+- **API Access:** Zerion developer API key (configure in `ZerionConfig.kt` before running wallet flows)
 
 ### Installation
 1. Download the APK from [**latest release**](https://github.com/quantaliz/solaibot/releases/latest/)
 2. Install on your device
 3. Grant necessary permissions
-4. Let the app download the Hammer 2.1 model (~1.3GB)
-5. Connect your Solana wallet to payment features
+4. Set your Zerion API key in `app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionConfig.kt`
+5. Let the app download the Hammer 2.1 model (~1.3GB)
+6. Connect your Solana wallet to payment features
+
+### Sample Zerion Prompts
+- `Show the portfolio for ADDRESS_HERE`
+- `Get my SOL balance on solana`
+- `List the last 5 transactions for address ADDRESS_HERE`
+- `Verify transaction SIGNATURE for wallet ADDRESS_HERE`
 
 ## 🛠️ Technology Stack
 
@@ -100,6 +121,7 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 * **sol4k (0.5.17):** Kotlin-native Solana utilities
 * **Custom RPC Client:** Built with Ktor for flexible endpoint configuration
 * **x402 Protocol:** Full implementation of HTTP 402 payment standard
+* **Zerion API (v1):** Wallet intelligence layer with automatic Solana scoping and devnet support
 
 ### Android Architecture
 * **Language:** 100% Kotlin with Coroutines and Flow
@@ -200,6 +222,10 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 * **[docs/CBx402.md](docs/CBx402.md)** - x402 protocol specification
 * **[docs/x402-Header.md](docs/x402-Header.md)** - x402 header format details
 * **[docs/Solana-RPC.md](docs/Solana-RPC.md)** - Solana RPC integration guide
+* **[Zerion-QuickStart.md](Zerion-QuickStart.md)** - 5-minute guide to enabling Zerion
+* **[app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md](app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md)** - Detailed Zerion package docs
+* **[app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md](app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md)** - Implementation summary and changelog
+* **[docs/zerion/llms.txt](docs/zerion/llms.txt)** - Prompting notes for Zerion-aware LLM flows
 
 ### External Resources
 * [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery/) - Base project
@@ -228,6 +254,7 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 - ✅ **MWA Support** - Solflare and wallet adapter integration
 - ✅ **Devnet Testing** - End-to-end payment flow validated
 - ✅ **Function Calling** - LLM-triggered autonomous payments
+- ✅ **Zerion Wallet Intelligence** - Address/network overrides, devnet support, resilient parsing (2025-10-29)
 
 ---
 
@@ -236,6 +263,7 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 ### Post-Hackathon Features
 - [ ] **Mainnet Support:** Production-ready payments on mainnet-beta
 - [ ] **Token Support:** SPL token payments beyond USDC/SOL
+- [ ] **Zerion Key Management:** In-app API key configuration backed by Android Keystore
 - [ ] **Multi-Model:** Support for multiple simultaneous LLMs
 - [ ] **Voice Interface:** Audio input/output for hands-free operation
 - [ ] **Custom Plugins:** Extensible task system for developers

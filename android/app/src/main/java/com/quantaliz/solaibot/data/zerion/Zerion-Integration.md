@@ -4,8 +4,8 @@
 
 Successfully implemented Phase 1 of Zerion API integration for Sol-AI-Bot, adding rich wallet data capabilities for Solana addresses. This integration enhances the existing x402 payment protocol with portfolio analytics and transaction verification.
 
-**Status**: ✅ Complete (Phase 1 + Error Handling Fix)
-**Date**: 2025-01-15 (Initial), 2025-10-28 (Error Handling Update)
+**Status**: ✅ Complete (Phase 1 + Error Handling & Network Overrides)
+**Date**: 2025-01-15 (Initial), 2025-10-28 (Error Handling Update), 2025-10-29 (Address & Devnet Enhancements)
 **Hackathon**: Cypherpunk 2025 & Hackaroo 2025
 
 ## 📦 What Was Implemented
@@ -19,8 +19,10 @@ HTTP client for Zerion API with:
 - ✅ Transaction verification method
 - ✅ OkHttp-based networking
 - ✅ 30-second timeout handling
-- ✅ JSON deserialization with Kotlinx Serialization
+- ✅ JSON deserialization with Kotlinx Serialization (includes custom serializers)
 - ✅ Comprehensive error handling
+- ✅ Automatic Solana scoping via `filter[chain_ids]=solana`
+- ✅ Devnet support with `X-Env: testnet` header and network alias normalization
 
 ### 2. Data Models (`ZerionModels.kt`)
 
@@ -31,32 +33,37 @@ Complete Kotlin data classes for Zerion API responses:
 - ✅ Common models (pagination, errors)
 - ✅ Full JSON:API specification support
 - ✅ Kotlinx Serialization annotations
+- ✅ `ZerionAssetValueSerializer` handles scalar or object totals for portfolio distributions
 
 ### 3. LLM Functions (`ZerionWalletFunctions.kt`)
 
 Four new LLM-callable wallet functions:
 
-#### `get_portfolio()`
-- Shows total wallet value in USD
-- Asset distribution by type and chain
-- Portfolio overview at a glance
+#### `get_portfolio(address?, network?)`
+- Shows total wallet value in USD with explicit wallet/network context in the response
+- Asset distribution by type and chain (handles Zerion scalar totals gracefully)
+- Optional `address` overrides the connected wallet; `network` toggles between Solana mainnet and devnet
 
-#### `get_balance(token?)`
+#### `get_balance(token?, address?, network?)`
 - All token balances with USD values
 - Optional filtering by token symbol
 - Current prices for all assets
 - Verified token indicators
+- Optional `address`/`network` parameters share the same override behavior as portfolio
+- Falls back to RPC when Zerion returns empty data so legacy flows still work
 
-#### `get_transactions(limit?)`
+#### `get_transactions(limit?, address?, network?)`
 - Recent transaction history
-- Configurable result count (1-20)
+- Configurable result count (clamped to 1-50, default 10)
 - Full transfer and fee details
 - Transaction timestamps
+- Optional address/network ensure the correct wallet/network is queried every time
 
-#### `verify_transaction(hash)`
+#### `verify_transaction(hash, address?, network?)`
 - Verify specific transactions
 - Confirm payment completion
 - Essential for x402 payment verification
+- Optional address/network parameters scope verification to the intended wallet
 
 ### 4. Enhanced Existing Functions
 
@@ -141,7 +148,7 @@ User: "What's my SOL balance?"
     ↓
 LLM detects wallet query
     ↓
-{"name": "get_balance", "parameters": {"token": "SOL", "network": "solana"}}
+{"name": "get_balance", "parameters": {"token": "SOL", "address": "7x4Qf...3Jd9", "network": "solana-devnet"}}
     ↓
 executeSolanaWalletFunction()
     ↓
@@ -155,10 +162,10 @@ Parse JSON response
     ↓
 Format for LLM
     ↓
-"You have 2.5 SOL worth $245.00"
+"You have 2.5 SOL worth $245.00 on Solana Devnet"
 ```
 
-> Tip: Provide a base58 `address` and a `network` value when you want to query a specific wallet or Solana devnet. If omitted, the connected wallet on Solana mainnet is used by default.
+> Tip: Provide a base58 `address` and a `network` value when you want to query a specific wallet or Solana devnet. If omitted, the connected wallet on Solana mainnet is used by default. Devnet requests automatically append `filter[chain_ids]=solana` and `X-Env: testnet` so Zerion returns the right data set.
 
 ## 📊 Endpoints Used
 
@@ -206,6 +213,8 @@ Format for LLM
 - [ ] Test `get_balance()` with and without token filter
 - [ ] Test `get_transactions()` with different limits
 - [ ] Test `verify_transaction()` with real TX hash
+- [ ] Test address overrides (`address="..."`) for portfolio/balance/transactions
+- [ ] Test devnet overrides (`network="solana-devnet"`) to confirm `X-Env: testnet` routing
 - [ ] Test fallback to RPC when Zerion unavailable
 - [ ] Test error handling (no internet, invalid key, etc.)
 
@@ -257,6 +266,11 @@ Bot: Transaction verified ✓ Confirmed on-chain. Sent 0.05 SOL.
 - [ ] Reduce transaction page size to 5-10
 - [ ] Add loading indicators in UI
 
+### Troubleshooting Highlights
+
+- Responses include actionable guidance such as `ERROR:WALLET_NOT_CONNECTED` or `INFO:NO_TOKENS`.
+- When Zerion returns an empty transaction list, the LLM surfaces `No transactions found for this wallet` and instructs the user to confirm the `address`/`network` values.
+
 ## 🐛 Known Limitations
 
 1. **API Key Required**: Users must obtain and configure their own key
@@ -265,18 +279,28 @@ Bot: Transaction verified ✓ Confirmed on-chain. Sent 0.05 SOL.
 4. **Solana Only**: Multi-chain support not yet implemented
 5. **No NFTs**: NFT positions not included in Phase 1
 
-## ✅ Recent Fixes (2025-10-28)
+## ✅ Recent Fixes
 
-### Error Handling Enhancement
-- **Problem**: LLM made redundant function calls when receiving error messages
-- **Solution**: Implemented structured error/info message system
+### 2025-10-29 – Address & Devnet Enhancements
+- **Problem**: LLM queries sometimes hit the wrong wallet or failed when Zerion returned scalar totals.
+- **Solution**: Added wallet context resolution (`address` overrides, network normalization) and `ZerionAssetValueSerializer`.
+- **Behavior**: Responses now mention the wallet/network queried and portfolio parsing no longer crashes when Zerion returns plain numbers.
+- **Files Modified**:
+  - `ZerionWalletFunctions.kt` – Added address/network overrides, transaction limit clamping, devnet headers.
+  - `ZerionApiClient.kt` – Ensured `filter[chain_ids]=solana` and `X-Env: testnet` are set automatically.
+  - `ZerionModels.kt` – Added `ZerionAssetValueSerializer` to support scalar totals.
+  - `FunctionDeclarations.kt` – Refreshed documentation snippets for the LLM.
+
+### 2025-10-28 – Error Handling Enhancement
+- **Problem**: LLM made redundant function calls when receiving error messages.
+- **Solution**: Implemented structured error/info message system.
 - **Format**: `ERROR:CODE:message` or `INFO:CODE:message`
 - **Codes**: WALLET_NOT_CONNECTED, NO_INTERNET, NO_TOKENS
-- **Behavior**: Errors displayed directly to user, preventing additional function calls
+- **Behavior**: Errors displayed directly to user, preventing additional function calls.
 - **Files Modified**:
-  - `ZerionWalletFunctions.kt` - Added structured error messages
-  - `LlmFunctionCallingModelHelper.kt` - Added error detection and direct display
-  - `FunctionDeclarations.kt` - Updated system prompt with error handling rules
+  - `ZerionWalletFunctions.kt` – Added structured error messages.
+  - `LlmFunctionCallingModelHelper.kt` – Added error detection and direct display.
+  - `FunctionDeclarations.kt` – Updated system prompt with error handling rules.
 
 ## 🔮 Future Enhancements (Phase 2+)
 
@@ -308,18 +332,18 @@ Bot: Transaction verified ✓ Confirmed on-chain. Sent 0.05 SOL.
 ### New Files
 ```
 app/src/main/java/com/quantaliz/solaibot/data/zerion/
-├── ZerionModels.kt                 (300+ lines)
-├── ZerionApiClient.kt              (250+ lines)
-├── ZerionWalletFunctions.kt        (350+ lines) [Updated 2025-10-28]
+├── ZerionModels.kt                 (300+ lines) [Updated 2025-10-29]
+├── ZerionApiClient.kt              (250+ lines) [Updated 2025-10-29]
+├── ZerionWalletFunctions.kt        (350+ lines) [Updated 2025-10-29]
 ├── ZerionConfig.kt.example         (100+ lines)
-└── README.md                       (500+ lines) [Updated 2025-10-28]
+└── README.md                       (500+ lines) [Updated 2025-10-29]
 
 docs/
 └── ZERION_SETUP.md                 (600+ lines)
 
-ZERION_INTEGRATION_SUMMARY.md       (This file) [Updated 2025-10-28]
+ZERION_INTEGRATION_SUMMARY.md       (This file) [Updated 2025-10-29]
 ZERION_ERROR_HANDLING_FIX.md        (New 2025-10-28)
-Zerion-QuickStart.md                (Updated 2025-10-28)
+Zerion-QuickStart.md                (Updated 2025-10-29)
 ```
 
 ### Modified Files
@@ -328,7 +352,7 @@ app/src/main/java/com/quantaliz/solaibot/data/
 ├── SolanaWalletFunctions.kt        (Updated getSolanaBalance)
 ├── SolanaWalletFunctions.kt        (Updated getSolanaWalletFunctions)
 ├── SolanaWalletFunctions.kt        (Updated executeSolanaWalletFunction)
-└── FunctionDeclarations.kt         (Updated system prompt) [Updated 2025-10-28]
+└── FunctionDeclarations.kt         (Updated system prompt) [Updated 2025-10-29]
 
 app/src/main/java/com/quantaliz/solaibot/ui/llmchat/
 └── LlmFunctionCallingModelHelper.kt (Added error detection) [Updated 2025-10-28]

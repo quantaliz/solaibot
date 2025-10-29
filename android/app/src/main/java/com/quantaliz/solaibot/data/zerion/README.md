@@ -21,6 +21,7 @@ Kotlin serializable data classes matching Zerion's JSON:API format:
 **Portfolio Models:**
 - `ZerionPortfolioResponse` - Complete portfolio with total value
 - `ZerionPortfolioAttributes` - Portfolio breakdown by type/chain
+- `ZerionAssetValueSerializer` - Custom serializer that supports Zerion returning either nested objects _or_ raw numeric totals (prevents JSON parsing crashes)
 
 **Position Models:**
 - `ZerionPositionsResponse` - List of token positions
@@ -44,10 +45,10 @@ Kotlin serializable data classes matching Zerion's JSON:API format:
 HTTP client for Zerion API endpoints:
 
 **Methods:**
-- `getWalletPortfolio(address)` - Fetch portfolio overview
-- `getWalletPositions(address, filters...)` - Fetch token balances
-- `getWalletTransactions(address, filters...)` - Fetch transaction history
-- `verifyTransaction(address, txHash)` - Verify specific transaction
+- `getWalletPortfolio(address, chainId, network)` - Fetch portfolio overview
+- `getWalletPositions(address, chainId, network, filters...)` - Fetch token balances
+- `getWalletTransactions(address, chainId, network, filters...)` - Fetch transaction history
+- `verifyTransaction(address, txHash, chainId, network)` - Verify specific transaction
 
 **Features:**
 - OkHttp-based HTTP client
@@ -57,22 +58,24 @@ HTTP client for Zerion API endpoints:
 - Automatic spam/trash filtering
 - Adds required `filter[chain_ids]=solana` to every request (with optional `filter[network]` for devnet)
 - Sets the `X-Env: testnet` header automatically when querying Solana devnet
+- Normalizes network aliases (`"devnet"`, `"sol"`, `"mainnet-beta"`) so the LLM can be flexible
 
 ### ZerionWalletFunctions.kt
 
 LLM-callable functions wrapping Zerion API:
 
 **Functions:**
-1. `getZerionPortfolio(address?, network?)` - Portfolio overview
-2. `getZerionBalance(token?, address?, network?)` - Token balances
-3. `getZerionTransactions(limit?, address?, network?)` - Transaction history
-4. `verifyZerionTransaction(hash, address?, network?)` - Transaction verification
+1. `getZerionPortfolio(address?, network?)` - Portfolio overview (defaults to connected wallet on Solana mainnet when omitted)
+2. `getZerionBalance(token?, address?, network?)` - Token balances with optional token filter and wallet override
+3. `getZerionTransactions(limit?, address?, network?)` - Transaction history with limit auto-clamped to 1-50
+4. `verifyZerionTransaction(hash, address?, network?)` - Transaction verification against Zerion data (address optional but recommended)
 
 **Integration:**
-- Network connectivity checks
-- Wallet connection state validation
-- User-friendly error messages
-- Formatted responses for LLM
+- Network connectivity checks (prevents Zerion API calls offline)
+- Wallet connection state validation with explicit guidance to connect or provide `address`
+- User-friendly error messages (`ERROR:CODE:message` / `INFO:CODE:message`) returned directly to the UI
+- Formatted responses for LLM, including address/network labels so users can confirm which wallet was queried
+- Shared Solana chain ID constant to avoid accidental multi-chain usage
 
 **Singleton:**
 - `ZerionClientHolder` - Manages API client instance and API key
@@ -162,7 +165,20 @@ The LLM can call these functions directly:
 }
 ```
 
-All Zerion functions also accept optional `address` and `network` parameters. If you omit them, Sol-AI-Bot will use the connected wallet on Solana mainnet. Provide `address` to query another wallet, and set `network` to `"solana-devnet"` when working with devnet data.
+All Zerion functions also accept optional `address` and `network` parameters. If you omit them, Sol-AI-Bot will use the connected wallet on Solana mainnet. Provide `address` to query another wallet, and set `network` to `"solana-devnet"` when working with devnet data. The helper normalizes common aliases (`"devnet"`, `"sol"`, `"mainnet-beta"`) and automatically applies the required `filter[chain_ids]=solana` along with `X-Env: testnet` headers for devnet calls.
+
+### Wallet Context Resolution
+
+- `address` parameter (optional) takes precedence over the connected wallet.
+- If no `address` is provided and the wallet is disconnected, the functions return `ERROR:WALLET_NOT_CONNECTED`.
+- `network` parameter (optional) supports `"solana"` and `"solana-devnet"`; invalid values are ignored for safety.
+- Responses include short-form address and network labels so users can validate the queried wallet.
+
+### Transaction Limits
+
+- `limit` accepts numeric strings or numbers and is clamped to `1..50`.
+- Defaults to `ZerionConfig.DEFAULT_TX_PAGE_SIZE` (10) when not provided.
+- Keeps Zerion API usage within safe rate-limit boundaries.
 
 ## 📊 Data Flow
 
@@ -226,11 +242,14 @@ User sees result
 1. Set API key in `ZerionClientHolder`
 2. Connect wallet via UI
 3. Ask LLM: "What's my balance?"
-4. Verify response includes:
+4. Ask LLM: "Get the portfolio of SOLANA_MAINNET_ADDRESS"
+5. Ask LLM: "Show my SOL balance on solana"
+6. Verify responses include:
    - Token symbols
    - Amounts
    - USD values
    - Verified status
+   - Mention of the wallet/network used
 
 ### Test Wallets
 
@@ -292,6 +311,9 @@ Typical response times:
 
 **Issue**: Empty positions returned
 **Fix**: Check wallet has tokens on Solscan/explorer
+
+**Issue**: "No transactions found for this wallet"
+**Fix**: Ensure you are querying the intended wallet. Provide `address="..."` if you need data for another wallet or devnet account.
 
 **Issue**: Slow responses
 **Fix**: Reduce page sizes, implement caching
