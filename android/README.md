@@ -7,7 +7,13 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Hackathon Submission:** [Cypherpunk 2025](https://www.colosseum.com/cypherpunk) • [Hackaroo 2025](https://www.hackaroo.xyz) • [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+Part of the **Financially Autonomous AI Agents with x402 Payments** suite, alongside the Solana Agent Kit x402 payments plugin and the Agent Commerce Platform detailed in the root [`README.md`](../README.md).
+
+### Hackathon Submissions
+- [Cypherpunk 2025](https://www.colosseum.com/cypherpunk)
+- [Hackaroo 2025](https://www.hackaroo.xyz)
+- [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+- [ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)
 
 ## 🎯 The Innovation
 
@@ -299,9 +305,9 @@ This project builds upon [Google AI Edge Gallery](https://github.com/google-ai-e
 
 ## 🚀 Where Privacy-First AI Meets Solana Speed
 
-**Built for Cypherpunk 2025 & Hackaroo 2025**
+**Built for Cypherpunk 2025, Hackaroo 2025, Superteam Zerion Consumer App Challenge, and ASI Agents Track**
 
-*Demonstrating that AI agents can be both completely private and finantially autonomous*
+*Demonstrating that AI agents can respect privacy and become financially autonomous*
 
 ⭐ Star repo | [📱 Download the app](https://github.com/quantaliz/solaibot/releases/latest/) | [🤖 Try the live agent](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) | 💻 Run examples
 
