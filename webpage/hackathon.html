@@ -325,6 +325,16 @@
             transform: translateY(-2px);
         }
 
+        .ux-toggle-btn.ux-toggle-active {
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        .video-toggle-btn.video-toggle-active {
+            background: var(--primary-purple);
+            color: white;
+        }
+
         /* Screenshots */
         .screenshots {
             display: flex;
@@ -592,6 +602,10 @@
         }
 
         .video-hidden {
+            display: none;
+        }
+
+        .screenshot-hidden {
             display: none;
         }
 
@@ -958,16 +972,24 @@
                 <p class="tagline">AI agents can't pay for anything. They're brilliant, but broke. We fixed that.</p>
                 <p class="tagline">We deliver the payment layer for AI agents—privacy-first on mobile, production-ready everywhere.</p>
 
-                <div class="badges">
-                    <span class="badge">🏆 Cypherpunk 2025</span>
-                    <span class="badge">🏆 Hackaroo 2025</span>
-                    <span class="badge">🏆 Superteam Zerion Challenge</span>
-                    <span class="badge">🏆 ASI Agents Track</span>
-                </div>
-
                 <div class="cta-buttons">
                     <a href="https://github.com/quantaliz/solaibot/releases/latest/" class="btn btn-primary" target="_blank">📱 Download SolAIBot</a>
                     <a href="https://github.com/quantaliz/solana-agent-kit" class="btn btn-secondary" target="_blank">💻 View Code</a>
+                </div>
+
+                <div class="badge-links" style="margin-top: 2rem; text-align: center; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;">
+                    <a class="badge" href="https://colosseum.com/cypherpunk" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        🏆 Cypherpunk
+                    </a>
+                    <a class="badge" href="https://earn.superteam.fun/listing/hackaroo" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        🏆 Hackaroo
+                    </a>
+                    <a class="badge" href="https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        🏆 Zerion Challenge
+                    </a>
+                    <a class="badge" href="https://earn.superteam.fun/listing/asi-agents-track/" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        🏆 ASI Agents Track
+                    </a>
                 </div>
             </div>
         </div>
@@ -1173,9 +1195,38 @@
             <h2>User Experience</h2>
             <p class="section-subtitle">See how AI agents autonomously access paid content</p>
 
-            <div class="screenshots">
-                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot1-Result.png?raw=true" alt="SolAIBot Interface" class="screenshot">
-                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot2-Sign.png?raw=true" alt="Payment Signing" class="screenshot">
+            <div id="x402Screenshots" class="screenshots">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot1-Result.png?raw=true" alt="SolAIBot completing an x402 payment" class="screenshot">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/SolAIBot2-Sign.png?raw=true" alt="SolAIBot signing an x402 transaction" class="screenshot">
+            </div>
+            <div id="zerionScreenshots" class="screenshots screenshot-hidden">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/zerion/Zerion1.png?raw=true" alt="Zerion portfolio balances inside SolAIBot" class="screenshot">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/zerion/Zerion2.png?raw=true" alt="Zerion transaction details within SolAIBot" class="screenshot">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/zerion/Zerion3.png?raw=true" alt="Zerion intelligent overrides surfaced in SolAIBot" class="screenshot">
+            </div>
+            <div id="agentverseScreenshots" class="screenshots screenshot-hidden">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/agentverse/AgentVerse.png?raw=true" alt="Agentverse deployment overview inside SolAIBot" class="screenshot">
+                <img src="https://github.com/quantaliz/solaibot/blob/main/images/agentverse/Transaction.png?raw=true" alt="Agentverse transaction trace for uAgent" class="screenshot">
+            </div>
+            <p id="x402Description" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                Follow the x402 Payments flow where SolAIBot signs on-device and settles API access instantly.
+            </p>
+            <p id="zerionDescription" class="screenshot-hidden" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                Explore the Zerion API experience highlighting portfolio intelligence and granular spending controls.
+            </p>
+            <p id="agentverseDescription" class="screenshot-hidden" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                See the Agentverse deployment journey as the uAgent is published and monitored across environments.
+            </p>
+            <div class="ux-toggle" style="text-align: center; margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary ux-toggle-btn ux-toggle-active" data-target="x402" id="showX402Screens">
+                    x402 Payments
+                </button>
+                <button type="button" class="btn btn-secondary ux-toggle-btn" data-target="zerion" id="showZerionScreens">
+                    Zerion API
+                </button>
+                <button type="button" class="btn btn-secondary ux-toggle-btn" data-target="agentverse" id="showAgentverseScreens">
+                    Agentverse
+                </button>
             </div>
         </div>
     </section>
@@ -1211,24 +1262,37 @@
                         </svg>
                     </div>
                 </div>
+                <div class="video-container video-hidden" id="agentverseDemoVideo" data-video-id="orgZMELBwnA" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3); cursor: pointer;">
+                    <img
+                        src="https://img.youtube.com/vi/orgZMELBwnA/hqdefault.jpg"
+                        alt="Agentverse Deployment Demo"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--primary-purple); border-radius: 12px;">
+                    <!-- Play button overlay -->
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; pointer-events: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" style="margin-left: 4px;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
                 <p id="mainDemoDescription" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
                     Watch the complete demo showing on-device AI processing and autonomous Solana payments
                 </p>
                 <p id="zerionDemoDescription" class="video-hidden" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
                     Watch the Zerion API flow demonstrating wallet intelligence and granular overrides
                 </p>
-                <div style="text-align: center; margin-top: 1.5rem;">
-                    <button type="button" class="btn btn-secondary" id="toggleZerionDemo" style="margin-bottom: 1rem;">
-                        Zerion API demo
+                <p id="agentverseDemoDescription" class="video-hidden" style="text-align: center; margin-top: 1rem; color: var(--gray-text);">
+                    Watch the Agentverse deployment flow as the uAgent publishes tasks and executes transactions
+                </p>
+                <div class="video-toggle" style="text-align: center; margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary video-toggle-btn video-toggle-active" data-target="main" id="showMainVideo" style="margin-bottom: 1rem;">
+                        Main demo
                     </button>
-                    <!--<div>
-                        <a id="mainDemoLink" href="https://youtu.be/ieUBE9uDSwE" class="btn btn-secondary" target="_blank">
-                            📺 Watch on YouTube
-                        </a>
-                        <a id="zerionDemoLink" href="https://youtube.com/shorts/CFZjXdrlStw" class="btn btn-secondary video-hidden" target="_blank" style="margin-left: 0.5rem;">
-                            📺 Watch on YouTube
-                        </a>
-                    </div>-->
+                    <button type="button" class="btn btn-secondary video-toggle-btn" data-target="zerion" id="showZerionVideo" style="margin-bottom: 1rem;">
+                        Zerion API
+                    </button>
+                    <button type="button" class="btn btn-secondary video-toggle-btn" data-target="agentverse" id="showAgentverseVideo" style="margin-bottom: 1rem;">
+                        Agentverse
+                    </button>
                 </div>
             </div>
         </div>
@@ -1939,37 +2003,92 @@ graph TB
             });
         });
 
-        // Toggle between main demo and Zerion API demo videos
-        const toggleZerionDemoButton = document.getElementById('toggleZerionDemo');
-        const mainDemoVideo = document.getElementById('mainDemoVideo');
-        const zerionDemoVideo = document.getElementById('zerionDemoVideo');
-        const mainDemoDescription = document.getElementById('mainDemoDescription');
-        const zerionDemoDescription = document.getElementById('zerionDemoDescription');
-        const mainDemoLink = document.getElementById('mainDemoLink');
-        const zerionDemoLink = document.getElementById('zerionDemoLink');
+        // Toggle between x402, Zerion, and Agentverse screenshot sets
+        const uxToggleButtons = document.querySelectorAll('.ux-toggle-btn');
+        const screenshotGroups = {
+            x402: {
+                gallery: document.getElementById('x402Screenshots'),
+                description: document.getElementById('x402Description'),
+            },
+            zerion: {
+                gallery: document.getElementById('zerionScreenshots'),
+                description: document.getElementById('zerionDescription'),
+            },
+            agentverse: {
+                gallery: document.getElementById('agentverseScreenshots'),
+                description: document.getElementById('agentverseDescription'),
+            }
+        };
 
-        if (toggleZerionDemoButton && mainDemoVideo && zerionDemoVideo) {
-            toggleZerionDemoButton.addEventListener('click', () => {
-                const showingZerion = !zerionDemoVideo.classList.contains('video-hidden');
-
-                if (showingZerion) {
-                    zerionDemoVideo.classList.add('video-hidden');
-                    mainDemoVideo.classList.remove('video-hidden');
-                    if (zerionDemoDescription) zerionDemoDescription.classList.add('video-hidden');
-                    if (mainDemoDescription) mainDemoDescription.classList.remove('video-hidden');
-                    if (zerionDemoLink) zerionDemoLink.classList.add('video-hidden');
-                    if (mainDemoLink) mainDemoLink.classList.remove('video-hidden');
-                    toggleZerionDemoButton.textContent = 'Zerion API demo';
-                } else {
-                    mainDemoVideo.classList.add('video-hidden');
-                    zerionDemoVideo.classList.remove('video-hidden');
-                    if (mainDemoDescription) mainDemoDescription.classList.add('video-hidden');
-                    if (zerionDemoDescription) zerionDemoDescription.classList.remove('video-hidden');
-                    if (mainDemoLink) mainDemoLink.classList.add('video-hidden');
-                    if (zerionDemoLink) zerionDemoLink.classList.remove('video-hidden');
-                    toggleZerionDemoButton.textContent = 'Main demo';
+        const setActiveUxGallery = (targetKey) => {
+            Object.entries(screenshotGroups).forEach(([key, group]) => {
+                if (!group.gallery) return;
+                const isActive = key === targetKey;
+                group.gallery.classList.toggle('screenshot-hidden', !isActive);
+                if (group.description) {
+                    group.description.classList.toggle('screenshot-hidden', !isActive);
                 }
             });
+
+            uxToggleButtons.forEach(button => {
+                button.classList.toggle('ux-toggle-active', button.dataset.target === targetKey);
+            });
+        };
+
+        if (uxToggleButtons.length) {
+            uxToggleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.dataset.target;
+                    if (!target || !screenshotGroups[target]) return;
+                    setActiveUxGallery(target);
+                });
+            });
+
+            setActiveUxGallery('x402');
+        }
+
+        // Toggle between main, Zerion, and Agentverse demo videos
+        const videoToggleButtons = document.querySelectorAll('.video-toggle-btn');
+        const videoGroups = {
+            main: {
+                container: document.getElementById('mainDemoVideo'),
+                description: document.getElementById('mainDemoDescription'),
+            },
+            zerion: {
+                container: document.getElementById('zerionDemoVideo'),
+                description: document.getElementById('zerionDemoDescription'),
+            },
+            agentverse: {
+                container: document.getElementById('agentverseDemoVideo'),
+                description: document.getElementById('agentverseDemoDescription'),
+            }
+        };
+
+        const setActiveVideo = (targetKey) => {
+            Object.entries(videoGroups).forEach(([key, group]) => {
+                if (!group.container) return;
+                const isActive = key === targetKey;
+                group.container.classList.toggle('video-hidden', !isActive);
+                if (group.description) {
+                    group.description.classList.toggle('video-hidden', !isActive);
+                }
+            });
+
+            videoToggleButtons.forEach(button => {
+                button.classList.toggle('video-toggle-active', button.dataset.target === targetKey);
+            });
+        };
+
+        if (videoToggleButtons.length) {
+            videoToggleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.dataset.target;
+                    if (!target || !videoGroups[target]) return;
+                    setActiveVideo(target);
+                });
+            });
+
+            setActiveVideo('main');
         }
 
         // Fade-in animation on load
