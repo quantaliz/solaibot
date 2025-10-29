@@ -32,7 +32,8 @@ import kotlinx.coroutines.withContext
  * HOW THE SYSTEM WORKS:
  * 1. The LLM is trained with a system prompt that includes these Solana functions
  * 2. When the user asks about their Solana balance or wants to perform wallet actions,
- *    the LLM generates a function call in the format: FUNCTION_CALL: function_name(param1="value1", param2="value2")
+ *    the LLM generates a JSON function call object such as:
+ *    {"name": "function_name", "parameters": {"param1": "value1", "param2": "value2"}}
  * 3. The LlmFunctionCallingModelHelper detects this function call pattern
  * 4. It then calls executeFunction() which routes to executeSolanaWalletFunction() for Solana functions
  * 5. This function interacts with the actual Solana wallet via Mobile Wallet Adapter

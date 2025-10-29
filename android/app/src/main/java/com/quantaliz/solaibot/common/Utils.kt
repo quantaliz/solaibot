@@ -45,11 +45,16 @@ fun cleanUpMediapipeTaskErrorMessage(message: String): String {
 }
 
 fun processLlmResponse(response: String): String {
-  // Remove FUNCTION_CALL text that shouldn't be shown to users
+  // Remove any leftover function call metadata that shouldn't be shown to users
   var processed = response
 
-  // Remove any occurrence of FUNCTION_CALL: and everything up to the next newline or end of text
-  processed = processed.replace(Regex("FUNCTION_CALL:[^\n]*"), "")
+  processed = processed.replace(
+    Regex(
+      """\{"name"\s*:\s*"[^"]+"\s*,\s*"parameters"\s*:\s*\{.*?\}\}""",
+      setOf(RegexOption.DOT_MATCHES_ALL)
+    ),
+    ""
+  )
 
   // Remove markdown code block delimiters (``` or ~~~)
   processed = processed.replace(Regex("```[a-zA-Z]*\n?"), "")

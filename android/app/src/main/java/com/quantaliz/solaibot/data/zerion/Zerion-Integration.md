@@ -141,7 +141,7 @@ User: "What's my SOL balance?"
     ↓
 LLM detects wallet query
     ↓
-FUNCTION_CALL: get_balance(token="SOL")
+{"name": "get_balance", "parameters": {"token": "SOL"}}
     ↓
 executeSolanaWalletFunction()
     ↓

@@ -160,7 +160,7 @@ class ZerionApiClient(
             val responseBody = response.body?.string()
                 ?: return@withContext Result.failure(IOException("Empty response body"))
 
-            Log.d(TAG, "Positions response received with ${responseBody.length} characters")
+            Log.d(TAG, "Positions response received with ${responseBody} characters")
 
             val positionsResponse = json.decodeFromString<ZerionPositionsResponse>(responseBody)
             Result.success(positionsResponse)

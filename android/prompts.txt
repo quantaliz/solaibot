@@ -297,9 +297,24 @@ To update your context on what we are working:
 - The file "@app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt" should remove "get_solana_balance" & "send_solana" function calls, keep only "solana_payment". The removed functions now will use the Zerion function calls.
 
 What's my solana balance
+Can you make a payment to "https://x402.payai.network/api/solana-devnet/paid-content"
+Tell me which transactions I have made in solana-devnet
+Tell me which transactions this wallet uZ1N4C9dc71Euu4GLYt5UURpFtg1WWSwo3F4Rn46Fr3 has on solana
 
 To update your context on what we are working:
 - Check the @Zerion-QuickStart.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/Zerion-Integration.md @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md
 - File @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt returns "Function result: Wallet not connected." which is fine
 - But then, the LLM seems to try to make another function call like `{"name": "get_balance", "parameters": {"token": "SOL"}}Calling... get_balance{"name": "get_balance", "parameters": {}}` which is wrong, The app should trigger a message tell the user to connect its solana wallet instead.
 - Something similar is happening when the function call returns "return No token positions found for this wallet.", which tries to continue making function calls. Resolve this issue
+
+
+When I ask the LLM this:
+Tell me which transactions I have made in solana-devnet
+It returns this: {"name": "get_transactions", "parameters": {"limit": "5"}}Calling... get_transactions{"name": "get_transactions", "parameters": {"limit": "
+Which is wrong, tell me how to resolve this issue. First, the JSON before "Calling..." should be recognized by the code and not shown to the user. Then there is another "JSON" object that is truncated by the same LLM. @log.txt has the logs of what happened in code
+With these, confirm that the list of "functionCall" listed in both "@app/src/main/java/com/quantaliz/solaibot/data/FunctionDeclarations.kt" & "@app/src/main/java/com/quantaliz/solaibot/ui/llmchat/LlmFunctionCallingModelHelper.kt" matches what is offered by @app/src/main/java/com/quantaliz/solaibot/data/SolanaWalletFunctions.kt & @app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionWalletFunctions.kt
+
+Fortunatelly, the first JSON is not shown to the user anymore, however, it showed like this: "Calling... get_transactions{"name": "get_transactions", "parameters": {"limit": "5"}}". In the logs it mentions there is "No transactions found for this wallet", which the LLM did not catch as finish this flow.
+Also, make sure to remove references to "FUNCTION_CALL" previous way to call functions, now it is using json responses directly. You can find staled documentation in @README.md
+
+The @app/src/main/java/com/quantaliz/solaibot/data/zerion/README.md provides a summary of the zerion API. Or @docs/zerion/llms.txt provides references to all documentation. In theory, zerion supports solana mainnet and devnet. I am sure the solana wallet has transactions, but the API result tells me it does not, which is wrong. If necessary, you can try to call @docs/zerion/zerion.sh with the correct

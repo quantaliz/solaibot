@@ -132,11 +132,32 @@ val txResult = client.getWalletTransactions(
 
 The LLM can call these functions directly:
 
+```json
+{
+  "name": "get_portfolio",
+  "parameters": {}
+}
 ```
-FUNCTION_CALL: get_portfolio()
-FUNCTION_CALL: get_balance(token="SOL")
-FUNCTION_CALL: get_transactions(limit="5")
-FUNCTION_CALL: verify_transaction(hash="abc123...")
+
+```json
+{
+  "name": "get_balance",
+  "parameters": { "token": "SOL" }
+}
+```
+
+```json
+{
+  "name": "get_transactions",
+  "parameters": { "limit": "5" }
+}
+```
+
+```json
+{
+  "name": "verify_transaction",
+  "parameters": { "hash": "abc123..." }
+}
 ```
 
 ## 📊 Data Flow

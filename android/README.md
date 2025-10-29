@@ -124,8 +124,13 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 ### Step-by-Step Process
 
 1. **🤖 LLM Function Call**
-   ```kotlin
-   FUNCTION_CALL: solana_payment(url="https://x402.payai.network/api/solana-devnet/paid-content")
+   ```json
+   {
+     "name": "solana_payment",
+     "parameters": {
+       "url": "https://x402.payai.network/api/solana-devnet/paid-content"
+     }
+   }
    ```
    The LLM autonomously identifies the need to access a paid resource
 

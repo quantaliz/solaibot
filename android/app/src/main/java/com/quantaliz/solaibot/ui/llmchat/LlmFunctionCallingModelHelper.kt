@@ -249,9 +249,9 @@ object LlmFunctionCallingModelHelper {
             inputDataList.add(InputData.Text(fullPrompt))
 
             val responseBuilder = StringBuilder()
-            var isFunctionCall = false
-            var bufferUntilSafe = true  // Buffer initial text to check for FUNCTION_CALL
+            var bufferUntilSafe = true  // Buffer initial tokens while checking for function-call metadata
             val safeBuffer = StringBuilder()
+            var potentialFunctionCall = false
 
             session.generateContentStream(
                 inputDataList,
@@ -259,20 +259,26 @@ object LlmFunctionCallingModelHelper {
                     override fun onNext(response: String) {
                         responseBuilder.append(response)
                         val accumulated = responseBuilder.toString()
+                        val trimmedAccumulated = accumulated.trimStart()
 
-                        // Check if accumulated text contains FUNCTION_CALL
-                        if (accumulated.contains("FUNCTION_CALL")) {
-                            isFunctionCall = true
+                        // Detect JSON function call early and suppress streaming
+                        if (!potentialFunctionCall && trimmedAccumulated.startsWith("{\"name\"")) {
+                            potentialFunctionCall = true
                             bufferUntilSafe = false
-                            // Don't stream anything to UI once we detect function call
+                            safeBuffer.clear()
                             return
                         }
 
-                        // Buffer first few tokens to detect FUNCTION_CALL pattern early
+                        if (potentialFunctionCall) {
+                            // Suppress streaming until onDone confirms the call
+                            return
+                        }
+
+                        // Buffer initial tokens so we only stream once we're sure it's regular text
                         if (bufferUntilSafe) {
                             safeBuffer.append(response)
-                            // Once we have enough text and no FUNCTION_CALL, flush buffer
-                            if (safeBuffer.length > 20 && !accumulated.startsWith("FUNCTION")) {
+                            // Once we have enough text and no JSON function call indicator, flush buffer
+                            if (safeBuffer.length > 20 && !trimmedAccumulated.startsWith("{\"name\"")) {
                                 bufferUntilSafe = false
                                 resultListener(safeBuffer.toString(), false)
                                 safeBuffer.clear()
@@ -329,40 +335,18 @@ object LlmFunctionCallingModelHelper {
                                     instance.conversationHistory.add(ConversationTurn("assistant", errorInfo.userMessage))
 
                                     // Display directly to user without LLM interpretation
-                                    resultListener(errorInfo.userMessage, true)
+                                    resultListener("", true)
+                                    resultListener(errorInfo.userMessage, false)
+                                    resultListener("", true)
                                 } else {
                                     // Add function result to history
                                     instance.conversationHistory.add(ConversationTurn("function", functionResult))
+                                    instance.conversationHistory.add(ConversationTurn("assistant", functionResult))
 
-                                    // Build new prompt with function result
-                                    val followUpPrompt = buildPrompt(instance)
-
-                                    // Generate follow-up response
-                                    val followUpBuilder = StringBuilder()
-                                    session.generateContentStream(
-                                        listOf(InputData.Text(followUpPrompt)),
-                                        object : ResponseObserver {
-                                            override fun onNext(response: String) {
-                                                followUpBuilder.append(response)
-                                                resultListener(response, false)
-                                            }
-
-                                            override fun onDone() {
-                                                val followUpResponse = followUpBuilder.toString()
-                                                Log.d(TAG, "Follow-up response: $followUpResponse")
-
-                                                // Add follow-up to history
-                                                instance.conversationHistory.add(ConversationTurn("assistant", followUpResponse))
-
-                                                resultListener("", true)
-                                            }
-
-                                            override fun onError(throwable: Throwable) {
-                                                Log.e(TAG, "Follow-up response error: ${throwable.message}", throwable)
-                                                resultListener("Error generating follow-up: ${throwable.message}", true)
-                                            }
-                                        }
-                                    )
+                                    // Close the function-call bubble and emit the result directly to the user
+                                    resultListener("", true)
+                                    resultListener(functionResult, false)
+                                    resultListener("", true)
                                 }
                             } else {
                                 // For wallet functions, we need special handling since they might involve user interaction
@@ -437,6 +421,15 @@ object LlmFunctionCallingModelHelper {
                             }
                         } else {
                             // No function call, just a normal response
+                            if (potentialFunctionCall && fullResponse.isNotBlank()) {
+                                // Looked like a function call but failed to parse; emit full response now
+                                resultListener(fullResponse, false)
+                                safeBuffer.clear()
+                            } else if (safeBuffer.isNotEmpty()) {
+                                resultListener(safeBuffer.toString(), false)
+                                safeBuffer.clear()
+                            }
+
                             instance.conversationHistory.add(ConversationTurn("assistant", fullResponse))
                             resultListener("", true)
                         }

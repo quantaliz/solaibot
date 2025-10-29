@@ -17,6 +17,7 @@
 package com.quantaliz.solaibot.data
 
 import android.content.Context
+import org.json.JSONObject
 
 /**
  * Function declarations for LLM function calling using prompt engineering.
@@ -105,51 +106,51 @@ suspend fun executeFunction(
 
 /**
  * Parse function call from model response.
- * Returns Pair(functionName, arguments) or null if no function call detected.
- *
- * Supports both JSON format (preferred for Gemma) and legacy format for backwards compatibility.
+ * Returns Pair(functionName, arguments) when a JSON function call object is present, or null otherwise.
  */
 fun parseFunctionCall(response: String): Pair<String, Map<String, String>>? {
-    // Try JSON format first (Gemma 3 preferred format)
-    // Look for: {"name": "function_name", "parameters": {"param1": "value1"}}
-    try {
-        val jsonRegex = Regex("""\{[^}]*"name"\s*:\s*"([^"]+)"[^}]*"parameters"\s*:\s*\{([^}]*)\}[^}]*\}""")
-        val jsonMatch = jsonRegex.find(response)
+    val jsonStart = response.indexOf("{\"name\"")
+    if (jsonStart == -1) {
+        return null
+    }
 
-        if (jsonMatch != null) {
-            val functionName = jsonMatch.groupValues[1]
-            val paramsString = jsonMatch.groupValues[2]
+    val jsonSnippet = extractJsonObject(response, jsonStart) ?: return null
 
-            // Parse parameters from JSON
-            val args = mutableMapOf<String, String>()
-            val paramRegex = Regex(""""(\w+)"\s*:\s*"([^"]*)"""")
-            for (paramMatch in paramRegex.findAll(paramsString)) {
-                val key = paramMatch.groupValues[1]
-                val value = paramMatch.groupValues[2]
-                args[key] = value
+    return runCatching {
+        val jsonObject = JSONObject(jsonSnippet)
+        val functionName = jsonObject.optString("name").takeIf { it.isNotBlank() } ?: return null
+        val paramsObj = jsonObject.optJSONObject("parameters")
+
+        val args = mutableMapOf<String, String>()
+        if (paramsObj != null) {
+            val keys = paramsObj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = paramsObj.opt(key)
+                args[key] = value?.toString() ?: ""
             }
-
-            return Pair(functionName, args)
         }
-    } catch (e: Exception) {
-        // Fall through to legacy format
+
+        Pair(functionName, args)
+    }.getOrNull()
+}
+
+private fun extractJsonObject(response: String, startIndex: Int): String? {
+    var depth = 0
+    var endIndex = -1
+
+    for (i in startIndex until response.length) {
+        when (response[i]) {
+            '{' -> depth++
+            '}' -> {
+                depth--
+                if (depth == 0) {
+                    endIndex = i
+                    break
+                }
+            }
+        }
     }
 
-    // Fall back to legacy format: FUNCTION_CALL: function_name(arg1="value1")
-    val functionCallRegex = Regex("""FUNCTION_CALL:\s*(\w+)\((.*?)\)""")
-    val match = functionCallRegex.find(response) ?: return null
-
-    val functionName = match.groupValues[1]
-    val argsString = match.groupValues[2]
-
-    // Parse arguments
-    val args = mutableMapOf<String, String>()
-    val argRegex = Regex("""(\w+)="([^"]*)"""")
-    for (argMatch in argRegex.findAll(argsString)) {
-        val key = argMatch.groupValues[1]
-        val value = argMatch.groupValues[2]
-        args[key] = value
-    }
-
-    return Pair(functionName, args)
+    return if (endIndex != -1) response.substring(startIndex, endIndex + 1) else null
 }
