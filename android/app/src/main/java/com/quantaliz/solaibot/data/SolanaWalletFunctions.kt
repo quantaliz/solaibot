@@ -32,7 +32,8 @@ import kotlinx.coroutines.withContext
  * HOW THE SYSTEM WORKS:
  * 1. The LLM is trained with a system prompt that includes these Solana functions
  * 2. When the user asks about their Solana balance or wants to perform wallet actions,
- *    the LLM generates a function call in the format: FUNCTION_CALL: function_name(param1="value1", param2="value2")
+ *    the LLM generates a JSON function call object such as:
+ *    {"name": "function_name", "parameters": {"param1": "value1", "param2": "value2"}}
  * 3. The LlmFunctionCallingModelHelper detects this function call pattern
  * 4. It then calls executeFunction() which routes to executeSolanaWalletFunction() for Solana functions
  * 5. This function interacts with the actual Solana wallet via Mobile Wallet Adapter
@@ -112,10 +113,9 @@ fun initializeSolanaWalletAdapter(context: Context) {
 }
 
 /**
- * Gets the user's Solana wallet balance.
- * This function will check if the wallet is connected and retrieve the account information.
- * NOTE: The MWA does not directly provide balance information, so we return account details
- * and the balance would need to be fetched separately via RPC or another method.
+ * Gets the user's Solana wallet balance using Zerion API.
+ * This provides richer data including token prices, USD values, and verified token info.
+ * Replaces the direct RPC call with Zerion's aggregated data.
  */
 suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null): String {
     // Initialize wallet adapter if not already done
@@ -131,18 +131,24 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
     val connectionState = WalletConnectionManager.getConnectionState()
 
     if (connectionState.isConnected && connectionState.address != null) {
-        // If already connected, just return the current connection info and try to get the balance
-        // For now, we'll retrieve the balance using Solana's JSON RPC API
+        // Wallet is connected, use Zerion API to get balance
         val balanceString = try {
             withContext(Dispatchers.IO) {
-                getSolanaBalanceViaRpc(context, connectionState.address)
+                com.quantaliz.solaibot.data.zerion.getZerionBalance(context)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
-            "Balance could not be retrieved via RPC: ${e.message}"
+            Log.e(TAG, "Error retrieving balance via Zerion API: ${e.message}", e)
+            // Fallback to RPC if Zerion fails
+            Log.d(TAG, "Falling back to RPC for balance")
+            try {
+                getSolanaBalanceViaRpc(context, connectionState.address)
+            } catch (rpcError: Exception) {
+                Log.e(TAG, "RPC fallback also failed: ${rpcError.message}", rpcError)
+                "Balance could not be retrieved: ${e.message}"
+            }
         }
 
-        return "Wallet is connected. Address: ${connectionState.address}. $balanceString"
+        return "Wallet is connected. Address: ${connectionState.address}.\n\n$balanceString"
     } else {
         // If not connected, we need the activityResultSender to initiate a connection
         return if (activityResultSender == null) {
@@ -167,17 +173,22 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                             )
                         )
 
-                        // Get the balance for the connected wallet
+                        // Get the balance using Zerion API
                         val balanceString = try {
                             withContext(Dispatchers.IO) {
-                                getSolanaBalanceViaRpc(context, address)
+                                com.quantaliz.solaibot.data.zerion.getZerionBalance(context)
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
-                            "Balance could not be retrieved via RPC: ${e.message}"
+                            Log.e(TAG, "Error retrieving balance via Zerion API: ${e.message}", e)
+                            // Fallback to RPC
+                            try {
+                                getSolanaBalanceViaRpc(context, address)
+                            } catch (rpcError: Exception) {
+                                "Balance could not be retrieved: ${e.message}"
+                            }
                         }
 
-                        "Wallet connected. Address: $address. $balanceString"
+                        "Wallet connected. Address: $address.\n\n$balanceString"
                     } else {
                         "No wallet account connected"
                     }
@@ -188,7 +199,7 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                         val publicKeyBytes = result.authResult.accounts.first().publicKey
                         val publicKey = SolanaPublicKey(publicKeyBytes)
                         val address = publicKey.base58()
-                        // Update connection state again in case it changed
+                        // Update connection state
                         val hexAddress = bytesToHex(publicKeyBytes)
                         WalletConnectionManager.updateConnectionState(
                             WalletConnectionState(
@@ -198,17 +209,22 @@ suspend fun getSolanaBalance(context: Context, activityResultSender: com.solana.
                             )
                         )
 
-                        // Get the balance for the connected wallet
+                        // Get the balance using Zerion API
                         val balanceString = try {
                             withContext(Dispatchers.IO) {
-                                getSolanaBalanceViaRpc(context, address)
+                                com.quantaliz.solaibot.data.zerion.getZerionBalance(context)
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error retrieving balance via RPC: ${e.message}", e)
-                            "Balance could not be retrieved via RPC: ${e.message}"
+                            Log.e(TAG, "Error retrieving balance via Zerion API: ${e.message}", e)
+                            // Fallback to RPC
+                            try {
+                                getSolanaBalanceViaRpc(context, address)
+                            } catch (rpcError: Exception) {
+                                "Balance could not be retrieved: ${e.message}"
+                            }
                         }
 
-                        "Wallet connected. Address: $address. $balanceString"
+                        "Wallet connected. Address: $address.\n\n$balanceString"
                     }
                     is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
                         WalletConnectionManager.clearConnectionState()
@@ -295,32 +311,13 @@ suspend fun sendSolana(context: Context, args: Map<String, String>, activityResu
 
 /**
  * Gets the list of available Solana wallet functions for LLM function calling.
+ *
+ * Note: Balance and transaction queries now use Zerion API functions.
+ * This only includes the x402 payment function, as wallet data functions
+ * are provided by Zerion integration.
  */
 fun getSolanaWalletFunctions(): List<FunctionDefinition> {
-    return listOf(
-        FunctionDefinition(
-            name = "get_solana_balance",
-            description = "Get the current balance of the Solana wallet. Automatically connects to the wallet if not already connected.",
-            parameters = listOf()
-        ),
-        FunctionDefinition(
-            name = "send_solana",
-            description = "Send Solana (SOL) to another address. This prompts the user to authorize the transaction through their wallet.",
-            parameters = listOf(
-                FunctionParameter(
-                    name = "recipient",
-                    type = "string",
-                    description = "The recipient's Solana address (Base58 encoded)",
-                    required = true
-                ),
-                FunctionParameter(
-                    name = "amount",
-                    type = "string",
-                    description = "The amount of SOL to send (e.g., '0.1' for 0.1 SOL)",
-                    required = true
-                )
-            )
-        ),
+    val mwaFunctions = listOf(
         FunctionDefinition(
             name = "solana_payment",
             description = "Make a payment to access a paid API or resource using the x402 protocol. It handles the full payment flow: requesting the resource, receiving payment requirements, signing the payment transaction through the wallet, and retrieving the paid content. When you receive a response, provide as much information as possible to the user, like: Transaction hashes/signatures Payment amounts and networks, Wallet addresses, Premium content or data received",
@@ -334,6 +331,11 @@ fun getSolanaWalletFunctions(): List<FunctionDefinition> {
             )
         )
     )
+
+    // Add Zerion wallet data functions (portfolio, balance, transactions, verification)
+    val zerionFunctions = com.quantaliz.solaibot.data.zerion.getZerionWalletFunctions()
+
+    return mwaFunctions + zerionFunctions
 }
 
 /**
@@ -455,6 +457,7 @@ suspend fun makeSolanaPayment(
 /**
  * Executes Solana wallet functions based on the function name and parameters.
  * This is called by the LLM function calling system when a Solana function is called.
+ * Routes to either MWA functions or Zerion API functions.
  */
 suspend fun executeSolanaWalletFunction(
     context: Context,
@@ -463,9 +466,17 @@ suspend fun executeSolanaWalletFunction(
     activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
 ): String {
     return when (functionName) {
+        // Original MWA functions
         "get_solana_balance" -> getSolanaBalance(context, activityResultSender)
         "send_solana" -> sendSolana(context, args, activityResultSender)
         "solana_payment" -> makeSolanaPayment(context, args, activityResultSender)
+
+        // Zerion API functions
+        "get_portfolio" -> com.quantaliz.solaibot.data.zerion.getZerionPortfolio(context, args)
+        "get_balance" -> com.quantaliz.solaibot.data.zerion.getZerionBalance(context, args)
+        "get_transactions" -> com.quantaliz.solaibot.data.zerion.getZerionTransactions(context, args)
+        "verify_transaction" -> com.quantaliz.solaibot.data.zerion.verifyZerionTransaction(context, args)
+
         else -> "Error: Unknown Solana wallet function '$functionName'"
     }
 }

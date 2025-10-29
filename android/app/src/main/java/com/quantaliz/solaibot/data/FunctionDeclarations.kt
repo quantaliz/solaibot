@@ -17,6 +17,7 @@
 package com.quantaliz.solaibot.data
 
 import android.content.Context
+import org.json.JSONObject
 
 /**
  * Function declarations for LLM function calling using prompt engineering.
@@ -44,50 +45,49 @@ val availableFunctions = getSolanaWalletFunctions()
  */
 fun generateFunctionCallingSystemPrompt(): String {
     val sb = StringBuilder()
-    sb.append("You are a helpful assistant with access to the following functions:\n\n")
+    sb.append("You have access to the following functions. Use them when needed:\n\n")
 
     for (func in availableFunctions) {
-        sb.append("Function: ${func.name}\n")
-        sb.append("Description: ${func.description}\n")
-        sb.append("Parameters:\n")
-        for (param in func.parameters) {
-            sb.append("  - ${param.name} (${param.type}): ${param.description}")
-            if (param.required) sb.append(" [REQUIRED]")
-            sb.append("\n")
+        sb.append("${func.name}\n")
+        sb.append("${func.description}\n")
+        if (func.parameters.isNotEmpty()) {
+            sb.append("Parameters:\n")
+            for (param in func.parameters) {
+                sb.append("  - ${param.name} (${param.type}): ${param.description}")
+                if (param.required) sb.append(" [REQUIRED]")
+                sb.append("\n")
+            }
         }
         sb.append("\n")
     }
 
     sb.append("""
-To call a function, respond EXACTLY in this format:
-FUNCTION_CALL: function_name(param1="value1", param2="value2")
+To call a function, you MUST use this JSON format:
+{"name": "function_name", "parameters": {"param1": "value1", "param2": "value2"}}
 
 Examples:
-FUNCTION_CALL: get_solana_balance()
-FUNCTION_CALL: send_solana(recipient="7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", amount="0.1")
-FUNCTION_CALL: solana_payment(url="https://api.example.com/premium-data")
+{"name": "get_portfolio", "parameters": {"network": "solana-devnet"}}
+{"name": "get_balance", "parameters": {"address": "wallet_address_base58", "token": "SOL"}}
+{"name": "get_transactions", "parameters": {"limit": "5", "network": "solana-devnet"}}
+{"name": "solana_payment", "parameters": {"url": "https://api.example.com/premium-data"}}
+{"name": "verify_transaction", "parameters": {"hash": "abc123...", "address": "wallet_address_base58"}}
 
-Important:
-- Only call functions when the user explicitly asks for information that requires them
-- Use exact function names and parameter names as defined above
-- Always put string values in double quotes
-- If you don't need a function, respond normally with natural language
-- When responding to users after a function call, speak naturally without using markdown code blocks (no ``` syntax)
-- Keep responses conversational and friendly
-- IMPORTANT: When presenting function results (especially payment transactions), include ALL relevant details from the function result such as:
-  * Transaction hashes/signatures
-  * Payment amounts and networks
-  * Wallet addresses
-  * Balance information
-  * Premium content or data received
-  * Any confirmation details or receipts
-  * Format these details clearly for the user to see
+Rules:
+- Use functions only when needed to answer the user's question
+- Use exact function names and parameter names
+- For functions with no parameters, use empty object: "parameters": {}
+- Respond naturally in text when not calling functions
+- When showing function results, include all important details (transaction hashes, amounts, addresses, etc.)
+- IMPORTANT: If a function returns an error or info message (starting with ERROR: or INFO:), DO NOT make additional function calls. The error/info will be displayed directly to the user.
+- If you see "ERROR:WALLET_NOT_CONNECTED" in function results, the user needs to connect their wallet first before any wallet operations can succeed.
+- Provide the "address" parameter when the user asks about a specific wallet (use base58 Solana addresses). If omitted, the connected wallet is used.
+- Use the "network" parameter to target devnet (\"solana-devnet\") or mainnet (\"solana\"). Default is Solana mainnet.
 
-Solana Wallet Usage Notes:
-- For balance queries, use get_solana_balance() - it will automatically connect if needed
-- The solana_payment() function uses the x402 protocol for micropayments to access paid APIs and resources
-- All Solana addresses should be valid Base58-encoded public keys
-- SOL amounts should be specified as decimal values (e.g., "0.1" for 0.1 SOL)
+get_portfolio: Shows total wallet value and asset distribution
+get_balance: Shows token balances with USD values (optional token filter, address, or network)
+get_transactions: Shows recent transaction history (optional address, network, limit)
+verify_transaction: Confirms transaction by hash (optional address, network)
+solana_payment: Makes x402 micropayments for paid resources
 """.trimIndent())
 
     return sb.toString()
@@ -108,24 +108,51 @@ suspend fun executeFunction(
 
 /**
  * Parse function call from model response.
- * Returns Pair(functionName, arguments) or null if no function call detected.
+ * Returns Pair(functionName, arguments) when a JSON function call object is present, or null otherwise.
  */
 fun parseFunctionCall(response: String): Pair<String, Map<String, String>>? {
-    // Look for pattern: FUNCTION_CALL: function_name(arg1="value1", arg2="value2")
-    val functionCallRegex = Regex("""FUNCTION_CALL:\s*(\w+)\((.*?)\)""")
-    val match = functionCallRegex.find(response) ?: return null
-
-    val functionName = match.groupValues[1]
-    val argsString = match.groupValues[2]
-
-    // Parse arguments
-    val args = mutableMapOf<String, String>()
-    val argRegex = Regex("""(\w+)="([^"]*)"""")
-    for (argMatch in argRegex.findAll(argsString)) {
-        val key = argMatch.groupValues[1]
-        val value = argMatch.groupValues[2]
-        args[key] = value
+    val jsonStart = response.indexOf("{\"name\"")
+    if (jsonStart == -1) {
+        return null
     }
 
-    return Pair(functionName, args)
+    val jsonSnippet = extractJsonObject(response, jsonStart) ?: return null
+
+    return runCatching {
+        val jsonObject = JSONObject(jsonSnippet)
+        val functionName = jsonObject.optString("name").takeIf { it.isNotBlank() } ?: return null
+        val paramsObj = jsonObject.optJSONObject("parameters")
+
+        val args = mutableMapOf<String, String>()
+        if (paramsObj != null) {
+            val keys = paramsObj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = paramsObj.opt(key)
+                args[key] = value?.toString() ?: ""
+            }
+        }
+
+        Pair(functionName, args)
+    }.getOrNull()
+}
+
+private fun extractJsonObject(response: String, startIndex: Int): String? {
+    var depth = 0
+    var endIndex = -1
+
+    for (i in startIndex until response.length) {
+        when (response[i]) {
+            '{' -> depth++
+            '}' -> {
+                depth--
+                if (depth == 0) {
+                    endIndex = i
+                    break
+                }
+            }
+        }
+    }
+
+    return if (endIndex != -1) response.substring(startIndex, endIndex + 1) else null
 }

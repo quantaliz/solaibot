@@ -52,7 +52,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       iconVectorResourceId = R.drawable.ic_robot,
       models = mutableListOf(MODEL_GEMINI_3N_E2B, MODEL_GEMINI_3N_E4B, PHI4_MINI_INSTRUCT),
       description = "On-device Large Language Model that can make x402 payments. Developed for Hackaroo & Cypherpunk",
-      docUrl = "https://quantaliz.com/hackaroo",
+      docUrl = "https://quantaliz.com/hackathon",
       sourceCodeUrl =
         "https://github.com/quantaliz/solaibot",
       textInputPlaceHolderRes = R.string.text_input_placeholder_llm_chat,
