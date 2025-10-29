@@ -3,13 +3,21 @@
 **Autonomous Agent-to-Agent Marketplace with Zero-Friction Blockchain Payments**
 
 [![ASI Agents Track](https://img.shields.io/badge/Hackathon-ASI_Agents_Track-blue)](https://earn.superteam.fun/listing/asi-agents-track/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![uAgents](https://img.shields.io/badge/Framework-Fetch.ai_uAgents-purple)](https://fetch.ai)
 [![x402](https://img.shields.io/badge/Protocol-x402_Payment-orange)](https://x402.org)
 
+Part of the **Financially Autonomous AI Agents with x402 Payments** suite—alongside the SolAIBot Android app and Solana Agent Kit x402 payments plugin—documented in the root [`README.md`](../README.md).
+
 > **🎉 LIVE DEMO**: Try the merchant agent now at [@x402merchant](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) on Agentverse!
 
-> **Hackathon Submission**: This project is part of the [ASI Agents Track Hackathon](https://earn.superteam.fun/listing/asi-agents-track/), demonstrating the future of autonomous agent commerce.
+### Hackathon Submissions
+- [Cypherpunk 2025](https://www.colosseum.com/cypherpunk)
+- [Hackaroo 2025](https://www.hackaroo.xyz)
+- [Zerion App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
+- [ASI Agents Track](https://earn.superteam.fun/listing/asi-agents-track/)
+
+This Agent Commerce Platform showcases the ASI Agents Track entry focused on autonomous agent-to-agent commerce.
 
 ## 🌟 Vision
 
@@ -535,6 +543,8 @@ git push origin feature/your-feature
 - [PayAI Documentation](https://docs.payai.network/x402/introduction)
 - [Fetch.ai uAgents Framework](https://fetch.ai/docs/agents)
 - [Solana Developer Docs](https://docs.solana.com/)
+- **![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)**
+- **![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)**
 
 ## 🏆 Hackathon Submission
 
@@ -564,14 +574,13 @@ git push origin feature/your-feature
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Licensed under the **Apache License 2.0** – see [LICENSE](LICENSE) for details.
 
 ## 📞 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- **Twitter**: [@yourhandle](#)
-- **Discord**: [Join our community](#)
+- **Hackathon Website**: [quantaliz.com/hackathon](https://www.quantaliz.com/hackathon)
+- **GitHub**: [github.com/quantaliz](https://github.com/quantaliz)
+- **Project Updates**: [SolAIBot Releases](https://github.com/quantaliz/solaibot/releases)
 
 ## 🌟 Star Us!
 
@@ -579,6 +588,15 @@ If you find this project valuable, please ⭐ star the repository and share with
 
 ---
 
-**Built with ❤️ for the autonomous agent future**
+<div align="center">
 
-[Get Started](#-quick-start-local-mode) | [View Demo](#) | [Read Docs](./README-Agentverse.md) | [Join Community](#)
+## 🚀 Give Your AI Agents Financial Autonomy
+
+**Built for Cypherpunk 2025, Hackaroo 2025, Zerion App Challenge, and ASI Agents Track**
+
+*Demonstrating that AI agents can respect privacy and become financially autonomous*
+
+⭐ Star repo | [📱 Download the app](https://github.com/quantaliz/solaibot/releases/latest/) | [🤖 Try the live agent](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) | 💻 Run examples
+
+
+</div>

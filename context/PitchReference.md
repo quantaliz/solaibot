@@ -527,7 +527,7 @@ Always have:
 
 ### Our Traction Story
 
-- ✅ Working Android app (v1.0.7) in releases
+- ✅ Working Android app (v0.3) in releases
 - ✅ Production Node.js toolkit with tests
 - ✅ Successfully tested on Solana devnet
 - ✅ 1,000+ lines of new payment code
