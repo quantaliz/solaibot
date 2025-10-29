@@ -24,7 +24,7 @@
 ---
 
 ## Key Stats to Drop In
-- 1.5B parameter model running on your phone
+- Multiple model selection running on your phone
 - 400ms payment confirmation (Solana speed)
 - Zero server communication for AI processing
 - First Android implementation of x402 protocol

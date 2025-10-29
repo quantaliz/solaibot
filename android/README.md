@@ -7,7 +7,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Hackathon Submission:** Cypherpunk 2025 & Hackaroo 2025
+**Hackathon Submission:** [Cypherpunk 2025](https://www.colosseum.com/cypherpunk) • [Hackaroo 2025](https://www.hackaroo.xyz) • [Superteam Zerion Consumer App Challenge](https://earn.superteam.fun/listing/build-a-consumer-app-on-solana-using-the-zerion-api)
 
 ## 🎯 The Innovation
 
@@ -19,13 +19,15 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 
 **Our Solution:** A completely on-device LLM that maintains privacy while leveraging Solana's speed, plus the x402 payment protocol to enable AI-driven microtransactions—no servers for LLMs, no data leakage, no intermediaries.
 
+This deep dive expands on the SolAIBot overview in the root [`README.md`](../README.md), detailing how the Android app now ships Zerion API function-call workflows alongside autonomous payments.
+
 ---
 
 ## ✨ Core Features & Technical Achievements
 
 ### 🧠 On-Device AI Processing
 *   **100% Offline Inference:** All LLM processing happens locally using AI Edge (LiteRT)
-*   **Hammer 2.1 LLM (1.5B parameters):** Optimized for mobile with function calling capabilities
+*   **Multiple LLMs:** Optimized for mobile with function calling capabilities
 *   **Multi-turn Conversations:** Stateful chat with context preservation
 *   **Real-time Performance Metrics:** TTFT, decode speed, and latency monitoring
 *   **Model Flexibility:** Support for custom `.litertlm` models
@@ -41,11 +43,10 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 *   **Transaction Builder:** Precise account ordering for Solana program compatibility
 
 ### 📊 Zerion Wallet Intelligence
-*   **Zerion API Integration:** Rich portfolio, balance, transaction, and verification data with RPC fallback
-*   **Wallet Overrides:** Optional `address` parameter lets the LLM query any Solana account, even without connecting it
-*   **Network Awareness:** `network="solana"` automatically scopes requests with `filter[chain_ids]=solana`
-*   **Resilient Parsing:** Custom serializers handle Zerion's numeric scalar totals without crashing the chat flow
-*   **Actionable Errors:** Structured `ERROR:CODE:message` responses prevent redundant calls and surface next steps to users
+*   **Live portfolio data:** Zerion endpoints surface balances, transactions, and verification proofs on demand with RPC fallback
+*   **Wallet overrides:** Optional `address` parameter lets the LLM inspect any Solana account, even without reconnecting a wallet
+*   **Network-scoped requests:** `network="solana"` automatically scopes Zerion calls with `filter[chain_ids]=solana`
+*   **Resilient responses:** Structured `ERROR:CODE:message` handling prevents redundant calls and keeps the conversation on-track
 
 ### 🎨 User Experience
 *   **Modern Jetpack Compose UI:** Reactive, declarative interface built with Material3
@@ -57,7 +58,7 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 
 ## 🏆 Hackathon Submission
 
-### Dual Submission Strategy
+### Submission Strategy
 
 **[Cypherpunk 2025](https://www.colosseum.com/cypherpunk)** - Privacy & Cryptography Focus
 - ✅ Complete on-device AI processing (zero LLM server communication)
@@ -88,9 +89,9 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 
 ### Requirements
 - **OS:** Android 12+ (API 31)
-- **Memory:** 6GB+ RAM recommended
+- **Memory:** 8GB+ RAM recommended
 - **Wallet:** Solflare or any MWA-compatible wallet (for payment features)
-- **Network:** Solana devnet or mainnet-beta access
+- **Network:** Solana devnet or mainnet access
 - **API Access:** Zerion developer API key (configure in `ZerionConfig.kt` before running wallet flows)
 
 ### Installation
@@ -98,7 +99,7 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 2. Install on your device
 3. Grant necessary permissions
 4. Set your Zerion API key in `app/src/main/java/com/quantaliz/solaibot/data/zerion/ZerionConfig.kt`
-5. Let the app download the Hammer 2.1 model (~1.3GB)
+5. Let the app download the Gemma 3N E2B model (~3.3GB)
 6. Connect your Solana wallet to payment features
 
 ### Sample Zerion Prompts
@@ -111,7 +112,7 @@ SolAIBot represents a breakthrough in **privacy-preserving AI** meets **decentra
 
 ### AI/ML Layer
 * **AI Edge (LiteRT):** TensorFlow Lite runtime optimized for mobile
-* **Hammer 2.1 LLM (1.5B):** Function-calling capable model from [MadeAgents](https://huggingface.co/MadeAgents/Hammer2.1-1.5b)
+* **Multiple LLMS:** Function-calling capable [models listed](https://huggingface.co/teleke/OpenGemma3N)
 * **GPU Acceleration:** TFLite GPU delegates for performance
 * **Streaming Inference:** Token-by-token generation with Flow-based streaming
 
@@ -229,7 +230,7 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 
 ### External Resources
 * [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery/) - Base project
-* [Hammer 2.1 Model](https://huggingface.co/MadeAgents/Hammer2.1-1.5b) - Default LLM
+* [LLM Models](https://huggingface.co/teleke/OpenGemma3N) - Default LLM
 * [LiteRT Community](https://huggingface.co/litert-community) - Model ecosystem
 * [Google AI Edge Docs](https://ai.google.dev/edge) - AI Edge platform
 * [Solana Mobile Docs](https://docs.solanamobile.com) - MWA guides
@@ -246,10 +247,10 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 | **Dependencies** | 10+ production libraries |
 | **Build Time** | ~45s incremental |
 | **APK Size** | ~85MB (model separate) |
-| **Model Size** | ~1.3GB (Hammer 2.1) |
+| **Model Size** | ~3.3GB |
 
 ### Recent Milestones
-- ✅ **v1.0.7** - Brand refresh with new icon and screenshots
+- ✅ **v0.3** - Pre-release in [Github](https://github.com/quantaliz/solaibot/releases)
 - ✅ **x402 Integration** - Full payment protocol implementation
 - ✅ **MWA Support** - Solflare and wallet adapter integration
 - ✅ **Devnet Testing** - End-to-end payment flow validated
@@ -261,10 +262,10 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 ## 🚀 Future Roadmap
 
 ### Post-Hackathon Features
-- [ ] **Mainnet Support:** Production-ready payments on mainnet-beta
-- [ ] **Token Support:** SPL token payments beyond USDC/SOL
 - [ ] **Zerion Key Management:** In-app API key configuration backed by Android Keystore
-- [ ] **Multi-Model:** Support for multiple simultaneous LLMs
+- [ ] **Zerion Multichain:** Take advante of Zerion infraestructure to query multiple networks
+- [ ] **Mainnet Support:** Production-ready payments on mainnet
+- [ ] **Token Support:** SPL token payments beyond USDC/SOL
 - [ ] **Voice Interface:** Audio input/output for hands-free operation
 - [ ] **Custom Plugins:** Extensible task system for developers
 - [ ] **Desktop Version:** Expand to desktop platforms with same privacy guarantees
@@ -280,9 +281,9 @@ User Prompt → LLM → Function Call → HTTP 402 → Transaction Build → MWA
 **[Quantaliz PTY LTD](https://www.quantaliz.com)** is pioneering the intersection of privacy-preserving AI and decentralized technologies. We believe the future of AI is local, private, and economically integrated with Web3.
 
 ### Contact & Links
-- **Website:** [quantaliz.com](https://www.quantaliz.com)
+- **Hackathon Website:** [quantaliz.com/hackathon](https://www.quantaliz.com/hackathon)
 - **GitHub:** [github.com/quantaliz](https://github.com/quantaliz)
-- **Project:** SolAIBot v1.0.7
+- **Project:** [SolAIBot v0.3 Pre-release](https://github.com/quantaliz/solaibot/releases/tag/0.3)
 
 ---
 
@@ -302,6 +303,6 @@ This project builds upon [Google AI Edge Gallery](https://github.com/google-ai-e
 
 *Demonstrating that AI agents can be both completely private and finantially autonomous*
 
-[![Download](https://img.shields.io/badge/Download-Latest%20Release-brightgreen.svg)](https://github.com/quantaliz/solaibot/releases/latest/)
+⭐ Star repo | [📱 Download the app](https://github.com/quantaliz/solaibot/releases/latest/) | [🤖 Try the live agent](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) | 💻 Run examples
 
 </div>

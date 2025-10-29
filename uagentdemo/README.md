@@ -579,6 +579,15 @@ If you find this project valuable, please ⭐ star the repository and share with
 
 ---
 
-**Built with ❤️ for the autonomous agent future**
+<div align="center">
 
-[Get Started](#-quick-start-local-mode) | [View Demo](#) | [Read Docs](./README-Agentverse.md) | [Join Community](#)
+## 🚀 Give Your AI Agents Financial Autonomy
+
+**Built for Cypherpunk 2025 & Hackaroo 2025**
+
+*Demonstrating that AI agents can be self-sovereign and financially autonomous*
+
+⭐ Star repo | [📱 Download the app](https://github.com/quantaliz/solaibot/releases/latest/) | [🤖 Try the live agent](https://agentverse.ai/agents/details/agent1qtem7xxuw9w65he0cr35u8r8v3fqhz6qh8qfhfl9u3x04m89t8dasd48sve/profile) | 💻 Run examples
+
+
+</div>

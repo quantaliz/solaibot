@@ -34,7 +34,7 @@ android {
     minSdk = 31
     targetSdk = 35
     versionCode = 13
-    versionName = "1.0.7"
+    versionName = "0.3"
 
     // Needed for HuggingFace auth workflows.
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
